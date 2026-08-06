@@ -3,8 +3,6 @@ import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-nat
 
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { TOUCH_TARGET } from './touchTarget';
-
 type SectionHeaderProps = {
   readonly title: string;
   /**
@@ -19,11 +17,8 @@ type SectionHeaderProps = {
 };
 
 /**
- * Section title treatment for "Snoring Timeline", "Snore Audio Snippets", and
- * "Weekly Comparison".
- *
- * Title uses `fontSize.title` / `fontFamily.semibold` in `colors.fg`. Optional info control
- * sits to the right of the label at the 44×44 minimum target.
+ * Quiet section title — body size, medium weight (summary-screen.jpg).
+ * Metrics stay bold elsewhere; headers do not compete.
  */
 export function SectionHeader({
   title,
@@ -38,8 +33,8 @@ export function SectionHeader({
         {
           flexDirection: 'row',
           alignItems: 'center',
-          gap: spacing.sm,
-          marginBottom: spacing.sm,
+          gap: spacing.xs,
+          marginBottom: spacing.xs,
         },
         style,
       ]}
@@ -50,9 +45,9 @@ export function SectionHeader({
         style={{
           flexShrink: 1,
           color: colors.fg,
-          fontFamily: fontFamily.semibold,
-          fontSize: fontSize.title,
-          lineHeight: lineHeight.title,
+          fontFamily: fontFamily.medium,
+          fontSize: fontSize.bodyLg,
+          lineHeight: lineHeight.bodyLg,
         }}
       >
         {title}
@@ -64,13 +59,13 @@ export function SectionHeader({
           hitSlop={spacing.sm}
           onPress={onInfoPress}
           style={{
-            minWidth: TOUCH_TARGET,
-            minHeight: TOUCH_TARGET,
+            width: fontSize.bodyLg,
+            height: fontSize.bodyLg,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="information-circle-outline" size={fontSize.bodyLg} color={colors.fgCaption} />
+          <Ionicons name="information-circle-outline" size={fontSize.body} color={colors.fgCaption} />
         </Pressable>
       ) : null}
     </View>

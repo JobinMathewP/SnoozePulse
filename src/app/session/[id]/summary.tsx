@@ -1,49 +1,45 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import { useLayoutEffect } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable } from 'react-native';
 
-import { colors, fontFamily, fontSize } from '@/theme';
-import type { SessionSummaryParams } from '@/types/navigation';
+import { SummaryScreen } from '@/features/summary';
+import { colors, fontFamily, fontSize, spacing } from '@/theme';
 
 /**
- * Sleep Summary — pushed stack screen with back + share (design-spec).
- * Placeholder only (Task 2.1). Share is a no-op until a later milestone.
+ * Sleep Summary route — mock-driven morning report (Task 3.4).
+ * Compact header chrome matching summary-screen.jpg.
  */
-export default function SessionSummaryScreen() {
+export default function SessionSummaryRoute() {
   const navigation = useNavigation();
-  const { id } = useLocalSearchParams<SessionSummaryParams>();
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      title: 'Sleep Summary',
+      headerTitleAlign: 'center',
+      headerTitleStyle: {
+        fontFamily: fontFamily.medium,
+        fontSize: fontSize.body,
+        color: colors.fg,
+      },
       headerRight: () => (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Share sleep summary"
-          hitSlop={8}
+          hitSlop={spacing.md}
           onPress={() => undefined}
           style={{
-            minWidth: 44,
-            minHeight: 44,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: spacing.xs,
             alignItems: 'center',
             justifyContent: 'center',
-            marginRight: 4,
           }}
         >
-          <Ionicons name="share-outline" size={22} color={colors.fg} />
+          <Ionicons name="share-outline" size={fontSize.body} color={colors.fg} />
         </Pressable>
       ),
     });
   }, [navigation]);
 
-  const label = id ? `Sleep Summary (${id})` : 'Sleep Summary';
-
-  return (
-    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={{ flex: 1, backgroundColor: colors.bgApp }}>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: colors.fg, fontFamily: fontFamily.regular, fontSize: fontSize.body }}>{label}</Text>
-      </View>
-    </SafeAreaView>
-  );
+  return <SummaryScreen />;
 }

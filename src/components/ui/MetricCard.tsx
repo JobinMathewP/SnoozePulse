@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
+import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/theme';
 
 import { Card, type CardWidth } from './Card';
 
@@ -14,6 +14,8 @@ type MetricCardProps = {
   readonly unit?: string;
   /** Caption under the value — "11:32 PM - 7:20 AM", "8.5% of sleep". */
   readonly caption?: string;
+  /** Extra content under the value row — e.g. snore-score dots on Summary. */
+  readonly belowValue?: ReactNode;
   readonly trailingIcon?: ReactNode;
   /**
    * Value colour. Defaults to `fg`. Pass `alertText` for the red snore count on Summary,
@@ -22,26 +24,31 @@ type MetricCardProps = {
   readonly valueColor?: string;
   readonly width?: CardWidth;
   readonly tone?: 'default' | 'elevated';
+  readonly corner?: keyof typeof radius;
+  readonly border?: 'default' | 'subtle';
+  readonly inset?: 'comfortable' | 'compact';
   readonly style?: StyleProp<ViewStyle>;
   readonly testID?: string;
   readonly accessibilityLabel?: string;
 };
 
 /**
- * Metric surface used by the Summary strip (thirds) and the half-width pair.
- *
- * Large value + optional unit, caption underneath, optional trailing icon. Width is
- * delegated to `Card` so a `CardRow` of halves or thirds lays out correctly.
+ * Compact metric surface for Summary half-cards (summary-screen.jpg).
+ * Only the value is bold; labels stay quiet. No min-height — height follows content.
  */
 export function MetricCard({
   label,
   value,
   unit,
   caption,
+  belowValue,
   trailingIcon,
   valueColor = colors.fg,
   width = 'full',
   tone = 'elevated',
+  corner = 'md',
+  border = 'default',
+  inset = 'compact',
   style,
   testID,
   accessibilityLabel,
@@ -50,30 +57,33 @@ export function MetricCard({
     accessibilityLabel ?? [label, unit ? `${value} ${unit}` : value, caption].filter(Boolean).join('. ');
 
   return (
-    <Card width={width} tone={tone} style={style} testID={testID}>
-      <View accessible accessibilityLabel={a11y} style={{ gap: spacing.sm }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm }}>
+    <Card width={width} tone={tone} corner={corner} border={border} inset={inset} style={style} testID={testID}>
+      <View accessible accessibilityLabel={a11y} style={{ gap: spacing.xs }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.xs }}>
           <Text
             numberOfLines={1}
             style={{
               flex: 1,
               color: colors.fgCaption,
-              fontFamily: fontFamily.medium,
+              fontFamily: fontFamily.regular,
               fontSize: fontSize.caption,
               lineHeight: lineHeight.caption,
+              opacity: 0.65,
             }}
           >
             {label}
           </Text>
           {trailingIcon}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs / 2, flexWrap: 'wrap' }}>
           <Text
+            numberOfLines={1}
             style={{
               color: valueColor,
               fontFamily: fontFamily.bold,
-              fontSize: width === 'third' ? fontSize.heading : fontSize.display,
-              lineHeight: width === 'third' ? lineHeight.heading : lineHeight.display,
+              fontSize: fontSize.heading,
+              lineHeight: lineHeight.heading,
+              flexShrink: 1,
             }}
           >
             {value}
@@ -91,6 +101,7 @@ export function MetricCard({
             </Text>
           ) : null}
         </View>
+        {belowValue}
         {caption ? (
           <Text
             numberOfLines={2}
@@ -99,6 +110,7 @@ export function MetricCard({
               fontFamily: fontFamily.regular,
               fontSize: fontSize.caption,
               lineHeight: lineHeight.caption,
+              opacity: 0.6,
             }}
           >
             {caption}

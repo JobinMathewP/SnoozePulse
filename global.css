@@ -12,18 +12,19 @@
   --color-primary: #6366F1;
   --color-alert: #F43F5E;
   --color-success: #10B981;
-  --color-bg-app: #070E1E;
+  --color-bg-app: #05081D;
   --color-bg-oled: #000000;
   --color-card: #081127;
-  --color-card-elevated: #0D1729;
+  --color-card-elevated: #0D1829;
   --color-tabbar: #051027;
   --color-pill: #1E1E1E;
   --color-border-card: #1F2940;
+  --color-border-card-subtle: #121A2A;
   --color-fg: #FFFFFF;
   --color-fg-body: #CCD0E0;
   --color-fg-caption: #C4C9D8;
   --color-fg-oled: #BEC1C5;
-  --color-warning: #FFA901;
+  --color-warning: #F38D07;
   --color-alert-text: #FB3B46;
   --color-success-text: #03F982;
   --color-accent-active: #03FD8C;
@@ -32,9 +33,9 @@
   --color-hero-edge: #3532E3;
   --color-hero-ring: #E5E7FE;
   --color-hero-glow: #4B48DC;
-  --color-timeline-low: #27299A;
-  --color-timeline-mid: #4841DB;
-  --color-timeline-peak: #FD4046;
+  --color-timeline-low: #1F1C7B;
+  --color-timeline-mid: #6642B9;
+  --color-timeline-peak: #FC4144;
   --color-tab-active: #4843FC;
   --color-tab-inactive: #858CA4;
 

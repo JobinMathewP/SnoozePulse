@@ -1,18 +1,17 @@
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, Line, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/theme';
 
 import { Card } from './Card';
 import { SectionHeader } from './SectionHeader';
-import { TOUCH_TARGET } from './touchTarget';
 
 /** Default Y-axis ceiling matching summary-screen.jpg (0–80 dB). */
 const DEFAULT_MAX_DB = 80;
 
 export type TimelineBarModel = {
   readonly id: string;
-  /** Short tick label under the bar — "11p", "3a". */
+  /** Tick under the bar — empty string hides the label but keeps the column. */
   readonly timeLabel: string;
   readonly averageDb: number;
   readonly peakDb: number;
@@ -34,16 +33,13 @@ type TimelineCardProps = {
   readonly testID?: string;
 };
 
-const CHART_HEIGHT = spacing.xl * 4 + spacing.md;
-const AXIS_WIDTH = spacing.xl + spacing.sm;
-const BAR_GAP = spacing.xs;
-const PLOT_HEIGHT = CHART_HEIGHT - spacing.lg;
+/** Chart body ~70–90 dp plot from summary-screen.jpg — delicate, not Material-tall. */
+const CALLOUT_ROW = spacing.md;
+const PLOT_HEIGHT = spacing.xl * 2 + spacing.md;
+const AXIS_WIDTH = spacing.xl;
 
 /**
- * Summary "Snoring Timeline": gradient bars, dB axis, time axis, peak callout.
- *
- * Bar fills use the sampled `timelineLow` → `timelineMid` → `timelinePeak` stops (ADR-06).
- * Geometry is derived from props once per render — nothing is allocated from a frame loop.
+ * Summary "Snoring Timeline": fine gradient bars, quiet axes, small peak callout.
  */
 export function TimelineCard({
   bars,
@@ -55,144 +51,200 @@ export function TimelineCard({
   testID,
 }: TimelineCardProps) {
   const yTicks = [maxDb, maxDb * 0.75, maxDb * 0.5, maxDb * 0.25, 0] as const;
+  const peakIndex = peakCallout ? bars.findIndex((bar) => bar.id === peakCallout.barId) : -1;
 
   return (
-    <Card width="full" tone="elevated" style={style} testID={testID}>
+    <Card width="full" tone="elevated" corner="md" border="subtle" inset="compact" style={style} testID={testID}>
       <SectionHeader
         title="Snoring Timeline"
         onInfoPress={onInfoPress}
         infoAccessibilityLabel="About snoring timeline"
       />
       <View style={{ flexDirection: 'row' }}>
-        <View style={{ width: AXIS_WIDTH, height: PLOT_HEIGHT, justifyContent: 'space-between', paddingRight: spacing.xs }}>
-          {yTicks.map((tick) => (
-            <Text
-              key={tick}
-              style={{
-                color: colors.fgCaption,
-                fontFamily: fontFamily.regular,
-                fontSize: fontSize.caption,
-                lineHeight: lineHeight.caption,
-                textAlign: 'right',
-              }}
-            >
-              {Math.round(tick)}
-            </Text>
-          ))}
-        </View>
-        <View style={{ flex: 1 }}>
-          <View style={{ height: PLOT_HEIGHT, flexDirection: 'row', alignItems: 'flex-end' }}>
-            {bars.map((bar) => {
-              const intensity = Math.min(1, Math.max(0, bar.peakDb / maxDb));
-              const barHeight = Math.max(spacing.sm, intensity * PLOT_HEIGHT);
-              const isPeak = peakCallout?.barId === bar.id;
-
-              return (
-                <Pressable
-                  key={bar.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Snore level ${Math.round(bar.peakDb)} decibels at ${bar.timeLabel}`}
-                  accessibilityHint="Double tap to play audio for this time range"
-                  onPress={() => {
-                    onBarPress(bar);
-                  }}
-                  style={{
-                    flex: 1,
-                    minWidth: TOUCH_TARGET / 2,
-                    minHeight: TOUCH_TARGET,
-                    height: PLOT_HEIGHT,
-                    marginHorizontal: BAR_GAP / 2,
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                  }}
-                >
-                  {isPeak ? (
-                    <View
-                      pointerEvents="none"
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        zIndex: 1,
-                        backgroundColor: colors.alertText,
-                        borderRadius: radius.sm,
-                        paddingHorizontal: spacing.sm,
-                        paddingVertical: spacing.xs / 2,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: colors.fg,
-                          fontFamily: fontFamily.semibold,
-                          fontSize: fontSize.caption,
-                          lineHeight: lineHeight.caption,
-                        }}
-                      >
-                        {peakCallout.label}
-                      </Text>
-                    </View>
-                  ) : null}
-                  <Svg width="100%" height={barHeight}>
-                    <Defs>
-                      <LinearGradient id={`timeline-${bar.id}`} x1="0" y1="1" x2="0" y2="0">
-                        <Stop offset="0%" stopColor={colors.timelineLow} />
-                        <Stop offset="55%" stopColor={colors.timelineMid} />
-                        <Stop offset="100%" stopColor={colors.timelinePeak} />
-                      </LinearGradient>
-                    </Defs>
-                    <Rect
-                      x="0"
-                      y="0"
-                      width="100%"
-                      height={barHeight}
-                      rx={spacing.xs / 2}
-                      fill={`url(#timeline-${bar.id})`}
-                    />
-                  </Svg>
-                </Pressable>
-              );
-            })}
-          </View>
-          <View style={{ flexDirection: 'row', marginTop: spacing.xs }}>
-            {bars.map((bar) => (
-              <Text
-                key={bar.id}
-                numberOfLines={1}
-                style={{
-                  flex: 1,
-                  marginHorizontal: BAR_GAP / 2,
-                  color: colors.fgCaption,
-                  fontFamily: fontFamily.regular,
-                  fontSize: fontSize.caption,
-                  lineHeight: lineHeight.caption,
-                  textAlign: 'center',
-                }}
-              >
-                {bar.timeLabel}
-              </Text>
-            ))}
-          </View>
+        <View style={{ width: AXIS_WIDTH, paddingRight: spacing.xs / 2 }}>
           <Text
             style={{
-              marginTop: spacing.xs,
               color: colors.fgCaption,
               fontFamily: fontFamily.regular,
               fontSize: fontSize.caption,
               lineHeight: lineHeight.caption,
-              textAlign: 'left',
+              textAlign: 'right',
+              height: CALLOUT_ROW,
+              opacity: 0.55,
             }}
           >
             (dB)
           </Text>
+          <View style={{ height: PLOT_HEIGHT, justifyContent: 'space-between' }}>
+            {yTicks.map((tick) => (
+              <Text
+                key={tick}
+                style={{
+                  color: colors.fgCaption,
+                  fontFamily: fontFamily.regular,
+                  fontSize: fontSize.caption,
+                  lineHeight: fontSize.caption,
+                  textAlign: 'right',
+                  opacity: 0.55,
+                }}
+              >
+                {Math.round(tick)}
+              </Text>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <View style={{ height: CALLOUT_ROW, flexDirection: 'row' }}>
+            {bars.map((bar, index) => (
+              <View key={`callout-${bar.id}`} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
+                {peakCallout && index === peakIndex ? (
+                  <View
+                    style={{
+                      backgroundColor: colors.alertText,
+                      borderRadius: radius.sm,
+                      paddingHorizontal: spacing.xs,
+                      paddingVertical: 1,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.fg,
+                        fontFamily: fontFamily.medium,
+                        fontSize: fontSize.caption,
+                        lineHeight: fontSize.caption + 2,
+                      }}
+                    >
+                      {peakCallout.label}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ))}
+          </View>
+
+          <View style={{ height: PLOT_HEIGHT }}>
+            <Svg
+              width="100%"
+              height={PLOT_HEIGHT}
+              style={{ position: 'absolute', left: 0, right: 0, top: 0 }}
+            >
+              {yTicks.map((tick) => {
+                const y = PLOT_HEIGHT - (tick / maxDb) * PLOT_HEIGHT;
+                return (
+                  <Line
+                    key={`grid-${tick}`}
+                    x1="0"
+                    y1={y}
+                    x2="100%"
+                    y2={y}
+                    stroke={colors.fg}
+                    strokeOpacity={0.06}
+                    strokeWidth={1}
+                  />
+                );
+              })}
+              {peakIndex >= 0 ? (
+                <Line
+                  x1={`${((peakIndex + 0.5) / bars.length) * 100}%`}
+                  y1={0}
+                  x2={`${((peakIndex + 0.5) / bars.length) * 100}%`}
+                  y2={PLOT_HEIGHT}
+                  stroke={colors.alertText}
+                  strokeOpacity={0.5}
+                  strokeWidth={1}
+                  strokeDasharray="2 3"
+                />
+              ) : null}
+            </Svg>
+
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end' }}>
+              {bars.map((bar) => {
+                const intensity = Math.min(1, Math.max(0, bar.peakDb / maxDb));
+                const barHeight = Math.max(spacing.xs, intensity * PLOT_HEIGHT);
+
+                return (
+                  <Pressable
+                    key={bar.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Snore level ${Math.round(bar.peakDb)} decibels at ${bar.timeLabel || 'this time'}`}
+                    accessibilityHint="Double tap to play audio for this time range"
+                    hitSlop={spacing.xs}
+                    onPress={() => {
+                      onBarPress(bar);
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 1,
+                      height: PLOT_HEIGHT,
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Svg width="45%" height={barHeight}>
+                      <Defs>
+                        <LinearGradient id={`timeline-${bar.id}`} x1="0" y1="1" x2="0" y2="0">
+                          <Stop offset="0%" stopColor={colors.timelineLow} />
+                          <Stop offset="45%" stopColor={colors.timelineMid} />
+                          <Stop offset="100%" stopColor={colors.timelinePeak} />
+                        </LinearGradient>
+                      </Defs>
+                      <Rect
+                        x="0"
+                        y="0"
+                        width="100%"
+                        height={barHeight}
+                        rx={1}
+                        fill={`url(#timeline-${bar.id})`}
+                      />
+                    </Svg>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={{ marginTop: spacing.xs, height: lineHeight.caption, position: 'relative' }}>
+            {bars.map((bar, index) => {
+              if (!bar.timeLabel) {
+                return null;
+              }
+              const isLast = index === bars.length - 1;
+              const isFirst = index === 0;
+              return (
+                <Text
+                  key={`label-${bar.id}`}
+                  numberOfLines={1}
+                  style={{
+                    position: 'absolute',
+                    left: isLast ? undefined : isFirst ? 0 : `${(index / Math.max(bars.length - 1, 1)) * 100}%`,
+                    right: isLast ? 0 : undefined,
+                    transform: isFirst || isLast ? undefined : [{ translateX: -spacing.md }],
+                    width: spacing.xl + spacing.sm,
+                    color: colors.fgCaption,
+                    fontFamily: fontFamily.regular,
+                    fontSize: fontSize.caption,
+                    lineHeight: lineHeight.caption,
+                    textAlign: isLast ? 'right' : isFirst ? 'left' : 'center',
+                    opacity: 0.55,
+                  }}
+                >
+                  {bar.timeLabel}
+                </Text>
+              );
+            })}
+          </View>
         </View>
       </View>
       <Text
         style={{
           marginTop: spacing.sm,
           color: colors.primary,
-          fontFamily: fontFamily.medium,
+          fontFamily: fontFamily.regular,
           fontSize: fontSize.caption,
           lineHeight: lineHeight.caption,
           textAlign: 'center',
+          opacity: 0.9,
         }}
       >
         Tap on any bar to hear audio

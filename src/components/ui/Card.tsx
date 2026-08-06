@@ -16,6 +16,9 @@ export type CardWidth = 'full' | 'half' | 'third';
 
 type CardTone = 'default' | 'elevated';
 
+/** `compact` = 8 dp inset (summary-screen.jpg); `comfortable` = 16 dp (Home / History). */
+export type CardInset = 'comfortable' | 'compact';
+
 type CardBaseProps = {
   readonly children: ReactNode;
   readonly width?: CardWidth;
@@ -24,6 +27,15 @@ type CardBaseProps = {
    * `default` uses the Home / History card fill (`card`).
    */
   readonly tone?: CardTone;
+  /**
+   * Summary cards use `md` (12) — measured from summary-screen.jpg.
+   * Home/History also use `md`.
+   */
+  readonly corner?: keyof typeof radius;
+  /** Prefer `subtle` on Summary so the hairline does not dominate AMOLED navy. */
+  readonly border?: 'default' | 'subtle';
+  /** Summary uses `compact` so cards stay dense; Home keeps the default. */
+  readonly inset?: CardInset;
   readonly style?: StyleProp<ViewStyle>;
   readonly testID?: string;
 };
@@ -38,7 +50,6 @@ type CardProps =
       readonly onPress: () => void;
       readonly accessibilityLabel: string;
     });
-
 
 type CardRowProps = {
   readonly children: ReactNode;
@@ -60,16 +71,22 @@ const widthStyle = (width: CardWidth): ViewStyle => {
 const surfaceColor = (tone: CardTone): string =>
   tone === 'elevated' ? colors.cardElevated : colors.card;
 
+const insetPadding = (inset: CardInset): number =>
+  inset === 'compact' ? spacing.sm : spacing.md;
+
 /**
  * Surface container matching the rounded cards in summary-screen.jpg and history-screen.jpg.
  *
- * Corner radius is `radius.md` (12), measured from those images. Padding is `spacing.md`.
- * Border uses the sampled `borderCard` token rather than a shadow — the mockups are flat.
+ * Corner radius defaults to `radius.md` (12), measured from those images. Summary passes
+ * `inset="compact"` so content sits closer to the edges (Apple Health density, not Material).
  */
 export function Card({
   children,
   width = 'full',
   tone = 'default',
+  corner = 'md',
+  border = 'default',
+  inset = 'comfortable',
   style,
   testID,
   onPress,
@@ -78,10 +95,10 @@ export function Card({
   const cardStyle: StyleProp<ViewStyle> = [
     {
       backgroundColor: surfaceColor(tone),
-      borderColor: colors.borderCard,
+      borderColor: border === 'subtle' ? colors.borderCardSubtle : colors.borderCard,
       borderWidth: 1,
-      borderRadius: radius.md,
-      padding: spacing.md,
+      borderRadius: radius[corner],
+      padding: insetPadding(inset),
       overflow: 'hidden',
     },
     widthStyle(width),

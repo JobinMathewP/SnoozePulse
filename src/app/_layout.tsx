@@ -11,6 +11,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
+import { ensureDatabase } from '@/services/database';
 import { colors } from '@/theme';
 
 // Held in global scope, not in the component: by the time a hook runs the splash screen may
@@ -32,6 +33,14 @@ export default function RootLayout() {
       SplashScreen.hide();
     }
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    // Task 4.1 boot probe — logs user_version + table list. Absorbed into the composition
+    // root in Task 4.4 (ADR-18).
+    void ensureDatabase().catch((error: unknown) => {
+      console.error('[database] failed to open', error);
+    });
+  }, []);
 
   if (!fontsLoaded && !fontError) {
     return null;

@@ -21,6 +21,7 @@
  *   audio.ts      — native events, calibration, interruptions
  *   analytics.ts  — session_buckets, scores, Summary / History models
  *   errors.ts     — discriminated AppError union
+ *   sqlite.ts     — SQLite row shapes (repository boundary only)
  */
 
 export type {
@@ -76,3 +77,5 @@ export type {
   PersistenceError,
   StorageQuotaError,
 } from './errors';
+
+export type { SessionBucketRow, SleepSessionRow, SnoreEventRow } from './sqlite';

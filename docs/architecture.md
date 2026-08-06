@@ -1,5 +1,7 @@
 # Architecture Specification: SnoozePulse
 
+> Ratified decisions live in `docs/decisions.md`. That document is the tie-breaker.
+
 ## 1. System Topology Overview
 
 SnoozePulse follows a unidirectional data flow (UDF) architecture with a native audio processing pipeline.
@@ -28,17 +30,100 @@ SnoozePulse follows a unidirectional data flow (UDF) architecture with a native 
 ## 2. Architectural Rules
 
 - UI never communicates directly with native modules.
-- UI communicates through `IAudioEngine`.
+- UI communicates through the store; the store reaches native through `IAudioEngine`.
 - Stores never execute raw SQL.
 - Database access goes through repositories (`ISleepRepository`, `ISnoreRepository`).
-- Business logic belongs in services, not UI components.
+- Business logic belongs in services, not UI components and not repositories.
 - Styling must use centralized theme tokens.
+
+## 2.1 Layering (strict)
+
+```text
+UI → Store → Services → Repositories → SQLite / Native
+```
+
+The store **never** calls a repository directly. Every persistence or native operation is
+mediated by a service. This is deliberately stricter than a store-to-repository shortcut so
+that orchestration and business rules have exactly one home.
+
+Responsibilities per layer:
+
+| Layer        | Owns                                              | Must never                     |
+| ------------ | ------------------------------------------------- | ------------------------------ |
+| UI           | Rendering, user intent                            | SQL, native calls, business logic |
+| Store        | Application state, state machine transitions      | SQL, business rules, `new` on a concrete class |
+| Services     | Business logic, orchestration, scoring, retention | SQL                            |
+| Repositories | SQL, mapping rows to domain models                | Business rules                 |
+
+`services/` and `repositories/` are separate directories and separate concerns:
+
+```text
+services/                    repositories/
+  AudioService                 SleepRepository
+  SleepService                 SnoreRepository
+  AnalyticsService
+```
+
+## 2.2 Dependency Injection
+
+Concrete implementations are never constructed inside a store, hook, or component.
+
+```text
+IAudioEngine  ←  AudioEngine   (constructed once at the composition root)
+                     ↓ injected
+                   Store
+```
+
+A single composition root wires the object graph at app start and injects interfaces
+downward. `new AudioEngine()` inside a store or component is forbidden.
+
+This keeps every layer testable in isolation with a fake engine and a fake database, and it
+is the mechanism that enforces the "prefer interfaces over concrete implementations" rule
+in `.cursor/rules/01-guardrails.mdc`.
 
 ## 3. Recording State Machine
 
 `IDLE → STARTING → RECORDING → PAUSED → STOPPING → COMPLETED`
 
 Any unrecoverable failure transitions to `ERROR`.
+
+Transitions are guarded: an illegal transition is rejected by the store rather than
+silently applied.
+
+`PAUSED` is **system-only**. It is entered and left by the audio engine in response to
+interruptions such as an incoming call or another app seizing the audio session. There is
+no user-facing pause control on any screen and none is to be added.
+
+## 3.1 Live Audio Render Path
+
+The audio level stream arrives at roughly 5–10 Hz. Over an eight-hour session that is on
+the order of 288,000 events, so the stream must not drive React reconciliation.
+
+```text
+AudioLevelEvent ──┬── Reanimated shared value ──→ Waveform   (per event, no React render)
+                  └── Store (throttled)        ──→ everything else
+```
+
+The store still exposes `currentDecibel` for non-animated consumers, but it is updated at a
+throttled, human-perceptible rate. The waveform reads the shared value directly.
+
+## 3.2 Navigation
+
+Navigation is implemented using **Expo Router**, which satisfies the React Navigation
+requirement because Expo Router is built on React Navigation.
+
+Routes live in `src/app/`. Web is not a supported target.
+
+## 3.3 Native Module Location
+
+The Swift and Kotlin audio engine is an Expo local module at the repository root:
+
+```text
+modules/snoozepulse-audio/
+```
+
+`src/native/` contains only the JavaScript-side interface and wrapper. See
+`docs/native-audio.md`.
 
 ## UI Implementation Rules
 
@@ -57,6 +142,15 @@ Only make changes required for:
 - responsive layouts
 - accessibility
 - platform conventions
+- the two ratified deviations below
+
+Ratified deviations from the reference images:
+
+- The product name renders as **SnoozePulse**, not "SnoreCare" (ADR-08).
+- The **Insights** and **Profile** tabs shown in the images are not part of the product and
+  are not built (ADR-09).
+
+No other deviation is permitted without a new ADR.
 
 Primary References
 

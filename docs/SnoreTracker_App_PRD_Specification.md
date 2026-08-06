@@ -22,7 +22,11 @@ Secondary Reference
 
 - docs/mockup.jpg
 
-All screens should match this visual language.
+All screens should match this visual language, with two ratified exceptions:
+
+- The images render the product name as "SnoreCare". The product is **SnoozePulse** (ADR-08).
+- The images show **Insights** and **Profile** tabs. Those are not part of the product and
+  are not built (ADR-09).
 
 The mockup defines:
 
@@ -67,6 +71,9 @@ All processing and storage occur locally on the device unless a future cloud syn
 - Medical diagnosis
 - Sleep apnea diagnosis
 - Cloud storage in V1
+- Clinically derived scoring in V1 (see §5 Scoring)
+- Insights and Profile screens
+- Web support
 
 ---
 
@@ -130,6 +137,7 @@ Display:
 - Continue while screen is locked
 - Foreground service on Android
 - Background audio mode on iOS
+- Pause and resume are system-triggered only, on audio interruption (ADR-14)
 
 ## Detection
 
@@ -141,14 +149,42 @@ Native audio engine should:
 - Ignore noise below threshold
 - Save only significant snippets
 
+## Scoring
+
+Sleep score and snore score ship in V1 as **simple weighted metrics over recorded
+statistics** — snore count, total snoring time, peak loudness, and session duration.
+
+This is an explicit placeholder. The agent must not invent medical or clinical scoring.
+Each score is one pure function with its weighting constants in a single named block so it
+can be replaced wholesale in V2 without touching callers (ADR-10).
+
 ## Storage
 
-Persist locally using SQLite.
+Persist locally using SQLite (`expo-sqlite`), with WAL journaling,
+`PRAGMA foreign_keys = ON`, and forward-only migrations driven by `PRAGMA user_version`.
 
-Suggested tables:
+Tables:
 
-- sleep_sessions
-- snore_events
+- `sleep_sessions` — one row per night. Start and end timestamps, resolved state, ambient
+  calibration baseline, total snore duration, snore count, peak dB and when it occurred,
+  and both computed scores.
+- `snore_events` — one row per episode. Foreign key to the session with `ON DELETE CASCADE`,
+  composite index on `(session_id, timestamp)`.
+- `session_buckets` — pre-aggregated time buckets: session id, bucket start, average dB,
+  peak dB, and snoring milliseconds. Written incrementally during the session (ADR-11).
+
+`session_buckets` exists so the Summary timeline chart and the History trends never
+recompute from raw events. Storing the raw 10 Hz level stream would mean roughly 288,000
+rows per night, which is not viable across months.
+
+Snore event writes are batched into a single transaction on a size or time trigger, with a
+guaranteed flush on `STOPPING`.
+
+## Retention
+
+Audio snippets are kept for **30 days or 500 MB, whichever limit is reached first**.
+Cleanup is automatic. Deleting a session deletes its snippets. Orphaned files are reclaimed
+at app start.
 
 ---
 
@@ -169,11 +205,11 @@ Alert:
 Success:
 #10B981
 
+Additional tokens are sampled directly from the reference images, never invented (ADR-06).
+
 Typography:
 
-- Inter
-- SF Pro
-- Roboto
+- Inter, bundled on both platforms (ADR-07)
 
 Rounded corners:
 16px+
@@ -185,27 +221,25 @@ Spacing:
 
 # 7. Architecture
 
-Native Audio Engine
+Capture and persistence:
 
-↓
+```text
+Native Audio Engine → React Native Bridge → Zustand Store → Services → Repositories → SQLite
+```
 
-React Native Bridge
+Presentation:
 
-↓
+```text
+UI → Zustand Store  (reads via selectors; user intent flows back down the same chain)
+```
 
-Zustand Store
+The store never calls a repository directly, and the UI never reads SQLite directly
+(ADR-12). Implementations are injected as interfaces at a single composition root (ADR-18).
 
-↓
+Navigation is Expo Router, which satisfies the React Navigation requirement because Expo
+Router is built on React Navigation (ADR-01).
 
-Repository Layer
-
-↓
-
-SQLite
-
-↓
-
-UI
+See `docs/architecture.md` and `docs/decisions.md`.
 
 ---
 

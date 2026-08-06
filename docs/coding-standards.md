@@ -11,19 +11,30 @@ These standards ensure Cursor generates consistent, maintainable, production-qua
 - One responsibility per file.
 
 ## Folder Structure
+
+This is the authoritative structure. It supersedes the shorter list in
+`.cursor/rules/02-tech-stack.mdc`.
+
 ```text
 src/
-  components/ui/
-  features/
-  services/
-  repositories/
-  native/
-  store/
+  app/            # Expo Router routes
+  components/ui/  # shared presentational primitives
+  features/       # screen-level composition, one folder per screen
   hooks/
+  native/         # JS-side interface + wrapper for the native audio module
+  repositories/   # SQL only
+  services/       # business logic only
+  store/          # Zustand slices
   theme/
   types/
   utils/
+
+modules/
+  snoozepulse-audio/   # Expo local module: Swift + Kotlin
 ```
+
+`services/` and `repositories/` are never merged. A repository contains no business rule; a
+service contains no SQL.
 
 ## Naming
 - Components: `PascalCase`
@@ -39,7 +50,15 @@ src/
 - No direct database or native module access from UI.
 
 ## State
-UI → Zustand Store → Services → Repository → SQLite / Native.
+UI → Zustand Store → Services → Repository → SQLite / Native
+
+The store never calls a repository directly.
+
+## Dependency Injection
+- Depend on interfaces (`IAudioEngine`, `ISleepRepository`, …), never on concrete classes.
+- Never write `new SomeConcreteClass()` inside a store, hook, or component.
+- A single composition root constructs the object graph at app start and injects it downward.
+- Every service and repository receives its collaborators through its constructor..
 
 ## Error Handling
 - Never swallow errors.
@@ -52,8 +71,22 @@ UI → Zustand Store → Services → Repository → SQLite / Native.
 3. Internal aliases
 4. Relative imports
 
+## Styling
+- NativeWind is the styling layer.
+- The Tailwind config is generated from `src/theme/`, so theme tokens remain the single
+  source of truth. Never add a raw color or spacing value to the Tailwind config or to a
+  className.
+
 ## Cursor Rules
 - Modify only requested files.
 - No TODO placeholders.
 - Explain planned changes before editing.
-- Run typecheck and lint after implementation.
+- Run `npm run typecheck` and `npm run lint` after implementation.
+
+## Deferred Implementations
+"No TODO placeholders" forbids unfinished code, not deliberately simple V1 logic.
+
+Where a document defers an algorithm to V2 (currently only sleep and snore scoring, ADR-10),
+implement a complete, working, documented V1: a pure function with its weighting constants in
+one named block, and a doc comment stating that it is a V1 heuristic scheduled for
+replacement. Do not leave a `TODO`, do not throw, and do not return a stub value.

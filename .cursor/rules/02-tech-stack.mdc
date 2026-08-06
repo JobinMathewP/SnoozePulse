@@ -11,24 +11,44 @@ alwaysApply: true
 - Zustand
 - expo-sqlite
 - NativeWind
-- React Navigation
+- Expo Router — satisfies the React Navigation requirement, since Expo Router is built on
+  React Navigation (ADR-01)
+
+Android and iOS only. Web is not a target.
+
+Dependencies are installed per milestone, not up front. See the milestone table in
+`docs/roadmap.md`.
 
 # Folder Structure
 
-All source code lives under `src/`.
+Application source lives under `src/`; native module source lives under `modules/`.
 
-Use:
-
+- src/app — Expo Router routes
 - src/components/ui
 - src/features
+- src/hooks
+- src/native
+- src/repositories
 - src/services
 - src/store
 - src/theme
 - src/types
+- src/utils
+- modules/snoozepulse-audio — Swift + Kotlin
+
+# Layering
+
+```text
+UI → Store → Services → Repositories → SQLite / Native
+```
+
+The store never calls a repository directly. Services hold business logic; repositories hold
+SQL. They never merge.
 
 # Principles
 
-- Use theme tokens.
+- Use theme tokens. Sample new color values from the design images; never invent them.
+- Depend on interfaces; never `new` a concrete class in a store, hook, or component.
 - Use functional components.
 - Avoid `any`.
 - Keep components small and composable.

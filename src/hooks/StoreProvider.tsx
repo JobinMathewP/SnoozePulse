@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { useStore, type StoreApi } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 
 import type { AppStore } from '@/store';
 
@@ -35,28 +36,46 @@ export function useAppStore<T>(selector: (state: AppStore) => T): T {
  * Intentionally omits pauseSession / resumeSession (ADR-14).
  */
 export function useSession() {
-  return useAppStore((state) => ({
-    sessionState: state.sessionState,
-    isRecording: state.isRecording,
-    activeSession: state.activeSession,
-    startSession: state.startSession,
-    stopSession: state.stopSession,
-  }));
+  return useAppStore(
+    useShallow((state) => ({
+      sessionState: state.sessionState,
+      isRecording: state.isRecording,
+      activeSession: state.activeSession,
+      startSession: state.startSession,
+      stopSession: state.stopSession,
+    })),
+  );
 }
 
 /** Throttled decibel + last snore for non-animated UI (ADR-13). */
 export function useAudioLevels() {
-  return useAppStore((state) => ({
-    currentDecibel: state.currentDecibel,
-    lastSnoreEvent: state.lastSnoreEvent,
-  }));
+  return useAppStore(
+    useShallow((state) => ({
+      currentDecibel: state.currentDecibel,
+      lastSnoreEvent: state.lastSnoreEvent,
+    })),
+  );
 }
 
-/** Readiness / calibration for Home. */
+/** Readiness / calibration / mic permission for Home. */
 export function useSettings() {
-  return useAppStore((state) => ({
-    readiness: state.readiness,
-    refreshReadiness: state.refreshReadiness,
-    calibrateAmbient: state.calibrateAmbient,
-  }));
+  return useAppStore(
+    useShallow((state) => ({
+      readiness: state.readiness,
+      refreshReadiness: state.refreshReadiness,
+      calibrateAmbient: state.calibrateAmbient,
+      requestMicrophonePermission: state.requestMicrophonePermission,
+    })),
+  );
+}
+
+/** Summary / History reads through the store (ADR-12). */
+export function useInsights() {
+  return useAppStore(
+    useShallow((state) => ({
+      loadSessionDetail: state.loadSessionDetail,
+      loadHistoryTrends: state.loadHistoryTrends,
+      listRecentSessions: state.listRecentSessions,
+    })),
+  );
 }

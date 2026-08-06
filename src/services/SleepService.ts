@@ -8,6 +8,7 @@ import type {
   SessionBucket,
   SleepSession,
   SleepSessionCompletion,
+  SnoreEvent,
 } from '@/types';
 import {
   planRetentionCleanup,
@@ -85,6 +86,19 @@ export class SleepService implements ISleepService {
 
   listSessions(request: PageRequest): Promise<Result<Page<SleepSession>>> {
     return this.sleepRepository.listSessions(request);
+  }
+
+  getBuckets(sessionId: string): Promise<Result<readonly SessionBucket[]>> {
+    return this.sleepRepository.getBuckets(sessionId);
+  }
+
+  async getSnoreEvents(sessionId: string): Promise<Result<readonly SnoreEvent[]>> {
+    const result = await this.snoreRepository.getEvents(sessionId);
+    if (!result.ok) {
+      return result;
+    }
+    // Newest first for the Summary snippet list.
+    return ok([...result.value].sort((a, b) => b.timestamp - a.timestamp));
   }
 
   saveBuckets(buckets: readonly SessionBucket[]): Promise<Result<void>> {
@@ -200,7 +214,15 @@ export class SleepService implements ISleepService {
 }
 
 function createSessionId(): string {
-  return globalThis.crypto.randomUUID();
+  // Hermes / RN often lack `globalThis.crypto.randomUUID` — stay dependency-free.
+  const bytes = new Uint8Array(16);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = Math.floor(Math.random() * 256);
+  }
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 function normalizePath(path: string): string {

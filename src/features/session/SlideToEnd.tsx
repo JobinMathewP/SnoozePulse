@@ -12,7 +12,7 @@ import Animated, {
 import { TOUCH_TARGET } from '@/components/ui/touchTarget';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/theme';
 
-import { activeSessionCopy } from './mock';
+import { activeSessionCopy } from './copy';
 
 type SlideToEndProps = {
   readonly onEnd: () => void;

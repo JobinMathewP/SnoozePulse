@@ -1,8 +1,5 @@
 /**
- * Active Session mock copy and level bands.
- *
- * The 10 Hz waveform stream is generated in `useMockAudioLevel`; this file holds only
- * static strings and thresholds. Deleted wholesale in Task 5.3.
+ * Active Session static copy and audio-level band labels.
  */
 
 export const activeSessionCopy = {
@@ -11,13 +8,14 @@ export const activeSessionCopy = {
   audioLevelLabel: 'Audio level',
   slideLabel: 'Slide to end session',
   slideAccessibilityLabel: 'End sleep session',
-  slideAccessibilityHint: 'Double tap to end the session, or slide the handle all the way to the right',
+  slideAccessibilityHint:
+    'Double tap to end the session, or slide the handle all the way to the right',
   recordingIndicatorAccessibilityLabel: 'Microphone in use',
 } as const;
 
 export type AudioLevelBand = 'Low' | 'Moderate' | 'High';
 
-/** Shared-value level (0–1) → human label. Thresholds are mock placeholders. */
+/** Shared-value level (0–1) → human label. */
 export function audioLevelBand(level: number): AudioLevelBand {
   if (level < 0.35) {
     return 'Low';
@@ -28,5 +26,13 @@ export function audioLevelBand(level: number): AudioLevelBand {
   return 'High';
 }
 
-/** Mock generator cadence — matches ADR-13 / architecture (~10 Hz). */
-export const MOCK_AUDIO_HZ = 10;
+/** Band from engine dB (throttled store path). */
+export function audioLevelBandFromDb(decibel: number): AudioLevelBand {
+  if (decibel < 40) {
+    return 'Low';
+  }
+  if (decibel < 60) {
+    return 'Moderate';
+  }
+  return 'High';
+}

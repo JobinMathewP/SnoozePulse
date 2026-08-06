@@ -8,9 +8,9 @@ import Svg, { Path } from 'react-native-svg';
 import { Screen, Waveform } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { activeSessionCopy } from './mock';
+import { activeSessionCopy } from './copy';
 import { SlideToEnd } from './SlideToEnd';
-import { useMockAudioLevel } from './useMockAudioLevel';
+import { useLiveAudioLevel } from './useLiveAudioLevel';
 
 type ActiveSessionScreenProps = {
   readonly onEndSession: () => void;
@@ -75,12 +75,12 @@ const WavePanel = memo(function WavePanel({ level, width }: WavePanelProps) {
 /**
  * Full-screen OLED monitoring surface (docs/active-session.jpg).
  *
- * No pause control (ADR-14). Waveform level is a mock shared-value stream at 10 Hz (ADR-13).
+ * No pause control (ADR-14). Waveform level is the live shared value (ADR-13).
  */
 export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) {
   useKeepAwake();
 
-  const { level, band } = useMockAudioLevel();
+  const { level, band } = useLiveAudioLevel();
   const { width: windowWidth } = useWindowDimensions();
   const waveWidth = Math.max(spacing.xl * 8, windowWidth - spacing.md * 2);
 

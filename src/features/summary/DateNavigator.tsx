@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { summaryCopy } from './mock';
+import { summaryCopy } from './format';
 
 type DateNavigatorProps = {
   readonly label: string;

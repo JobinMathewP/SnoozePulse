@@ -4,6 +4,7 @@ import type { SessionState, SleepSession } from '@/types';
 import { canTransition } from '@/utils';
 
 import type { StoreDependencies } from './container';
+import { liveAudioLevel } from './liveAudioLevel';
 
 /** Session slice — owns the live state machine (architecture.md §3). */
 export type SessionSlice = {
@@ -83,6 +84,31 @@ export function createSessionSlice(
     },
 
     async stopSession() {
+      const from = get().sessionState;
+      // Fast Refresh remounts the store at IDLE while Active Session + native capture may
+      // still be live — recover by forcing the engine down instead of blocking the UI.
+      if (from !== 'RECORDING' && from !== 'PAUSED') {
+        const recovered = await deps.audioService.forceStopRecording();
+        set({
+          sessionState: 'IDLE',
+          isRecording: false,
+          activeSession: null,
+        });
+        liveAudioLevel.value = 0;
+        if (recovered.ok && recovered.value) {
+          return ok(recovered.value);
+        }
+        if (!recovered.ok) {
+          return recovered;
+        }
+        return err({
+          code: 'ILLEGAL_TRANSITION',
+          message: `Cannot transition from ${from} to STOPPING`,
+          from,
+          to: 'STOPPING',
+        });
+      }
+
       const toStopping = transition('STOPPING');
       if (!toStopping.ok) {
         return toStopping;
@@ -106,6 +132,7 @@ export function createSessionSlice(
       set({ activeSession: result.value });
       transition('IDLE');
       set({ activeSession: null });
+      liveAudioLevel.value = 0;
       return result;
     },
 

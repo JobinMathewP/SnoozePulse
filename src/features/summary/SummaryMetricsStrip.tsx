@@ -4,10 +4,12 @@ import { Text, View } from 'react-native';
 import { Card } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { summaryCopy } from './mock';
+import { summaryCopy } from './format';
 import { SnoreScoreDots } from './SnoreScoreDots';
 
 type SummaryMetricsStripProps = {
+  readonly sleepDurationValue: string;
+  readonly sleepDurationCaption: string;
   readonly snoreCount: number;
   readonly snoreScoreLabel: string;
   readonly filledDots: number;
@@ -108,6 +110,8 @@ function Column({
  * Top Summary strip — compact three-column card (~67 dp tall in summary-screen.jpg).
  */
 export function SummaryMetricsStrip({
+  sleepDurationValue,
+  sleepDurationCaption,
   snoreCount,
   snoreScoreLabel,
   filledDots,
@@ -118,8 +122,8 @@ export function SummaryMetricsStrip({
       <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
         <Column
           label={summaryCopy.sleepDurationLabel}
-          value={summaryCopy.sleepDurationValue}
-          caption={summaryCopy.sleepDurationCaption}
+          value={sleepDurationValue}
+          caption={sleepDurationCaption}
           showDivider
         />
         <Column

@@ -129,11 +129,62 @@ export class AudioService implements IAudioService {
   }
 
   async stopSession(): Promise<Result<SleepSession>> {
+    // After Fast Refresh the service may already be IDLE while native capture still runs.
+    if (
+      this.liveState === 'IDLE' ||
+      this.liveState === 'ERROR' ||
+      this.liveState === 'COMPLETED'
+    ) {
+      const recovered = await this.forceStopRecording();
+      if (!recovered.ok) {
+        return recovered;
+      }
+      if (recovered.value) {
+        return ok(recovered.value);
+      }
+      return err({
+        code: 'AUDIO_ENGINE',
+        message: 'No active session to stop',
+      });
+    }
+
     const toStopping = this.transition('STOPPING');
     if (!toStopping.ok) {
       return toStopping;
     }
 
+    return this.finishActiveSession();
+  }
+
+  /**
+   * Always stops the native engine. Completes `activeSession` when present.
+   * Used when the Zustand machine was reset out from under a live capture.
+   */
+  async forceStopRecording(): Promise<Result<SleepSession | null>> {
+    const session = this.activeSession;
+    await this.audioEngine.stopRecording();
+    this.clearFlushTimer();
+
+    if (!session) {
+      this.snoreBuffer = [];
+      this.activeSession = null;
+      this.forceState('IDLE');
+      return ok(null);
+    }
+
+    this.forceState('STOPPING');
+    const finished = await this.finishActiveSession();
+    if (!finished.ok) {
+      this.snoreBuffer = [];
+      this.activeSession = null;
+      this.forceState('IDLE');
+      return finished;
+    }
+    return ok(finished.value);
+  }
+
+  /** Assumes `liveState === STOPPING` and `activeSession` is set. */
+  private async finishActiveSession(): Promise<Result<SleepSession>> {
     const session = this.activeSession;
     if (!session) {
       this.forceState('ERROR');

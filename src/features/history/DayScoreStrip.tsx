@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text } from 'react-native';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 import type { SnoreScoreBand } from '@/types';
 
-import type { DayColumnModel } from './mock';
+import type { DayColumnModel } from './models';
 
 type DayScoreStripProps = {
   readonly days: readonly DayColumnModel[];

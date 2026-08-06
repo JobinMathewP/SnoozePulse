@@ -4,19 +4,21 @@ import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 import { Card } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { historyCopy, mockImprovement } from './mock';
+import { historyCopy } from './models';
 
 type ImprovementCardProps = {
+  readonly percentLabel: string | null;
+  readonly sparkline: readonly number[];
   readonly testID?: string;
 };
 
 /**
  * “You're improving!” card with green percent and upward sparkline (history-screen.jpg).
  */
-export function ImprovementCard({ testID }: ImprovementCardProps) {
+export function ImprovementCard({ percentLabel, sparkline, testID }: ImprovementCardProps) {
   const width = spacing.xl * 3 + spacing.md;
   const height = spacing.xl + spacing.md;
-  const points = mockImprovement.sparkline;
+  const points = sparkline.length > 0 ? sparkline : [0.3, 0.35, 0.4];
   const coords = points
     .map((y, index) => {
       const x = (index / Math.max(points.length - 1, 1)) * (width - spacing.sm);
@@ -50,18 +52,24 @@ export function ImprovementCard({ testID }: ImprovementCardProps) {
               lineHeight: lineHeight.body,
             }}
           >
-            {historyCopy.improvementPrefix}
-            <Text
-              style={{
-                color: colors.successText,
-                fontFamily: fontFamily.bold,
-                fontSize: fontSize.title,
-                lineHeight: lineHeight.title,
-              }}
-            >
-              {mockImprovement.percentLabel}
-            </Text>
-            {historyCopy.improvementSuffix}
+            {percentLabel ? (
+              <>
+                {historyCopy.improvementPrefix}
+                <Text
+                  style={{
+                    color: colors.successText,
+                    fontFamily: fontFamily.bold,
+                    fontSize: fontSize.title,
+                    lineHeight: lineHeight.title,
+                  }}
+                >
+                  {percentLabel}
+                </Text>
+                {historyCopy.improvementSuffix}
+              </>
+            ) : (
+              historyCopy.improvementNeutral
+            )}
           </Text>
         </View>
 

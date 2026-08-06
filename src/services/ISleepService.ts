@@ -6,6 +6,7 @@ import type {
   SessionBucket,
   SleepSession,
   SleepSessionCompletion,
+  SnoreEvent,
 } from '@/types';
 
 import type { Result } from '@/repositories';
@@ -63,6 +64,12 @@ export interface ISleepService {
 
   /** Paginated history, newest first. */
   listSessions(request: PageRequest): Promise<Result<Page<SleepSession>>>;
+
+  /** Timeline buckets for one session (ADR-11). Empty when none were saved. */
+  getBuckets(sessionId: string): Promise<Result<readonly SessionBucket[]>>;
+
+  /** Snore episodes for Summary snippet list — newest first for display. */
+  getSnoreEvents(sessionId: string): Promise<Result<readonly SnoreEvent[]>>;
 
   /** Persist pre-aggregated timeline buckets (ADR-11). */
   saveBuckets(buckets: readonly SessionBucket[]): Promise<Result<void>>;

@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { Card } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { historyCopy } from './mock';
+import { historyCopy } from './models';
 
 type InsightsCardProps = {
   readonly onPress: () => void;

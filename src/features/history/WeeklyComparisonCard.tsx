@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { Card } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { historyCopy, type ComparisonRowModel } from './mock';
+import { historyCopy, type ComparisonRowModel } from './models';
 
 type WeeklyComparisonCardProps = {
   readonly rows: readonly ComparisonRowModel[];

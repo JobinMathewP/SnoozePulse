@@ -35,6 +35,13 @@ export interface IAudioService {
    */
   stopSession(): Promise<Result<SleepSession>>;
 
+  /**
+   * Tear down capture after JS state was reset (Fast Refresh / remount) while the native
+   * engine or an in-memory session may still be live. Always stops the engine.
+   * Returns the completed session when one could be finalised; otherwise `null`.
+   */
+  forceStopRecording(): Promise<Result<SleepSession | null>>;
+
   /** System-only. Enter PAUSED in response to an audio interruption (ADR-14). */
   pauseSession(): Promise<Result<void>>;
 

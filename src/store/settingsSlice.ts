@@ -1,4 +1,4 @@
-import type { CalibrationResult } from '@/types';
+import type { CalibrationResult, MicrophonePermissionStatus } from '@/types';
 import type { SessionReadiness } from '@/services';
 
 import type { StoreDependencies } from './container';
@@ -13,6 +13,8 @@ export type SettingsSlice = {
 
   refreshReadiness: () => Promise<Result<SessionReadiness>>;
   calibrateAmbient: () => Promise<Result<CalibrationResult>>;
+  /** Prompt for mic access, then refresh readiness cards. */
+  requestMicrophonePermission: () => Promise<Result<MicrophonePermissionStatus>>;
 };
 
 type SetState = (partial: Partial<SettingsSlice>) => void;
@@ -39,6 +41,15 @@ export function createSettingsSlice(
         if (readiness.ok) {
           set({ readiness: readiness.value });
         }
+      }
+      return result;
+    },
+
+    async requestMicrophonePermission() {
+      const result = await deps.audioService.requestPermission();
+      const readiness = await deps.sleepService.checkReadiness();
+      if (readiness.ok) {
+        set({ readiness: readiness.value });
       }
       return result;
     },

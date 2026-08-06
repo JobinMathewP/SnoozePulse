@@ -5,7 +5,7 @@ import Svg, { Rect } from 'react-native-svg';
 import { Card } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import type { SnippetRowModel } from './mock';
+import type { SnippetRowModel } from './format';
 
 type SnippetRowProps = {
   readonly snippet: SnippetRowModel;

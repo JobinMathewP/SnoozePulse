@@ -8,6 +8,7 @@ export {
   StoreProvider,
   useAppStore,
   useAudioLevels,
+  useInsights,
   useSession,
   useSettings,
 } from './StoreProvider';

@@ -5,9 +5,11 @@ import Svg, { Rect } from 'react-native-svg';
 import { Card } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { loudestEpisodeDisplay, summaryCopy } from './mock';
+import { summaryCopy } from './format';
 
 type LoudestEpisodeCardProps = {
+  readonly timeLabel: string;
+  readonly detailLabel: string;
   readonly onPlay: () => void;
   readonly testID?: string;
 };
@@ -22,7 +24,12 @@ const PLAY = spacing.lg + spacing.xs;
 /**
  * “Loudest Snore Episode” — dense row matching summary-screen.jpg (~40 dp tall).
  */
-export function LoudestEpisodeCard({ onPlay, testID }: LoudestEpisodeCardProps) {
+export function LoudestEpisodeCard({
+  timeLabel,
+  detailLabel,
+  onPlay,
+  testID,
+}: LoudestEpisodeCardProps) {
   const waveWidth = spacing.xl * 4 + spacing.md;
   const waveHeight = spacing.md + spacing.xs;
   const gap = spacing.xs / 2;
@@ -51,7 +58,7 @@ export function LoudestEpisodeCard({ onPlay, testID }: LoudestEpisodeCardProps) 
               lineHeight: lineHeight.title,
             }}
           >
-            {loudestEpisodeDisplay.timeLabel}
+            {timeLabel}
           </Text>
           <Text
             style={{
@@ -62,7 +69,7 @@ export function LoudestEpisodeCard({ onPlay, testID }: LoudestEpisodeCardProps) 
               opacity: 0.6,
             }}
           >
-            {loudestEpisodeDisplay.detailLabel}
+            {detailLabel}
           </Text>
         </View>
 

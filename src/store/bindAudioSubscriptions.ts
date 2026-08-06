@@ -2,11 +2,14 @@ import type { IAudioService } from '@/services';
 import type { StoreApi } from 'zustand/vanilla';
 
 import type { AppStore } from './createAppStore';
+import { decibelToWaveLevel, liveAudioLevel } from './liveAudioLevel';
 import { DECIBEL_STORE_THROTTLE_MS } from './throttle';
 
 /**
  * Wire engine→store subscriptions. Pause/resume are system-only (ADR-14).
- * Decibel updates are throttled below native event rate (ADR-13).
+ *
+ * Every level event updates {@link liveAudioLevel} (ADR-13 waveform path).
+ * Zustand `currentDecibel` stays throttled for non-animated UI.
  */
 export function bindAudioSubscriptions(
   store: StoreApi<AppStore>,
@@ -15,6 +18,8 @@ export function bindAudioSubscriptions(
   let lastDecibelAt = 0;
 
   const unsubLevel = audioService.subscribeAudioLevel((event) => {
+    liveAudioLevel.value = decibelToWaveLevel(event.decibel);
+
     const now = Date.now();
     if (now - lastDecibelAt < DECIBEL_STORE_THROTTLE_MS) {
       return;

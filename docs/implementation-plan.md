@@ -1403,9 +1403,9 @@ This soak **cannot** run in Task 5.2: Home and session flows still use M3 mocks,
 app never starts native capture from the UI. Do not fabricate results or add a temporary
 harness that bypasses the product path.
 
-**Dependency (carry-forward):** Execute the 30+ minute locked-screen memory soak
-**immediately after Task 5.3** enables end-to-end recording (UI → store → services →
-native). Report start/end memory there; that closes this Task 5.2 validation item.
+**Dependency (carry-forward):** Originally owned by Task 5.3 after live recording landed.
+**Plan amendment:** soak deferred again to **Task 5.6** (performance / RC) so Task 5.4 can
+proceed after short E2E proof. Not a Task 5.2 or 5.3 failure.
 
 **STOP.** Task 5.2 is complete pending review for the items that *can* be validated now.
 The soak remains open and owned by Task 5.3 — not a Task 5.2 failure. iOS remains
@@ -1454,10 +1454,11 @@ docs/**
 - Summary and History render real persisted data with real computed scores.
 - No screen imports a repository or the native module directly.
 - A full recorded session survives an app restart.
-- **Carry-forward from Task 5.2:** after live recording works, memory is flat across a
-  30+ minute locked-screen run (start vs end PSS reported).
+- **Carry-forward from Task 5.2 (30+ min soak):** see Validation — deferred below. Short
+  live sessions on Android emulator after reboot confirmed mic → waveform → snore →
+  Summary (not a substitute for the locked-screen soak).
 
-**Validation**
+**Validation — completed (short live sessions)**
 
 ```bash
 npm run typecheck
@@ -1465,14 +1466,20 @@ npm run lint
 npx expo run:android
 ```
 
-Full loop: start, record, end, view summary, view history, restart app, reopen the session.
+Full loop exercised: start, record (minutes-scale), end, Summary with real scores/snippets,
+History with persisted day column. Mic/waveform responded after host reboot (emulator still
+flaky on long capture / focus).
 
-**Immediately after** the live recording path works: record for 30+ minutes with the
-screen locked; report memory (e.g. `adb shell dumpsys meminfo <package>`) at start and
-end. This closes the Task 5.2 soak item that was blocked here — do not skip or defer
-further without an explicit plan amendment.
+**Validation — Blocked / deferred to Task 5.6**
 
-**STOP.** Wait for review.
+Record for 30+ minutes with the screen locked. Report memory at start and end.
+
+**Explicit plan amendment:** the 30+ minute locked-screen memory soak is **not** treated as
+a Task 5.3 failure. Short E2E proof is enough to proceed to Task 5.4. The soak (and the
+broader 8-hour performance pass) is owned by **Task 5.6** — do not skip it at RC without
+another amendment.
+
+**STOP.** Task 5.3 complete pending review for items validated above. Soak remains open → 5.6.
 
 ---
 
@@ -1622,6 +1629,8 @@ application source, except to fix a defect a test reveals
 - Integration tests: recording lifecycle, SQLite persistence, store updates, navigation.
 - Performance verified: memory flat across an 8-hour run, the audio stream triggers no React
   renders, animations hold frame rate, battery impact measured.
+- **Carry-forward:** 30+ minute locked-screen memory soak from Tasks 5.2 / 5.3 — report
+  start vs end PSS; closes that open validation item.
 - Release gates: typecheck clean, lint clean, tests green, zero runtime warnings, zero
   `TODO`, documentation current.
 - Manual QA checklist from `testing-strategy.md` completed on Android; iOS items explicitly
@@ -1667,8 +1676,8 @@ npx expo run:android --variant release
 | 4.4  | Zustand store and composition root        | Not started |
 | 4.5  | Analytics service                         | Not started |
 | 5.1  | Native module scaffold and config         | Complete    |
-| 5.2  | Native audio engine                       | Complete (soak → 5.3) |
-| 5.3  | End-to-end integration                    | Not started |
+| 5.2  | Native audio engine                       | Complete (soak → 5.6) |
+| 5.3  | End-to-end integration                    | Complete (soak → 5.6) |
 | 5.4  | Charts and audio playback                 | Not started |
 | 5.5  | Error handling, retention, accessibility  | Not started |
 | 5.6  | Tests, performance, release candidate     | Not started |

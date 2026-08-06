@@ -4,7 +4,6 @@
 
 export type { Container } from './createContainer';
 export { createContainer } from './createContainer';
-export { PlaceholderAnalyticsService } from './PlaceholderAnalyticsService';
 export {
   StoreProvider,
   useAppStore,

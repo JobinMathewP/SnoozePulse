@@ -16,6 +16,7 @@ export { AudioService } from './AudioService';
 export { SleepService } from './SleepService';
 export { ExpoSnippetStorage } from './ExpoSnippetStorage';
 export { FakeAudioEngine } from './fakes/FakeAudioEngine';
+export { AnalyticsService } from './analytics';
 
 export {
   DATABASE_VERSION,

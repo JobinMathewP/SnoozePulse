@@ -12,3 +12,12 @@ export {
   type RetentionPlan,
   type SnippetFileInfo,
 } from './retention';
+export {
+  eachIsoDateInclusive,
+  inRange,
+  metricDelta,
+  periodWindows,
+  startOfLocalDay,
+  toIsoDateLocal,
+  TREND_PERIOD_MS,
+} from './trendPeriods';

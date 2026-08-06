@@ -16,7 +16,7 @@ A feature is complete only if:
 | ------------------- | ------------------------------ |
 | `npm run typecheck` | `tsc --noEmit`                 |
 | `npm run lint`      | `expo lint`                    |
-| `npm test`          | Jest (added in Milestone 6)    |
+| `npm test`          | Jest (added in Milestone 5)    |
 
 Test files are colocated with the code under test in `__tests__` folders. Every phase's
 allowed-files list implicitly includes the `__tests__` folders of the paths it may touch.

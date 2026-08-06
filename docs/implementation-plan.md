@@ -37,10 +37,8 @@ Milestones are strictly sequential. Every task depends only on tasks with a lowe
 Nothing in M3 may reference a store, a repository, or a native module, because those do not
 exist until M4 and M5.
 
-> **Note on numbering.** `roadmap.md` currently labels its dependency gates M0–M6. This plan
-> uses five milestones, so the labels differ. The mapping is in the table above, and the
-> dependency gates below are authoritative. `roadmap.md`'s gate table should be renumbered to
-> match — see the open item at the end of this document.
+Phase 0 (Architecture Review) is complete; its outcome is `docs/decisions.md`. The milestone
+numbering here matches `roadmap.md`.
 
 ---
 
@@ -140,7 +138,7 @@ tsconfig.json
   `npx expo install` where the package is an Expo package.
 - `eslint.config.js` exists and extends `eslint-config-expo`.
 - `npm run lint` runs without an interactive prompt.
-- `npm run typecheck` still reports exactly the two known template errors and no new ones.
+- `npm run typecheck` still passes with zero errors.
 - No source file changed.
 
 **Validation**
@@ -189,8 +187,7 @@ assets/**
 - `src/app/_layout.tsx` and `src/app/index.tsx` are reduced to a minimal bootable shell with
   no imports of deleted files.
 - No `.web.tsx` file remains anywhere; the `web` block is gone from `app.json`.
-- `npm run typecheck` passes with **zero** errors — this is the task that clears the known
-  baseline failure.
+- `npm run typecheck` passes with zero errors.
 - README describes SnoozePulse, not the Expo starter.
 
 **Validation**
@@ -1443,12 +1440,3 @@ npx expo run:android --variant release
 | 5.5 | Error handling, retention, accessibility | Not started |
 | 5.6 | Tests, performance, release candidate | Not started |
 
----
-
-# Open Item
-
-`roadmap.md` labels its dependency gates M0–M6 while this plan uses five milestones. The
-mapping is in the Milestone Overview table and the gates here are authoritative, but the two
-documents disagree on labels. Renumbering `roadmap.md`'s gate table to M1–M5 would remove the
-discrepancy. Not done here because this task authorised creating `implementation-plan.md`
-only.

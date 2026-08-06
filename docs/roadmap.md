@@ -26,11 +26,16 @@ When multiple references overlap, follow this order:
 12. docs/SnoreTracker_App_PRD_Specification.md
 13. docs/coding-standards.md
 14. docs/testing-strategy.md
-15. docs/roadmap.md
+15. docs/implementation-plan.md
+16. docs/roadmap.md
 
 Where a reference image conflicts with `decisions.md`, `decisions.md` wins. There are
 currently two such conflicts, both ratified: SnoozePulse branding (ADR-08) and the removal
 of the Insights and Profile tabs (ADR-09).
+
+`roadmap.md` defines the phases. `implementation-plan.md` breaks each phase into executable
+tasks with allowed paths, acceptance criteria, and validation commands. On task scope, the
+implementation plan is the more specific document and takes precedence.
 
 ---
 
@@ -64,36 +69,40 @@ Before every phase:
 
 # Milestones and Dependency Gates
 
-No dependency is installed before the milestone that needs it. Installing a dependency is
-part of the first phase of its milestone and requires no separate approval.
+No dependency is installed before the phase that needs it. Installing a dependency is part
+of the phase named below and requires no separate approval.
 
-| Milestone | Phases | Install at milestone start |
-| --- | --- | --- |
-| **M0** Review | 0 | — |
-| **M1** Foundation | 1–6 | `zustand`, `nativewind`, `tailwindcss`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint`, `eslint-config-expo` |
-| **M2** Capture screens | 7–10 | `expo-battery`, `expo-keep-awake` |
-| **M3** Analysis screens | 11–14 | — |
-| **M4** Data and state | 15–17 | `expo-sqlite` |
-| **M5** Native audio | 18–20 | `expo-audio`, `expo-file-system` |
-| **M6** Polish and release | 21–25 | `jest`, `jest-expo`, `@testing-library/react-native` |
+| Milestone | Phases | Install at | Packages |
+| --- | --- | --- | --- |
+| **M1** Foundation | 1–4 | Phase 1 | `zustand`, `nativewind`, `tailwindcss`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint`, `eslint-config-expo` |
+| **M2** Navigation & UI primitives | 5–6 | — | — |
+| **M3** Screens (mock data) | 7–14 | Phase 7 | `expo-battery`, `expo-keep-awake` |
+| **M4** Data, state & analytics | 15–17 | Phase 15 | `expo-sqlite` |
+| **M5** Native audio, integration & release | 18–25 | Phase 18 | `expo-audio`, `expo-file-system` |
+| | | Phase 25 | `jest`, `jest-expo`, `@testing-library/react-native` |
+
+Phase 0 (Architecture Review) is complete and precedes M1.
 
 `react-native-reanimated` (4.5.1) and `react-native-worklets` are already installed.
 
 Anything not on this list still requires approval before it is added.
 
+Each milestone is broken into 4–6 executable tasks in `docs/implementation-plan.md`, which
+specifies per-task allowed paths, acceptance criteria, and validation commands.
+
 ---
 
 # Known Starting Condition
 
-`npm run typecheck` currently fails with two errors, both in starter-template files:
+`npm run typecheck` passes with zero errors. Every phase must keep it that way.
 
-```text
-src/components/animated-icon.web.tsx  — missing ./animated-icon.module.css types
-src/constants/theme.ts                — missing types for side-effect import of @/global.css
-```
+It briefly failed on two CSS-module imports in starter-template files. Running the app
+generated `expo-env.d.ts` and `.expo/types/`, which supply those ambient declarations. Both
+files are build artifacts: if typecheck fails on `*.module.css` or `@/global.css` after a
+clean checkout, run the app once to regenerate them rather than editing the affected files —
+they are on the Phase 1 deletion list anyway.
 
-Both are resolved by the Phase 1 deletion list. Phase 1 is the first phase expected to end
-with a clean typecheck.
+`npm run lint` is not available until Phase 1 installs ESLint.
 
 ---
 
@@ -236,7 +245,7 @@ Services hold business logic; repositories hold SQL. They never merge (ADR-19).
 
 ---
 
-# Phase 5 — Navigation Shell (M1)
+# Phase 5 — Navigation Shell (M2)
 
 Allowed:
 - src/app/**
@@ -258,7 +267,7 @@ No UI implementation.
 
 ---
 
-# Phase 6 — UI Primitives (M1)
+# Phase 6 — UI Primitives (M2)
 
 Reference:
 - docs/design-spec.md
@@ -279,7 +288,7 @@ Create:
 
 ---
 
-# Phase 7 — Home Screen (M2)
+# Phase 7 — Home Screen (M3)
 
 Reference:
 - docs/home-screen.jpg
@@ -287,8 +296,11 @@ Reference:
 Allowed:
 - src/features/home/**
 - src/components/ui/**
+- src/app/(tabs)/index.tsx
+- package.json
 
 Tasks:
+- Install `expo-battery` and `expo-keep-awake`.
 - Match layout
 - Theme tokens only
 - Mock data only
@@ -298,7 +310,7 @@ Stop after completion.
 
 ---
 
-# Phase 8 — Home Review
+# Phase 8 — Home Review (M3)
 
 No code changes.
 
@@ -312,7 +324,7 @@ Produce:
 
 ---
 
-# Phase 9 — Active Session Screen (M2)
+# Phase 9 — Active Session Screen (M3)
 
 Reference:
 - docs/active-session.jpg
@@ -330,7 +342,7 @@ shared value is driven by mock data.
 
 ---
 
-# Phase 10 — Active Screen Review
+# Phase 10 — Active Screen Review (M3)
 
 Review only.
 
@@ -349,7 +361,7 @@ Mock data only.
 
 ---
 
-# Phase 12 — Summary Review
+# Phase 12 — Summary Review (M3)
 
 Review only.
 
@@ -368,7 +380,7 @@ Mock data only.
 
 ---
 
-# Phase 14 — History Review
+# Phase 14 — History Review (M3)
 
 Review only.
 
@@ -490,7 +502,7 @@ Replace all mock data.
 
 ---
 
-# Phase 21 — Charts and Audio Playback (M6)
+# Phase 21 — Charts and Audio Playback (M5)
 
 Implement:
 - Timeline chart backed by `session_buckets`
@@ -502,7 +514,7 @@ within that bucket's time range.
 
 ---
 
-# Phase 22 — Error Handling, Retention and Cleanup (M6)
+# Phase 22 — Error Handling, Retention and Cleanup (M5)
 
 Handle:
 - Permission denial
@@ -519,7 +531,7 @@ Implement retention (ADR-15):
 
 ---
 
-# Phase 23 — Accessibility (M6)
+# Phase 23 — Accessibility (M5)
 
 Verify:
 - accessibilityLabel
@@ -529,7 +541,7 @@ Verify:
 
 ---
 
-# Phase 24 — Performance (M6)
+# Phase 24 — Performance (M5)
 
 Review:
 - Memory stability over an 8-hour session
@@ -539,14 +551,14 @@ Review:
 
 ---
 
-# Phase 25 — Release Candidate (M6)
+# Phase 25 — Release Candidate (M5)
 
 Allowed:
 - Test files across the codebase
 - package.json
 
 Checklist:
-- Install the M6 test tooling and write the test pyramid from `testing-strategy.md`
+- Install the M5 test tooling and write the test pyramid from `testing-strategy.md`
 - TypeScript clean
 - ESLint clean
 - No runtime warnings

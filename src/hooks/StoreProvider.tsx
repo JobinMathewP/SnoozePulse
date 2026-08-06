@@ -57,6 +57,19 @@ export function useAudioLevels() {
   );
 }
 
+/** Snippet playback controls + status for Summary (Task 5.4). */
+export function useSnippetPlayback() {
+  return useAppStore(
+    useShallow((state) => ({
+      playback: state.playback,
+      playSnippet: state.playSnippet,
+      pauseSnippet: state.pauseSnippet,
+      stopSnippet: state.stopSnippet,
+      isRecording: state.isRecording,
+    })),
+  );
+}
+
 /** Readiness / calibration / mic permission for Home. */
 export function useSettings() {
   return useAppStore(

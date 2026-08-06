@@ -1,3 +1,5 @@
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+
 import type { IAudioEngine } from '@/native';
 import type { ISnoreRepository, Result } from '@/repositories';
 import { err, ok } from '@/repositories';
@@ -18,13 +20,21 @@ import {
 } from '@/utils';
 
 import type { IAnalyticsService } from './IAnalyticsService';
-import type { IAudioService } from './IAudioService';
+import type { IAudioService, SnippetPlaybackStatus } from './IAudioService';
 import type { ISleepService } from './ISleepService';
 
 type Listener<T> = (value: T) => void;
 
+const IDLE_PLAYBACK: SnippetPlaybackStatus = {
+  eventId: null,
+  audioPath: null,
+  playing: false,
+  positionMs: 0,
+  durationMs: 0,
+};
+
 /**
- * Recording lifecycle, guarded transitions, and snore-event batching.
+ * Recording lifecycle, guarded transitions, snore batching, and snippet playback.
  * Depends on injected `IAudioEngine` — never constructed here (ADR-18). Zero SQL.
  */
 export class AudioService implements IAudioService {
@@ -37,9 +47,14 @@ export class AudioService implements IAudioService {
   private readonly levelListeners = new Set<Listener<AudioLevelEvent>>();
   private readonly snoreListeners = new Set<Listener<SnoreEvent>>();
   private readonly interruptionListeners = new Set<Listener<AudioInterruptionEvent>>();
+  private readonly playbackListeners = new Set<Listener<SnippetPlaybackStatus>>();
 
   private levelUnsubscribe: (() => void) | null = null;
   private interruptionUnsubscribe: (() => void) | null = null;
+
+  private player: AudioPlayer | null = null;
+  private playerStatusSub: { remove: () => void } | null = null;
+  private playbackStatus: SnippetPlaybackStatus = IDLE_PLAYBACK;
 
   constructor(
     private readonly audioEngine: IAudioEngine,
@@ -70,6 +85,7 @@ export class AudioService implements IAudioService {
     this.interruptionUnsubscribe?.();
     this.engineSnoreUnsubscribe?.();
     this.clearFlushTimer();
+    void this.releasePlayer();
   }
 
   getPermissionStatus(): Promise<MicrophonePermissionStatus> {
@@ -81,6 +97,9 @@ export class AudioService implements IAudioService {
   }
 
   async startSession(): Promise<Result<SleepSession>> {
+    // Capture and playback never share the session (native-audio.md).
+    await this.releasePlayer();
+
     const toStarting = this.transition('STARTING');
     if (!toStarting.ok) {
       return toStarting;
@@ -289,6 +308,118 @@ export class AudioService implements IAudioService {
     return ok(undefined);
   }
 
+  async playSnippet(eventId: string, audioPath: string): Promise<Result<void>> {
+    if (this.isCaptureActive()) {
+      return err({
+        code: 'AUDIO_BUSY',
+        message: 'Cannot play a snippet while a sleep session is recording',
+      });
+    }
+    if (!audioPath) {
+      return err({
+        code: 'NOT_FOUND',
+        message: 'This snore episode has no audio snippet',
+        entity: 'snoreEvent',
+        id: eventId,
+      });
+    }
+
+    try {
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: false,
+        interruptionMode: 'doNotMix',
+      });
+
+      const uri = toFileUri(audioPath);
+      if (this.player && this.playbackStatus.audioPath === audioPath) {
+        this.player.play();
+        this.publishPlayback({
+          ...this.playbackStatus,
+          eventId,
+          playing: true,
+        });
+        return ok(undefined);
+      }
+
+      await this.releasePlayer();
+      const player = createAudioPlayer({ uri });
+      this.player = player;
+      this.playerStatusSub = player.addListener('playbackStatusUpdate', (status) => {
+        this.publishPlayback({
+          eventId,
+          audioPath,
+          playing: status.playing,
+          positionMs: Math.round(status.currentTime * 1000),
+          durationMs: Math.round(status.duration * 1000),
+        });
+        if (status.didJustFinish) {
+          void player.seekTo(0).catch(() => undefined);
+          this.publishPlayback({
+            eventId,
+            audioPath,
+            playing: false,
+            positionMs: 0,
+            durationMs: Math.round(status.duration * 1000),
+          });
+        }
+      });
+
+      this.publishPlayback({
+        eventId,
+        audioPath,
+        playing: true,
+        positionMs: 0,
+        durationMs: Math.round((player.duration || 0) * 1000),
+      });
+      player.play();
+      return ok(undefined);
+    } catch (cause) {
+      await this.releasePlayer();
+      return err({
+        code: 'AUDIO_ENGINE',
+        message: 'Failed to play snore snippet',
+        cause,
+      });
+    }
+  }
+
+  async pauseSnippet(): Promise<Result<void>> {
+    try {
+      this.player?.pause();
+      this.publishPlayback({
+        ...this.playbackStatus,
+        playing: false,
+      });
+      return ok(undefined);
+    } catch (cause) {
+      return err({
+        code: 'AUDIO_ENGINE',
+        message: 'Failed to pause snippet',
+        cause,
+      });
+    }
+  }
+
+  async stopSnippet(): Promise<Result<void>> {
+    await this.releasePlayer();
+    return ok(undefined);
+  }
+
+  getPlaybackStatus(): SnippetPlaybackStatus {
+    return this.playbackStatus;
+  }
+
+  subscribePlaybackStatus(
+    listener: Listener<SnippetPlaybackStatus>,
+  ): () => void {
+    this.playbackListeners.add(listener);
+    listener(this.playbackStatus);
+    return () => {
+      this.playbackListeners.delete(listener);
+    };
+  }
+
   subscribeAudioLevel(listener: Listener<AudioLevelEvent>): () => void {
     this.levelListeners.add(listener);
     return () => {
@@ -326,6 +457,41 @@ export class AudioService implements IAudioService {
 
   private forceState(to: SessionState): void {
     this.liveState = to;
+  }
+
+  private isCaptureActive(): boolean {
+    return (
+      this.liveState === 'STARTING' ||
+      this.liveState === 'RECORDING' ||
+      this.liveState === 'PAUSED' ||
+      this.liveState === 'STOPPING'
+    );
+  }
+
+  private publishPlayback(status: SnippetPlaybackStatus): void {
+    this.playbackStatus = status;
+    for (const listener of this.playbackListeners) {
+      listener(status);
+    }
+  }
+
+  private async releasePlayer(): Promise<void> {
+    this.playerStatusSub?.remove();
+    this.playerStatusSub = null;
+    if (this.player) {
+      try {
+        this.player.pause();
+      } catch {
+        // ignore
+      }
+      try {
+        this.player.remove();
+      } catch {
+        // ignore
+      }
+      this.player = null;
+    }
+    this.publishPlayback(IDLE_PLAYBACK);
   }
 
   private async bufferSnoreEvent(event: SnoreEvent): Promise<void> {
@@ -395,4 +561,11 @@ function summarizeEvents(events: readonly SnoreEvent[]): {
     peakDb,
     peakAt,
   };
+}
+
+function toFileUri(path: string): string {
+  if (path.startsWith('file://')) {
+    return path;
+  }
+  return `file://${path}`;
 }

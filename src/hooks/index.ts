@@ -11,4 +11,5 @@ export {
   useInsights,
   useSession,
   useSettings,
+  useSnippetPlayback,
 } from './StoreProvider';

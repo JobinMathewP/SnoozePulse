@@ -1678,6 +1678,6 @@ npx expo run:android --variant release
 | 5.1  | Native module scaffold and config         | Complete    |
 | 5.2  | Native audio engine                       | Complete (soak → 5.6) |
 | 5.3  | End-to-end integration                    | Complete (soak → 5.6) |
-| 5.4  | Charts and audio playback                 | Not started |
+| 5.4  | Charts and audio playback                 | In review   |
 | 5.5  | Error handling, retention, accessibility  | Not started |
 | 5.6  | Tests, performance, release candidate     | Not started |

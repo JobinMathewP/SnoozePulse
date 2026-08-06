@@ -7,7 +7,7 @@
  * directly (ADR-12, ADR-18).
  */
 
-export type { IAudioService } from './IAudioService';
+export type { IAudioService, SnippetPlaybackStatus } from './IAudioService';
 export type { ISleepService, RetentionCleanup, SessionReadiness } from './ISleepService';
 export type { IAnalyticsService } from './IAnalyticsService';
 export type { ISnippetStorage } from './ISnippetStorage';

@@ -183,3 +183,35 @@ function formatHourLabel(hour24: number): string {
   }
   return `${hour}${period}`;
 }
+
+/** Parse `bucket-${epoch}` bar ids back to the bucket start epoch. */
+export function bucketStartFromBarId(barId: string): number | null {
+  const prefix = 'bucket-';
+  if (!barId.startsWith(prefix)) {
+    return null;
+  }
+  const value = Number(barId.slice(prefix.length));
+  return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Loudest snore whose timestamp falls in `[bucketStart, bucketStart + duration)`.
+ * Prefers higher peakDb; ties keep the earlier event.
+ */
+export function loudestEventInBucket(
+  events: readonly SnoreEvent[],
+  bucketStart: number,
+  bucketDurationMs: number,
+): SnoreEvent | null {
+  const end = bucketStart + bucketDurationMs;
+  let best: SnoreEvent | null = null;
+  for (const event of events) {
+    if (event.timestamp < bucketStart || event.timestamp >= end) {
+      continue;
+    }
+    if (!best || event.peakDb > best.peakDb) {
+      best = event;
+    }
+  }
+  return best;
+}

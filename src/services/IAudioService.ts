@@ -8,6 +8,17 @@ import type {
 
 import type { Result } from '@/repositories';
 
+/** Live snippet playback progress for Summary (Task 5.4). */
+export type SnippetPlaybackStatus = {
+  readonly eventId: string | null;
+  readonly audioPath: string | null;
+  readonly playing: boolean;
+  /** Current position in milliseconds. */
+  readonly positionMs: number;
+  /** Total duration in milliseconds (0 until loaded). */
+  readonly durationMs: number;
+};
+
 /**
  * Recording lifecycle and state-machine orchestration.
  *
@@ -17,6 +28,8 @@ import type { Result } from '@/repositories';
  *
  * Pause / resume are system-only entry points (ADR-14): the store calls them when the
  * engine emits an interruption, never when a user taps a control.
+ *
+ * Snippet playback uses `expo-audio` and is refused while capture owns the session.
  */
 export interface IAudioService {
   getPermissionStatus(): Promise<MicrophonePermissionStatus>;
@@ -47,6 +60,24 @@ export interface IAudioService {
 
   /** System-only. Leave PAUSED when the interruption ends (ADR-14). */
   resumeSession(): Promise<Result<void>>;
+
+  /**
+   * Play a snippet file. Refused with `AUDIO_BUSY` while capture is active.
+   * `eventId` is echoed in {@link SnippetPlaybackStatus} for UI highlighting.
+   */
+  playSnippet(eventId: string, audioPath: string): Promise<Result<void>>;
+
+  /** Pause the current snippet without releasing the player. */
+  pauseSnippet(): Promise<Result<void>>;
+
+  /** Stop and release the snippet player. */
+  stopSnippet(): Promise<Result<void>>;
+
+  getPlaybackStatus(): SnippetPlaybackStatus;
+
+  subscribePlaybackStatus(
+    listener: (status: SnippetPlaybackStatus) => void,
+  ): () => void;
 
   /**
    * Throttled level stream for the store's `currentDecibel`. The waveform does not use

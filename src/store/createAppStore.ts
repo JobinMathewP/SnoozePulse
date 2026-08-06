@@ -19,7 +19,7 @@ export type AppStore = SessionSlice & AudioSlice & SettingsSlice & InsightsSlice
 export function createAppStore(deps: StoreDependencies): StoreApi<AppStore> {
   return createStore<AppStore>((set, get) => ({
     ...createSessionSlice(deps, set, get),
-    ...createAudioSlice(set),
+    ...createAudioSlice(deps, set),
     ...createSettingsSlice(deps, set),
     ...createInsightsSlice(deps),
   }));

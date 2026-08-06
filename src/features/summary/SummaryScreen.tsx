@@ -5,13 +5,15 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { CardRow, MetricCard, Screen, SectionHeader, TimelineCard } from '@/components/ui';
-import { useInsights } from '@/hooks';
+import { useInsights, useSnippetPlayback } from '@/hooks';
 import type { SessionDetail } from '@/store';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
-import type { SleepSession } from '@/types';
+import type { SleepSession, SnoreEvent } from '@/types';
+import { TIMELINE_BUCKET_DURATION_MS } from '@/utils';
 
 import { DateNavigator } from './DateNavigator';
 import {
+  bucketStartFromBarId,
   bucketsToTimelineBars,
   formatClock,
   formatClockRange,
@@ -20,6 +22,7 @@ import {
   formatPercentOfSleep,
   formatSummaryDateLabel,
   loudestDisplay,
+  loudestEventInBucket,
   peakCalloutFromSummary,
   summaryCopy,
   toSnippetRows,
@@ -81,11 +84,12 @@ type SummaryScreenProps = {
 
 /**
  * Morning Summary — live session detail via store → analytics (ADR-12).
- * Snippet playback is deferred to Task 5.4.
+ * Timeline taps and snippet rows play through AudioService (Task 5.4).
  */
 export function SummaryScreen({ sessionId }: SummaryScreenProps) {
   const router = useRouter();
   const { loadSessionDetail, listRecentSessions } = useInsights();
+  const { playback, playSnippet, pauseSnippet, stopSnippet } = useSnippetPlayback();
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [sessions, setSessions] = useState<readonly SleepSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +122,23 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
       cancelled = true;
     };
   }, [sessionId, loadSessionDetail, listRecentSessions]);
+
+  useEffect(() => {
+    return () => {
+      void stopSnippet();
+    };
+  }, [sessionId, stopSnippet]);
+
+  const toggleEventPlayback = (event: SnoreEvent): void => {
+    if (event.audioPath === null) {
+      return;
+    }
+    if (playback.eventId === event.id && playback.playing) {
+      void pauseSnippet();
+      return;
+    }
+    void playSnippet(event.id, event.audioPath);
+  };
 
   const goNeighbor = (direction: -1 | 1) => {
     // sessions are newest-first; previous night is higher index.
@@ -183,7 +204,10 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
   const peakCallout = peakCalloutFromSummary(summary, buckets);
   const snippets = toSnippetRows(events);
   const loudest = loudestDisplay(summary);
+  const loudestEpisode = summary.loudestEpisode;
   const dateAnchor = summary.range.endedAt;
+  const progress =
+    playback.durationMs > 0 ? playback.positionMs / playback.durationMs : 0;
 
   return (
     <Screen
@@ -246,11 +270,15 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
           />
         </CardRow>
 
-        {loudest ? (
+        {loudest && loudestEpisode ? (
           <LoudestEpisodeCard
             timeLabel={loudest.timeLabel}
             detailLabel={loudest.detailLabel}
-            onPlay={noop}
+            playable={loudestEpisode.audioPath !== null}
+            playing={playback.eventId === loudestEpisode.id && playback.playing}
+            onPlay={() => {
+              toggleEventPlayback(loudestEpisode);
+            }}
             testID="summary-loudest-episode"
           />
         ) : null}
@@ -259,7 +287,21 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
           <TimelineCard
             bars={bars}
             peakCallout={peakCallout}
-            onBarPress={noop}
+            onBarPress={(bar) => {
+              const bucketStart = bucketStartFromBarId(bar.id);
+              if (bucketStart === null) {
+                return;
+              }
+              const event = loudestEventInBucket(
+                events,
+                bucketStart,
+                TIMELINE_BUCKET_DURATION_MS,
+              );
+              if (!event) {
+                return;
+              }
+              toggleEventPlayback(event);
+            }}
             onInfoPress={noop}
             testID="summary-timeline"
           />
@@ -268,15 +310,22 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
         {snippets.length > 0 ? (
           <View style={{ gap: spacing.xs }}>
             <SectionHeader title={summaryCopy.snippetsTitle} />
-            {snippets.map((snippet) => (
-              <SnippetRow
-                key={snippet.event.id}
-                snippet={snippet}
-                onPlay={noop}
-                emphasizeTime
-                testID={`summary-snippet-${snippet.event.id}`}
-              />
-            ))}
+            {snippets.map((snippet) => {
+              const active = playback.eventId === snippet.event.id;
+              return (
+                <SnippetRow
+                  key={snippet.event.id}
+                  snippet={snippet}
+                  playing={active && playback.playing}
+                  progress={active ? progress : 0}
+                  onPlay={() => {
+                    toggleEventPlayback(snippet.event);
+                  }}
+                  emphasizeTime
+                  testID={`summary-snippet-${snippet.event.id}`}
+                />
+              );
+            })}
           </View>
         ) : null}
 

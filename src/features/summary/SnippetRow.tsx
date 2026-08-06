@@ -10,6 +10,10 @@ import type { SnippetRowModel } from './format';
 type SnippetRowProps = {
   readonly snippet: SnippetRowModel;
   readonly onPlay: () => void;
+  /** True when this row's snippet is the active player and currently playing. */
+  readonly playing?: boolean;
+  /** 0–1 progress when this row is the active player. */
+  readonly progress?: number;
   /** Snippet times use alert red in summary-screen.jpg. */
   readonly emphasizeTime?: boolean;
   readonly testID?: string;
@@ -22,20 +26,38 @@ const PLAY = spacing.lg;
 
 /**
  * Thin list-like snore snippet row (summary-screen.jpg).
+ * Null `audioPath` disables play without crashing (Task 5.4).
  */
-export function SnippetRow({ snippet, onPlay, emphasizeTime = false, testID }: SnippetRowProps) {
+export function SnippetRow({
+  snippet,
+  onPlay,
+  playing = false,
+  progress = 0,
+  emphasizeTime = false,
+  testID,
+}: SnippetRowProps) {
   const waveWidth = spacing.xl * 2;
   const waveHeight = spacing.sm + spacing.xs;
   const gap = spacing.xs / 2;
   const barWidth = (waveWidth - gap * (MINI_WEIGHTS.length - 1)) / MINI_WEIGHTS.length;
   const timeColor = emphasizeTime ? colors.alertText : colors.fg;
+  const playable = snippet.event.audioPath !== null;
+  const clampedProgress = Math.min(1, Math.max(0, progress));
 
   return (
     <Card width="full" tone="elevated" corner="md" border="subtle" inset="compact" testID={testID}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Play snore snippet at ${snippet.timeLabel}`}
+          accessibilityLabel={
+            playable
+              ? playing
+                ? `Pause snore snippet at ${snippet.timeLabel}`
+                : `Play snore snippet at ${snippet.timeLabel}`
+              : `No audio for snore snippet at ${snippet.timeLabel}`
+          }
+          accessibilityState={{ disabled: !playable }}
+          disabled={!playable}
           hitSlop={spacing.sm}
           onPress={onPlay}
           style={{
@@ -43,12 +65,17 @@ export function SnippetRow({ snippet, onPlay, emphasizeTime = false, testID }: S
             height: PLAY,
             borderRadius: PLAY / 2,
             borderWidth: 1.5,
-            borderColor: colors.alertText,
+            borderColor: playable ? colors.alertText : colors.fgCaption,
+            opacity: playable ? 1 : 0.4,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="play" size={fontSize.caption} color={colors.fg} />
+          <Ionicons
+            name={playing ? 'pause' : 'play'}
+            size={fontSize.caption}
+            color={colors.fg}
+          />
         </Pressable>
 
         <View style={{ flex: 1, gap: 0, minWidth: 0 }}>
@@ -73,6 +100,26 @@ export function SnippetRow({ snippet, onPlay, emphasizeTime = false, testID }: S
           >
             {snippet.durationLabel}
           </Text>
+          {playing || clampedProgress > 0 ? (
+            <View
+              style={{
+                marginTop: spacing.xs / 2,
+                height: 2,
+                borderRadius: 1,
+                backgroundColor: colors.fg,
+                opacity: 0.15,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  width: `${clampedProgress * 100}%`,
+                  height: '100%',
+                  backgroundColor: colors.alertText,
+                }}
+              />
+            </View>
+          ) : null}
         </View>
 
         <Svg width={waveWidth} height={waveHeight}>

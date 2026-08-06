@@ -32,6 +32,10 @@ export function bindAudioSubscriptions(
     store.getState().addSnoreEvent(event);
   });
 
+  const unsubPlayback = audioService.subscribePlaybackStatus((status) => {
+    store.getState().setPlaybackStatus(status);
+  });
+
   const unsubInterruption = audioService.subscribeInterruption((event) => {
     if (event.resumed) {
       void store.getState().resumeSession();
@@ -43,6 +47,7 @@ export function bindAudioSubscriptions(
   return () => {
     unsubLevel();
     unsubSnore();
+    unsubPlayback();
     unsubInterruption();
   };
 }

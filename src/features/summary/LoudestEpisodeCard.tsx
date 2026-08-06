@@ -11,6 +11,8 @@ type LoudestEpisodeCardProps = {
   readonly timeLabel: string;
   readonly detailLabel: string;
   readonly onPlay: () => void;
+  readonly playable?: boolean;
+  readonly playing?: boolean;
   readonly testID?: string;
 };
 
@@ -28,6 +30,8 @@ export function LoudestEpisodeCard({
   timeLabel,
   detailLabel,
   onPlay,
+  playable = true,
+  playing = false,
   testID,
 }: LoudestEpisodeCardProps) {
   const waveWidth = spacing.xl * 4 + spacing.md;
@@ -92,7 +96,15 @@ export function LoudestEpisodeCard({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Play loudest snore episode"
+          accessibilityLabel={
+            playable
+              ? playing
+                ? 'Pause loudest snore episode'
+                : 'Play loudest snore episode'
+              : 'No audio for loudest snore episode'
+          }
+          accessibilityState={{ disabled: !playable }}
+          disabled={!playable}
           hitSlop={spacing.sm}
           onPress={onPlay}
           style={{
@@ -100,12 +112,17 @@ export function LoudestEpisodeCard({
             height: PLAY,
             borderRadius: PLAY / 2,
             borderWidth: 1.5,
-            borderColor: colors.fg,
+            borderColor: playable ? colors.fg : colors.fgCaption,
+            opacity: playable ? 1 : 0.4,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="play" size={fontSize.caption} color={colors.fg} />
+          <Ionicons
+            name={playing ? 'pause' : 'play'}
+            size={fontSize.caption}
+            color={colors.fg}
+          />
         </Pressable>
       </View>
     </Card>

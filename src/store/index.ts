@@ -1,8 +1,17 @@
 /**
- * Application state and the composition-root contract.
- *
- * This folder will hold the Zustand store. For Milestone 1 it only declares what the
- * composition root must provide so later milestones can inject fakes in tests (ADR-18).
+ * Application state (Zustand) — three slices, no repository imports (ADR-12).
+ * Concrete services are injected at the composition root (ADR-18).
  */
 
-export type { Container, StoreDependencies } from './container';
+export type { StoreDependencies } from './container';
+export type { Result } from './result';
+export { err, ok } from './result';
+
+export type { AppStore } from './createAppStore';
+export { createAppStore } from './createAppStore';
+export { bindAudioSubscriptions } from './bindAudioSubscriptions';
+export { DECIBEL_STORE_THROTTLE_MS } from './throttle';
+
+export type { SessionSlice } from './sessionSlice';
+export type { AudioSlice } from './audioSlice';
+export type { SettingsSlice } from './settingsSlice';

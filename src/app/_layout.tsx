@@ -9,10 +9,16 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import type { StoreApi } from 'zustand/vanilla';
 
-import { ensureDatabase } from '@/services/database';
+import { createContainer, StoreProvider } from '@/hooks';
+import {
+  bindAudioSubscriptions,
+  createAppStore,
+  type AppStore,
+} from '@/store';
 import { colors } from '@/theme';
 
 // Held in global scope, not in the component: by the time a hook runs the splash screen may
@@ -27,60 +33,82 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const [store, setStore] = useState<StoreApi<AppStore> | null>(null);
 
   useEffect(() => {
-    // Release on failure too, otherwise a missing font traps the user on the splash screen.
-    if (fontsLoaded || fontError) {
-      SplashScreen.hide();
-    }
-  }, [fontsLoaded, fontError]);
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
 
-  useEffect(() => {
-    // Task 4.1 boot probe — logs user_version + table list. Absorbed into the composition
-    // root in Task 4.4 (ADR-18).
-    void ensureDatabase().catch((error: unknown) => {
-      console.error('[database] failed to open', error);
-    });
+    void (async () => {
+      try {
+        const container = await createContainer();
+        if (cancelled) {
+          return;
+        }
+        const appStore = createAppStore(container);
+        unsubscribe = bindAudioSubscriptions(appStore, container.audioService);
+        setStore(appStore);
+      } catch (error: unknown) {
+        console.error('[composition] failed to assemble container', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
-  if (!fontsLoaded && !fontError) {
+  useEffect(() => {
+    // Hold splash until fonts and the composition root are both ready.
+    if ((fontsLoaded || fontError) && store) {
+      SplashScreen.hide();
+    }
+  }, [fontsLoaded, fontError, store]);
+
+  if ((!fontsLoaded && !fontError) || !store) {
     return null;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack
-        screenOptions={{
-          headerTintColor: colors.fg,
-          headerStyle: { backgroundColor: colors.bgApp },
-          headerTitleStyle: { fontFamily: 'Inter_600SemiBold', color: colors.fg },
-          contentStyle: { backgroundColor: colors.bgApp },
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="session/active"
-          options={{
-            headerShown: false,
-            // iOS interactive pop; Android relies on no header back affordance.
-            gestureEnabled: false,
-            animation: 'fade',
+      <StoreProvider store={store}>
+        <Stack
+          screenOptions={{
+            headerTintColor: colors.fg,
+            headerStyle: { backgroundColor: colors.bgApp },
+            headerTitleStyle: {
+              fontFamily: 'Inter_600SemiBold',
+              color: colors.fg,
+            },
+            contentStyle: { backgroundColor: colors.bgApp },
           }}
-        />
-        <Stack.Screen
-          name="session/[id]/summary"
-          options={{
-            title: 'Sleep Summary',
-            headerBackTitle: 'Back',
-          }}
-        />
-        <Stack.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-          }}
-        />
-      </Stack>
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="session/active"
+            options={{
+              headerShown: false,
+              // iOS interactive pop; Android relies on no header back affordance.
+              gestureEnabled: false,
+              animation: 'fade',
+            }}
+          />
+          <Stack.Screen
+            name="session/[id]/summary"
+            options={{
+              title: 'Sleep Summary',
+              headerBackTitle: 'Back',
+            }}
+          />
+          <Stack.Screen
+            name="settings"
+            options={{
+              title: 'Settings',
+            }}
+          />
+        </Stack>
+      </StoreProvider>
     </GestureHandlerRootView>
   );
 }

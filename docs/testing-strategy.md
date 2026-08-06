@@ -71,6 +71,8 @@ deferred because the development machine is Windows (ADR-17).
 - Confirm the audio level stream does not trigger React renders: the waveform must animate
   from a Reanimated shared value, not from store state (ADR-13).
 
+See `docs/performance-rc.md` for the Task 5.6 soak procedure and ADR-13 Jest coverage.
+
 ## Cursor Workflow
 After every phase:
 1. Run `npm run typecheck`

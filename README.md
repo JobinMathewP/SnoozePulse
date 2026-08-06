@@ -30,9 +30,10 @@ npx expo start --android
 | `npm run ios` | Start and open on iOS |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint via `expo lint` |
+| `npm test` | Jest unit / component / integration suite |
 
-`npm run typecheck` and `npm run lint` must both pass before any phase is considered
-complete.
+`npm run typecheck`, `npm run lint`, and `npm test` must all pass before a release candidate
+is cut (Milestone 5).
 
 ## Architecture
 

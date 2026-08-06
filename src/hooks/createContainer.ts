@@ -3,11 +3,11 @@
  *
  * Lives under hooks/ so `src/store/` never imports repositories (ADR-12). This file is
  * the only place that may construct concrete services, repositories, and the audio engine.
- * Until the native module ships we inject {@link FakeAudioEngine}; Task 4.5 wires the real
- * {@link AnalyticsService} in place of the earlier placeholder.
+ * Task 5.1 swaps FakeAudioEngine for the real {@link AudioEngine} wrapper over
+ * `modules/snoozepulse-audio` (heartbeat stub until Task 5.2 DSP).
  */
 
-import type { IAudioEngine } from '@/native';
+import { AudioEngine, type IAudioEngine } from '@/native';
 import {
   SleepRepository,
   SnoreRepository,
@@ -18,7 +18,6 @@ import {
   AnalyticsService,
   AudioService,
   ExpoSnippetStorage,
-  FakeAudioEngine,
   SleepService,
   ensureDatabase,
   type IAnalyticsService,
@@ -41,9 +40,9 @@ export async function createContainer(): Promise<Container> {
   const sleepRepository = new SleepRepository(db);
   const snoreRepository = new SnoreRepository(db);
 
-  // 2) Filesystem + engine — snippets under document/snippets; fake engine until M5.
+  // 2) Filesystem + native engine (Task 5.1 heartbeat stub; DSP in Task 5.2).
   const snippetStorage = new ExpoSnippetStorage();
-  const audioEngine = new FakeAudioEngine();
+  const audioEngine: IAudioEngine = new AudioEngine();
 
   // 3) Analytics before AudioService — stopSession needs scores + buckets at flush time.
   const analyticsService: IAnalyticsService = new AnalyticsService(

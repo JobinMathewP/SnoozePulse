@@ -2,8 +2,8 @@
 
 This document expands `roadmap.md` into executable tasks.
 
-`roadmap.md` says *what* each phase covers. This document says *how to execute it, what may
-be touched, and how to prove it is done*.
+`roadmap.md` says _what_ each phase covers. This document says _how to execute it, what may
+be touched, and how to prove it is done_.
 
 **Execute exactly one task per prompt. Every task ends in a STOP.**
 
@@ -25,13 +25,13 @@ Where any document disagrees with `docs/decisions.md`, `decisions.md` wins.
 
 ## Milestone Overview
 
-| Milestone | Theme | Tasks | Roadmap phases |
-| --- | --- | --- | --- |
-| **M1** | Foundation | 1.1 – 1.6 | 1 – 4 |
-| **M2** | Navigation & UI Primitives | 2.1 – 2.5 | 5 – 6 |
-| **M3** | Screens (mock data) | 3.1 – 3.6 | 7 – 14 |
-| **M4** | Data, State & Analytics | 4.1 – 4.5 | 15 – 17 |
-| **M5** | Native Audio, Integration & Release | 5.1 – 5.6 | 18 – 25 |
+| Milestone | Theme                               | Tasks     | Roadmap phases |
+| --------- | ----------------------------------- | --------- | -------------- |
+| **M1**    | Foundation                          | 1.1 – 1.6 | 1 – 4          |
+| **M2**    | Navigation & UI Primitives          | 2.1 – 2.5 | 5 – 6          |
+| **M3**    | Screens (mock data)                 | 3.1 – 3.6 | 7 – 14         |
+| **M4**    | Data, State & Analytics             | 4.1 – 4.5 | 15 – 17        |
+| **M5**    | Native Audio, Integration & Release | 5.1 – 5.6 | 18 – 25        |
 
 Milestones are strictly sequential. Every task depends only on tasks with a lower number.
 Nothing in M3 may reference a store, a repository, or a native module, because those do not
@@ -46,14 +46,14 @@ numbering here matches `roadmap.md`.
 
 Install only at the task named. Anything not listed still needs approval.
 
-| Install at | Packages |
-| --- | --- |
-| Task 1.1 | `zustand`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint` (dev), `eslint-config-expo` (dev) |
-| Task 1.3 | `nativewind@preview`, `react-native-css`, `tailwindcss` (dev), `@tailwindcss/postcss` (dev), `postcss` (dev), plus a `lightningcss` override pin |
-| Task 3.1 | `expo-battery`, `expo-keep-awake` |
-| Task 4.1 | `expo-sqlite` |
-| Task 5.1 | `expo-audio`, `expo-file-system` |
-| Task 5.6 | `jest`, `jest-expo`, `@testing-library/react-native` |
+| Install at | Packages                                                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Task 1.1   | `zustand`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint` (dev), `eslint-config-expo` (dev)         |
+| Task 1.3   | `nativewind@preview`, `react-native-css`, `tailwindcss` (dev), `@tailwindcss/postcss` (dev), `postcss` (dev), plus a `lightningcss` override pin |
+| Task 3.1   | `expo-battery`, `expo-keep-awake`                                                                                                                |
+| Task 4.1   | `expo-sqlite`                                                                                                                                    |
+| Task 5.1   | `expo-audio`, `expo-file-system`                                                                                                                 |
+| Task 5.6   | `jest`, `jest-expo`, `@testing-library/react-native`                                                                                             |
 
 `react-native-reanimated` (4.5.1) and `react-native-worklets` are already installed.
 
@@ -120,12 +120,14 @@ every interface the rest of the build depends on is defined with zero implementa
 Install the M1 dependency set and make `npm run lint` functional. No source changes.
 
 **Read first**
+
 - `docs/decisions.md` (ADR-03, ADR-04)
 - `docs/roadmap.md` — Milestones and Dependency Gates
 - `docs/coding-standards.md`
 - https://docs.expo.dev/versions/v57.0.0/ — confirm every version against SDK 57
 
 **May modify**
+
 ```text
 package.json
 package-lock.json
@@ -133,6 +135,7 @@ eslint.config.js        (create)
 ```
 
 **Must not modify**
+
 ```text
 src/**
 app.json
@@ -140,6 +143,7 @@ tsconfig.json
 ```
 
 **Acceptance criteria**
+
 - The seven Task 1.1 packages installed at SDK 57 compatible versions, resolved via
   `npx expo install` where the package is an Expo package.
 - `eslint` and `eslint-config-expo` are in `devDependencies`, not `dependencies`.
@@ -152,6 +156,7 @@ Lint is not expected to exit clean until Task 1.2, because template files that T
 not touch contain lint errors. Do not add ignore rules to mask them.
 
 **Validation**
+
 ```bash
 npm run lint
 npm run typecheck
@@ -161,6 +166,7 @@ git status --short
 **STOP.** Report installed versions and the lint baseline. Wait for review.
 
 **Execution notes**
+
 - `expo install` adds an `expo-font` config plugin entry to `app.json`. Task 1.1 may not
   modify `app.json`; revert it. Runtime font loading in Task 1.4 does not need the plugin.
 - The Windows `"--" --dev` form from Expo's ESLint guide did not route packages to
@@ -177,11 +183,13 @@ git status --short
 Delete all `create-expo-app` scaffolding and lay down the eleven-directory structure.
 
 **Read first**
+
 - `docs/decisions.md` (ADR-02, ADR-05)
 - `docs/coding-standards.md` — Folder Structure
 - `docs/roadmap.md` — Phase 1 deletion list
 
 **May modify**
+
 ```text
 src/**
 scripts/**
@@ -191,6 +199,7 @@ package.json      (remove the `web` and `reset-project` scripts)
 ```
 
 **Must not modify**
+
 ```text
 docs/**
 tsconfig.json
@@ -199,6 +208,7 @@ assets/**
 ```
 
 **Acceptance criteria**
+
 - Every file on the Phase 1 deletion list is gone.
 - These directories exist: `src/app`, `src/components/ui`, `src/features`, `src/hooks`,
   `src/native`, `src/repositories`, `src/services`, `src/store`, `src/theme`, `src/types`,
@@ -210,11 +220,13 @@ assets/**
 - README describes SnoozePulse, not the Expo starter.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
 npx expo start --android
 ```
+
 The app must boot to a blank screen with no red box and no console warnings.
 
 **STOP.** Show the deleted file list and a screenshot of the blank boot. Wait for review.
@@ -228,23 +240,29 @@ Install and wire NativeWind v5 so styling works, leaving the `@theme` block empt
 1.4 to populate from theme tokens.
 
 **Read first**
+
 - `docs/decisions.md` (ADR-20, ADR-06)
 - `docs/coding-standards.md` — Styling
 - `docs/ui-guidelines.md`
 - https://www.nativewind.dev/v5/getting-started/installation — follow the v5 guide, not v4
 
 **Install** (ADR-20)
+
 ```bash
 npx expo install nativewind@preview react-native-css@latest
 npx expo install --dev tailwindcss @tailwindcss/postcss postcss
 ```
+
 Then pin the override in `package.json`:
+
 ```json
 { "overrides": { "lightningcss": "1.30.1" } }
 ```
+
 Without the pin, `global.css` fails with deserialization errors at build time.
 
 **May modify**
+
 ```text
 package.json            (approved installs + lightningcss override)
 package-lock.json
@@ -259,6 +277,7 @@ tsconfig.json           (types entry only)
 ```
 
 **Must not modify**
+
 ```text
 src/theme/**
 src/components/**
@@ -268,6 +287,7 @@ app.json
 ```
 
 **Acceptance criteria**
+
 - A `className` on a `View` visibly applies on a running Android device.
 - `metro.config.js` wraps the default config with `withNativewind(config)`. v5 takes no CSS
   path argument — unlike v4, the stylesheet is linked by importing it in `src/app/_layout.tsx`.
@@ -282,6 +302,7 @@ app.json
 - `npm run typecheck` and `npm run lint` clean.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -301,12 +322,14 @@ without a running emulator or device.
 Build the token layer and make it the single source of truth for Tailwind.
 
 **Read first**
+
 - `docs/decisions.md` (ADR-06, ADR-07)
 - `docs/ui-guidelines.md` — Colors, the sampling table, Typography, Spacing
 - `docs/SnoreTracker_App_PRD_Specification.md` §6
 - The four reference images — these are the source of every non-base color
 
 **May modify**
+
 ```text
 src/theme/**
 global.css              (@theme block only)
@@ -315,6 +338,7 @@ src/app/_layout.tsx     (font loading only)
 ```
 
 **Must not modify**
+
 ```text
 src/components/**
 src/features/**
@@ -322,6 +346,7 @@ docs/**
 ```
 
 **Acceptance criteria**
+
 - `colors.ts`, `spacing.ts`, `typography.ts`, `radius.ts`, `shadows.ts` exist.
 - The five base tokens match `ui-guidelines.md` exactly.
 - **Every additional color token is sampled pixel-by-pixel from a reference image.** No
@@ -342,6 +367,7 @@ docs/**
 A provenance table: token name, hex, source image, element sampled.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -358,22 +384,26 @@ npx expo start --android
 Define the domain vocabulary. Types only — no logic, no implementations.
 
 **Read first**
+
 - `docs/api-contracts.md` — all of it
 - `docs/decisions.md` (ADR-10, ADR-11, ADR-14)
 - `docs/architecture.md` §3 — the state machine
 - `docs/coding-standards.md` — Naming
 
 **May modify**
+
 ```text
 src/types/**
 ```
 
 **Must not modify**
+
 ```text
 everything else
 ```
 
 **Acceptance criteria**
+
 - `SessionState` models `IDLE | STARTING | RECORDING | PAUSED | STOPPING | COMPLETED | ERROR`.
 - `AudioLevelEvent` includes `sessionId` (ratified change).
 - `SnoreEvent.audioPath` is `string | null` (ratified change).
@@ -382,6 +412,7 @@ everything else
 - Zero uses of `any`. Zero runtime code: this task emits types only.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -398,12 +429,14 @@ Declare every interface the app depends on, plus the shape of the composition ro
 implementations of any kind.
 
 **Read first**
+
 - `docs/api-contracts.md`
 - `docs/decisions.md` (ADR-12, ADR-18, ADR-19)
 - `docs/architecture.md` §2.1, §2.2
 - `docs/native-audio.md`
 
 **May modify**
+
 ```text
 src/native/**          (IAudioEngine only)
 src/repositories/**    (interfaces only)
@@ -412,6 +445,7 @@ src/store/**           (composition root type only)
 ```
 
 **Must not modify**
+
 ```text
 src/types/**
 src/theme/**
@@ -419,6 +453,7 @@ src/app/**
 ```
 
 **Acceptance criteria**
+
 - `IAudioEngine`, `ISleepRepository`, `ISnoreRepository`, `IAudioService`, `ISleepService`,
   `IAnalyticsService` all defined with full parameter and return types.
 - `ISleepRepository.listSessions()` is paginated.
@@ -427,6 +462,7 @@ src/app/**
 - Zero classes, zero function bodies, zero `TODO`.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -452,18 +488,21 @@ isolation using only theme tokens.
 Build the Expo Router structure. Routes render placeholder text only.
 
 **Read first**
+
 - `docs/decisions.md` (ADR-01, ADR-09)
 - `docs/design-spec.md` — Navigation Map
 - `docs/ui-guidelines.md` — Accessibility
 - https://docs.expo.dev/versions/v57.0.0/sdk/router.md
 
 **May modify**
+
 ```text
 src/app/**
 src/types/navigation.ts    (create)
 ```
 
 **Must not modify**
+
 ```text
 src/components/**
 src/features/**
@@ -471,6 +510,7 @@ src/theme/**
 ```
 
 **Acceptance criteria**
+
 - Tab routes: Home and History.
 - Non-tab routes: Active Session (full screen, tab bar hidden, no back gesture), Summary
   (pushed, back + share affordances), Settings (pushed from the Home header).
@@ -481,11 +521,13 @@ src/theme/**
 - Screens contain a placeholder label and nothing else.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
 npx expo start --android
 ```
+
 Manually reach all five routes.
 
 **STOP.** Wait for review.
@@ -498,16 +540,19 @@ Manually reach all five routes.
 `Screen`, `Card`, `SectionHeader` — the structural spine every screen composes from.
 
 **Read first**
+
 - `docs/ui-guidelines.md` — Components, Spacing, Pixel Accuracy
 - `docs/design-spec.md`
 - `docs/summary-screen.jpg` and `docs/history-screen.jpg` for card geometry
 
 **May modify**
+
 ```text
 src/components/ui/**
 ```
 
 **Must not modify**
+
 ```text
 src/app/**
 src/features/**
@@ -515,6 +560,7 @@ src/theme/**
 ```
 
 **Acceptance criteria**
+
 - `Screen` handles safe area, background token, and scroll vs fixed variants.
 - `Card` supports the three widths visible in the images: full-bleed, half-width pair, and
   a three-column metric strip.
@@ -523,6 +569,7 @@ src/theme/**
 - Each primitive is under ~200 lines and has one responsibility.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -538,16 +585,19 @@ npm run lint
 `Button`, `StatusCard`, `MetricCard`.
 
 **Read first**
+
 - `docs/home-screen.jpg` — the three status cards and the hero button
 - `docs/summary-screen.jpg` — the metric strip and the half-width metric pair
 - `docs/ui-guidelines.md` — Accessibility, Animation
 
 **May modify**
+
 ```text
 src/components/ui/**
 ```
 
 **Must not modify**
+
 ```text
 src/app/**
 src/features/**
@@ -555,6 +605,7 @@ src/theme/**
 ```
 
 **Acceptance criteria**
+
 - `StatusCard` supports the three states visible on Home: alert, success, and informational,
   each with a leading icon, title, subtitle, and optional trailing element.
 - `MetricCard` supports a large value with a unit, a caption, and an optional trailing icon.
@@ -563,6 +614,7 @@ src/theme/**
 - Transitions are Reanimated, 150–250 ms.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -578,6 +630,7 @@ npm run lint
 `Waveform` and `TimelineCard`, the two components with real performance constraints.
 
 **Read first**
+
 - `docs/decisions.md` (ADR-13)
 - `docs/architecture.md` §3.1 — the live audio render path
 - `docs/active-session.jpg` — live waveform
@@ -585,11 +638,13 @@ npm run lint
 - `docs/SnoreTracker_App_PRD_Specification.md` §8
 
 **May modify**
+
 ```text
 src/components/ui/**
 ```
 
 **Must not modify**
+
 ```text
 src/app/**
 src/features/**
@@ -597,6 +652,7 @@ src/store/**
 ```
 
 **Acceptance criteria**
+
 - `Waveform` reads a Reanimated **shared value** and never a React state value (ADR-13).
   Its props accept a shared value, not a number.
 - Updating the shared value at 10 Hz causes **zero** React re-renders — prove this with a
@@ -607,6 +663,7 @@ src/store/**
 - Bars are individually accessible with a value-bearing label.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -623,17 +680,20 @@ npx expo start --android
 Review only. No code changes.
 
 **Read first**
+
 - All four reference images
 - `docs/ui-guidelines.md` — Pixel Accuracy
 - Everything built in Tasks 2.2 – 2.4
 
 **May modify**
+
 ```text
 nothing
 ```
 
 **Acceptance criteria**
 A written report covering:
+
 - Each primitive rendered next to the image region it derives from.
 - Layout deviation measured against the ±4 px and ±2 px targets.
 - Any hardcoded value found anywhere in `src/components/ui/**`.
@@ -641,9 +701,11 @@ A written report covering:
 - A list of gaps to fix before M3, with a recommendation for each.
 
 **Validation**
+
 ```bash
 npx expo start --android
 ```
+
 Screenshots on the Android emulator (ADR-17).
 
 **STOP.** M2 complete. Wait for review before starting M3.
@@ -667,12 +729,14 @@ Exit condition for M3: all four screens match their reference images within tole
 Build Home from the primitives, with mock data.
 
 **Read first**
+
 - `docs/home-screen.jpg` — the authority for this task
 - `docs/decisions.md` (ADR-08, ADR-09)
 - `docs/design-spec.md`, `docs/ui-guidelines.md`
 - `docs/SnoreTracker_App_PRD_Specification.md` §4 Home
 
 **May modify**
+
 ```text
 src/features/home/**
 src/components/ui/**       (only to fix a gap found in Task 2.5)
@@ -681,6 +745,7 @@ package.json               (expo-battery, expo-keep-awake install)
 ```
 
 **Must not modify**
+
 ```text
 src/store/**
 src/repositories/**
@@ -689,6 +754,7 @@ src/theme/**
 ```
 
 **Acceptance criteria**
+
 - Header reads **SnoozePulse**, not "SnoreCare" (ADR-08), with the gear icon routing to
   Settings.
 - Hero start button, the two-line headline, the three-line subhead, and the three status
@@ -699,6 +765,7 @@ src/theme/**
 - No import from store, repositories, or native.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -715,10 +782,12 @@ npx expo start --android
 Review only. No code changes.
 
 **Read first**
+
 - `docs/home-screen.jpg`
 - `docs/ui-guidelines.md` — Pixel Accuracy
 
 **May modify**
+
 ```text
 nothing
 ```
@@ -728,6 +797,7 @@ A side-by-side report: emulator screenshot against the reference, deviations mea
 against tolerance, missing elements listed, and a prioritised fix list.
 
 **Validation**
+
 ```bash
 npx expo start --android
 ```
@@ -742,11 +812,13 @@ npx expo start --android
 Build the full-screen monitoring surface with a mock-driven waveform.
 
 **Read first**
+
 - `docs/active-session.jpg`
 - `docs/decisions.md` (ADR-13, ADR-14)
 - `docs/architecture.md` §3, §3.1
 
 **May modify**
+
 ```text
 src/features/session/**
 src/app/session/active.tsx
@@ -754,6 +826,7 @@ src/components/ui/**       (gap fixes only)
 ```
 
 **Must not modify**
+
 ```text
 src/store/**
 src/repositories/**
@@ -761,6 +834,7 @@ src/native/**
 ```
 
 **Acceptance criteria**
+
 - Pure-black OLED background token, no tab bar, no back gesture.
 - Live clock, status line, waveform, and the audio level label.
 - **Slide to end session** is the only control. No pause control exists (ADR-14).
@@ -770,6 +844,7 @@ src/native/**
 - Slide gesture uses `react-native-gesture-handler` and has an accessible alternative.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -786,11 +861,13 @@ npx expo start --android
 Build the morning summary with mock data.
 
 **Read first**
+
 - `docs/summary-screen.jpg`
 - `docs/SnoreTracker_App_PRD_Specification.md` §4 Morning Summary
 - `docs/decisions.md` (ADR-10, ADR-11)
 
 **May modify**
+
 ```text
 src/features/summary/**
 src/app/session/[id]/summary.tsx
@@ -798,6 +875,7 @@ src/components/ui/**       (gap fixes only)
 ```
 
 **Must not modify**
+
 ```text
 src/store/**
 src/repositories/**
@@ -805,6 +883,7 @@ src/native/**
 ```
 
 **Acceptance criteria**
+
 - Date navigator, the three-metric strip, the half-width metric pair, the loudest-episode
   card, the timeline chart, and the snippet list all match the image.
 - The snore score renders as a label plus the five-dot scale, using the sampled amber token.
@@ -814,6 +893,7 @@ src/native/**
 - "Tap on any bar to hear audio" is present and wired to a no-op handler.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -830,11 +910,13 @@ npx expo start --android
 Build the trends screen with mock data.
 
 **Read first**
+
 - `docs/history-screen.jpg`
 - `docs/SnoreTracker_App_PRD_Specification.md` §4 History
 - `docs/decisions.md` (ADR-09, ADR-10)
 
 **May modify**
+
 ```text
 src/features/history/**
 src/app/(tabs)/history.tsx
@@ -842,6 +924,7 @@ src/components/ui/**       (gap fixes only)
 ```
 
 **Must not modify**
+
 ```text
 src/store/**
 src/repositories/**
@@ -849,6 +932,7 @@ src/native/**
 ```
 
 **Acceptance criteria**
+
 - 7 Days / 30 Days segmented control, the day strip with per-day score labels and the
   selected-day ring, the improvement card with its trend line, the weekly comparison table,
   and the insights card.
@@ -857,6 +941,7 @@ src/native/**
 - Segmented control is keyboard and screen-reader accessible.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -873,11 +958,13 @@ npx expo start --android
 Review only. No code changes.
 
 **Read first**
+
 - All four reference images
 - `docs/ui-guidelines.md` — Pixel Accuracy
 - The Task 3.2 report, to confirm Home has not regressed
 
 **May modify**
+
 ```text
 nothing
 ```
@@ -889,6 +976,7 @@ information density. Confirm no hardcoded values and no duplicated primitives an
 `src/features/**`.
 
 **Validation**
+
 ```bash
 npx expo start --android
 ```
@@ -915,12 +1003,14 @@ through services, exercised by tests, with no UI involvement.
 Stand up SQLite with the three-table schema.
 
 **Read first**
+
 - `docs/SnoreTracker_App_PRD_Specification.md` §5 Storage
 - `docs/decisions.md` (ADR-11, ADR-12)
 - `docs/roadmap.md` — Phase 15
 - https://docs.expo.dev/versions/v57.0.0/sdk/sqlite.md
 
 **May modify**
+
 ```text
 src/services/database/**
 src/types/**              (row types only)
@@ -928,6 +1018,7 @@ package.json
 ```
 
 **Must not modify**
+
 ```text
 src/features/**
 src/app/**
@@ -936,6 +1027,7 @@ src/repositories/**
 ```
 
 **Acceptance criteria**
+
 - `expo-sqlite` installed; database opened once as an async singleton.
 - WAL journaling enabled and `PRAGMA foreign_keys = ON`.
 - Migrations are forward-only and driven by `PRAGMA user_version`.
@@ -947,11 +1039,13 @@ src/repositories/**
 - Opening twice does not run migrations twice.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
 npx expo start --android
 ```
+
 Log the resolved `user_version` and the table list on boot.
 
 **STOP.** Wait for review.
@@ -964,16 +1058,19 @@ Log the resolved `user_version` and the table list on boot.
 Implement `ISleepRepository` and `ISnoreRepository`. SQL only.
 
 **Read first**
+
 - `docs/api-contracts.md` — Repository Interfaces
 - `docs/decisions.md` (ADR-19)
 - `docs/architecture.md` §2.1
 
 **May modify**
+
 ```text
 src/repositories/**
 ```
 
 **Must not modify**
+
 ```text
 src/services/**
 src/store/**
@@ -982,6 +1079,7 @@ src/app/**
 ```
 
 **Acceptance criteria**
+
 - Both interfaces fully implemented against the injected client.
 - `saveSnoreEvents()` writes a batch inside one `withTransactionAsync`.
 - `listSessions()` is paginated.
@@ -993,6 +1091,7 @@ src/app/**
 - **Zero business rules.** No scoring, no retention, no thresholds.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -1008,18 +1107,21 @@ npm run lint
 Implement the orchestration layer that sits between the store and the repositories.
 
 **Read first**
+
 - `docs/api-contracts.md` — Service Interfaces
 - `docs/decisions.md` (ADR-12, ADR-15, ADR-18, ADR-19)
 - `docs/architecture.md` §2.1, §2.2, §3
 - `docs/native-audio.md` — Snippet Storage
 
 **May modify**
+
 ```text
 src/services/**
 src/utils/**
 ```
 
 **Must not modify**
+
 ```text
 src/repositories/**
 src/store/**
@@ -1029,6 +1131,7 @@ modules/**
 ```
 
 **Acceptance criteria**
+
 - `SleepService` owns session create and finish, readiness checks, and the retention policy
   of 30 days or 500 MB whichever comes first (ADR-15).
 - `AudioService` owns the state machine transitions and event batching. It depends on
@@ -1040,6 +1143,7 @@ modules/**
 - **Zero SQL** anywhere in `src/services/`.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -1055,11 +1159,13 @@ npm run lint
 Build the state container and the single place the object graph is assembled.
 
 **Read first**
+
 - `docs/api-contracts.md` — Zustand Store, Layering
 - `docs/decisions.md` (ADR-12, ADR-13, ADR-14, ADR-18)
 - `docs/architecture.md` §2.1, §2.2, §3, §3.1
 
 **May modify**
+
 ```text
 src/store/**
 src/hooks/**
@@ -1067,6 +1173,7 @@ src/app/_layout.tsx     (mount the composition root only)
 ```
 
 **Must not modify**
+
 ```text
 src/services/**
 src/repositories/**
@@ -1074,6 +1181,7 @@ src/features/**
 ```
 
 **Acceptance criteria**
+
 - Three slices: session, audio, settings.
 - Session slice owns guarded state machine transitions and is the only place a transition
   happens.
@@ -1087,11 +1195,13 @@ src/features/**
   constructs concrete classes.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
 npx expo start --android
 ```
+
 Grep proof: no `repositories` import inside `src/store/`.
 
 **STOP.** Wait for review.
@@ -1104,12 +1214,14 @@ Grep proof: no `repositories` import inside `src/store/`.
 Implement scoring, aggregation, and comparisons as replaceable V1 heuristics.
 
 **Read first**
+
 - `docs/decisions.md` (ADR-10, ADR-11)
 - `docs/SnoreTracker_App_PRD_Specification.md` §5 Scoring
 - `docs/coding-standards.md` — Deferred Implementations
 - `docs/summary-screen.jpg` and `docs/history-screen.jpg` for the output shapes
 
 **May modify**
+
 ```text
 src/services/analytics/**
 src/utils/**
@@ -1117,6 +1229,7 @@ src/types/**            (analytics models only)
 ```
 
 **Must not modify**
+
 ```text
 src/store/**
 src/repositories/**
@@ -1125,6 +1238,7 @@ src/app/**
 ```
 
 **Acceptance criteria**
+
 - Sleep score and snore score are each **one pure function** with all weighting constants in
   a single named block, and a doc comment marking them V1 heuristics for V2 replacement
   (ADR-10).
@@ -1139,6 +1253,7 @@ src/app/**
 - Every function is pure and side-effect free. No `TODO`, no stub, no throw.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -1151,6 +1266,17 @@ npm run lint
 # Milestone 5 — Native Audio, Integration & Release
 
 Goal: the real audio engine, the end-to-end wiring, and the release gates.
+
+### Platform Validation
+
+This project targets both Android and iOS.
+
+Implementation requirements:
+
+- Build native implementations for Android (Kotlin) and iOS (Swift).
+- Validate runtime behavior on Android during development.
+- Keep shared TypeScript code platform-agnostic.
+- Defer iOS runtime verification until a macOS build environment is available.
 
 Note on platform: the development machine is Windows, so iOS cannot be compiled locally.
 Swift is written and reviewed but validated later via EAS Build. Android is the verification
@@ -1167,6 +1293,7 @@ displays with no mock data anywhere.
 Create the Expo local module and get background recording permissions configured. No DSP.
 
 **Read first**
+
 - `docs/native-audio.md` — all of it
 - `docs/decisions.md` (ADR-16)
 - `docs/api-contracts.md` — IAudioEngine
@@ -1174,6 +1301,7 @@ Create the Expo local module and get background recording permissions configured
 - Expo Modules API docs for SDK 57
 
 **May modify**
+
 ```text
 modules/snoozepulse-audio/**
 src/native/**
@@ -1182,6 +1310,7 @@ package.json
 ```
 
 **Must not modify**
+
 ```text
 src/store/**
 src/services/**
@@ -1190,6 +1319,7 @@ src/repositories/**
 ```
 
 **Acceptance criteria**
+
 - `expo-audio` and `expo-file-system` installed.
 - Module scaffolded at `modules/snoozepulse-audio/` with `expo-module.config.json`, `ios/`,
   `android/`, and `src/` (ADR-16).
@@ -1203,6 +1333,7 @@ src/repositories/**
 - Prebuild succeeds and the dev build installs on Android.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -1220,11 +1351,13 @@ npx expo run:android
 Implement capture and DSP in Swift and Kotlin.
 
 **Read first**
+
 - `docs/native-audio.md`
 - `docs/architecture.md` §3, §3.1
 - `docs/SnoreTracker_App_PRD_Specification.md` §5 Detection, §8
 
 **May modify**
+
 ```text
 modules/snoozepulse-audio/ios/**
 modules/snoozepulse-audio/android/**
@@ -1232,11 +1365,13 @@ modules/snoozepulse-audio/src/**
 ```
 
 **Must not modify**
+
 ```text
 src/**
 ```
 
 **Acceptance criteria**
+
 - Kotlin `AudioRecord` and Swift `AVAudioEngine` capture into a fixed-size ring buffer with
   no per-frame allocation.
 - RMS, peak, and dB computed natively. Snore detection runs against the calibrated ambient
@@ -1251,11 +1386,13 @@ src/**
 - Memory is flat across a long run.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
 npx expo run:android
 ```
+
 Record for 30+ minutes with the screen locked. Report memory at start and end.
 
 **STOP.** iOS remains unvalidated locally; note it explicitly. Wait for review.
@@ -1268,11 +1405,13 @@ Record for 30+ minutes with the screen locked. Report memory at start and end.
 Replace every piece of mock data with live data through the full chain.
 
 **Read first**
+
 - `docs/architecture.md` §2.1
 - `docs/decisions.md` (ADR-12, ADR-13, ADR-18)
 - Every mock file created in M3
 
 **May modify**
+
 ```text
 src/features/**
 src/app/**
@@ -1282,6 +1421,7 @@ src/native/**
 ```
 
 **Must not modify**
+
 ```text
 src/theme/**
 modules/**
@@ -1289,6 +1429,7 @@ docs/**
 ```
 
 **Acceptance criteria**
+
 - Chain live end to end: UI → Store → Services → Repositories → SQLite / Native.
 - **Every mock data file from M3 is deleted.** Zero remain.
 - The waveform is driven by real events through the shared value, still with zero React
@@ -1300,11 +1441,13 @@ docs/**
 - A full recorded session survives an app restart.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
 npx expo run:android
 ```
+
 Full loop: start, record, end, view summary, view history, restart app, reopen the session.
 
 **STOP.** Wait for review.
@@ -1317,12 +1460,14 @@ Full loop: start, record, end, view summary, view history, restart app, reopen t
 Make the timeline interactive and snippets playable.
 
 **Read first**
+
 - `docs/roadmap.md` — Phase 21
 - `docs/summary-screen.jpg`
 - `docs/native-audio.md` — Relationship to expo-audio
 - https://docs.expo.dev/versions/v57.0.0/sdk/audio.md
 
 **May modify**
+
 ```text
 src/features/summary/**
 src/features/history/**
@@ -1331,6 +1476,7 @@ src/services/**
 ```
 
 **Must not modify**
+
 ```text
 src/repositories/**
 modules/**
@@ -1338,6 +1484,7 @@ src/theme/**
 ```
 
 **Acceptance criteria**
+
 - Timeline chart is backed by `session_buckets`, never recomputed from raw events.
 - Tapping a bar plays the loudest snore event within that bucket's time range.
 - Snippet rows play, pause, and show progress.
@@ -1347,11 +1494,13 @@ src/theme/**
 - History trend line and comparison values come from the analytics service.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
 npx expo run:android
 ```
+
 Attempt playback during an active recording and confirm it is refused cleanly.
 
 **STOP.** Wait for review.
@@ -1364,6 +1513,7 @@ Attempt playback during an active recording and confirm it is refused cleanly.
 Close every failure path and complete the accessibility pass.
 
 **Read first**
+
 - `docs/roadmap.md` — Phases 22 and 23
 - `docs/decisions.md` (ADR-15)
 - `docs/ui-guidelines.md` — Accessibility
@@ -1371,6 +1521,7 @@ Close every failure path and complete the accessibility pass.
 - `docs/SnoreTracker_App_PRD_Specification.md` §9
 
 **May modify**
+
 ```text
 src/services/**
 src/store/**
@@ -1380,6 +1531,7 @@ src/app/**
 ```
 
 **Must not modify**
+
 ```text
 modules/**
 src/theme/**
@@ -1387,6 +1539,7 @@ docs/**
 ```
 
 **Acceptance criteria**
+
 - Permission denial, database failure, storage full, and native failure each have a typed
   error, a recovery path, and a user-facing state. None is swallowed.
 - The `ERROR` state is reachable and recoverable from the UI.
@@ -1397,11 +1550,13 @@ docs/**
 - Safe areas correct on notched and gesture-navigation devices.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
 npx expo run:android
 ```
+
 Manually: deny permission, fill storage, force a DB error, enable TalkBack, set the largest
 font size.
 
@@ -1415,11 +1570,13 @@ font size.
 Install the test tooling, write the pyramid, run the performance pass, and cut the RC.
 
 **Read first**
+
 - `docs/testing-strategy.md` — all of it
 - `docs/roadmap.md` — Phases 24 and 25
 - `docs/SnoreTracker_App_PRD_Specification.md` §8, §11
 
 **May modify**
+
 ```text
 **/__tests__/**
 jest.config.js
@@ -1429,11 +1586,13 @@ docs/**            (documentation-updated requirement only)
 ```
 
 **Must not modify**
+
 ```text
 application source, except to fix a defect a test reveals
 ```
 
 **Acceptance criteria**
+
 - `jest`, `jest-expo`, `@testing-library/react-native` installed; `npm test` works.
 - Unit tests: analytics, date utilities, both scores, repository methods, state machine
   transition guards including rejection of illegal transitions, and the retention policy.
@@ -1447,6 +1606,7 @@ application source, except to fix a defect a test reveals
   marked deferred.
 
 **Validation**
+
 ```bash
 npm run typecheck
 npm run lint
@@ -1460,34 +1620,33 @@ npx expo run:android --variant release
 
 # Progress Tracker
 
-| Task | Title | Status |
-| --- | --- | --- |
-| 1.1 | Toolchain and M1 dependencies | Complete |
-| 1.2 | Remove starter template, create folders | Complete |
-| 1.3 | NativeWind installation and configuration | Not started |
-| 1.4 | Theme system with sampled tokens | Not started |
-| 1.5 | Shared types | Not started |
-| 1.6 | Interfaces and composition root contract | Not started |
-| 2.1 | Navigation shell | Not started |
-| 2.2 | Layout primitives | Not started |
-| 2.3 | Content primitives | Not started |
-| 2.4 | Data visualisation primitives | Not started |
-| 2.5 | Primitive audit | Not started |
-| 3.1 | Home screen | Not started |
-| 3.2 | Home visual review | Not started |
-| 3.3 | Active Session screen | Not started |
-| 3.4 | Summary screen | Not started |
-| 3.5 | History screen | Not started |
-| 3.6 | Consolidated visual review | Not started |
-| 4.1 | Database client, schema, migrations | Not started |
-| 4.2 | Repository implementations | Not started |
-| 4.3 | Sleep and audio services | Not started |
-| 4.4 | Zustand store and composition root | Not started |
-| 4.5 | Analytics service | Not started |
-| 5.1 | Native module scaffold and config | Not started |
-| 5.2 | Native audio engine | Not started |
-| 5.3 | End-to-end integration | Not started |
-| 5.4 | Charts and audio playback | Not started |
-| 5.5 | Error handling, retention, accessibility | Not started |
-| 5.6 | Tests, performance, release candidate | Not started |
-
+| Task | Title                                     | Status      |
+| ---- | ----------------------------------------- | ----------- |
+| 1.1  | Toolchain and M1 dependencies             | Complete    |
+| 1.2  | Remove starter template, create folders   | Complete    |
+| 1.3  | NativeWind installation and configuration | Not started |
+| 1.4  | Theme system with sampled tokens          | Not started |
+| 1.5  | Shared types                              | Not started |
+| 1.6  | Interfaces and composition root contract  | Not started |
+| 2.1  | Navigation shell                          | Not started |
+| 2.2  | Layout primitives                         | Not started |
+| 2.3  | Content primitives                        | Not started |
+| 2.4  | Data visualisation primitives             | Not started |
+| 2.5  | Primitive audit                           | Not started |
+| 3.1  | Home screen                               | Not started |
+| 3.2  | Home visual review                        | Not started |
+| 3.3  | Active Session screen                     | Not started |
+| 3.4  | Summary screen                            | Not started |
+| 3.5  | History screen                            | Not started |
+| 3.6  | Consolidated visual review                | Not started |
+| 4.1  | Database client, schema, migrations       | Not started |
+| 4.2  | Repository implementations                | Not started |
+| 4.3  | Sleep and audio services                  | Not started |
+| 4.4  | Zustand store and composition root        | Not started |
+| 4.5  | Analytics service                         | Not started |
+| 5.1  | Native module scaffold and config         | Not started |
+| 5.2  | Native audio engine                       | Not started |
+| 5.3  | End-to-end integration                    | Not started |
+| 5.4  | Charts and audio playback                 | Not started |
+| 5.5  | Error handling, retention, accessibility  | Not started |
+| 5.6  | Tests, performance, release candidate     | Not started |

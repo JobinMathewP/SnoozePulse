@@ -1,0 +1,36 @@
+---
+description: Cursor Behavior Guardrails & Quality Controls
+alwaysApply: true
+---
+
+# Design Rules
+
+Before implementing any screen:
+
+1. Read the matching image in docs/.
+2. Explain how the implementation maps to the image.
+3. Build reusable components.
+4. Compare the rendered result against the reference image.
+5. Iterate until visually similar.
+
+Never redesign the interface unless explicitly instructed.
+
+# Rules of Engagement
+
+- Before modifying existing files, explain what will change.
+- Implement only the requested feature.
+- Never modify unrelated files.
+- Never leave TODO placeholders.
+- Prefer interfaces over concrete implementations.
+- Stop and ask before introducing new dependencies.
+
+# Definition of Done
+
+A task is complete only when:
+
+1. TypeScript passes with zero errors.
+2. ESLint passes with zero errors or warnings.
+3. No runtime console errors.
+4. Interactive controls include accessibility labels.
+5. Theme tokens are used instead of inline colors.
+6. No duplicated UI primitives.

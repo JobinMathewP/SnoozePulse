@@ -1,0 +1,34 @@
+---
+description: Tech Stack & Styling Guidelines
+alwaysApply: true
+---
+
+# Stack
+
+- Expo Development Builds (not Expo Go)
+- React Native
+- TypeScript (strict)
+- Zustand
+- expo-sqlite
+- NativeWind
+- React Navigation
+
+# Folder Structure
+
+All source code lives under `src/`.
+
+Use:
+
+- src/components/ui
+- src/features
+- src/services
+- src/store
+- src/theme
+- src/types
+
+# Principles
+
+- Use theme tokens.
+- Use functional components.
+- Avoid `any`.
+- Keep components small and composable.

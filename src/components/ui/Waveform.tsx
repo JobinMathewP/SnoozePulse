@@ -15,7 +15,8 @@ const BAR_WEIGHTS = [
 ] as const;
 
 const DEFAULT_BAR_COUNT = 40;
-const DEFAULT_HEIGHT = spacing.xl * 3;
+/** Active Session band ~118 dp on the reference; xl*3+lg lands at 120. */
+const DEFAULT_HEIGHT = spacing.xl * 3 + spacing.lg;
 const BAR_GAP = spacing.xs / 2;
 
 type WaveBarProps = {

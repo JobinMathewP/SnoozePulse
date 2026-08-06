@@ -16,13 +16,13 @@ import { TOUCH_TARGET } from './touchTarget';
 const PRESS_MS = 180;
 
 /**
- * Solid disc diameter. home-screen.jpg ring spans ~225–250 dp at the mockup density;
- * xl*7+lg lands at 248 — within the Task 2.5 correction band.
+ * Solid disc diameter. Tightened after Task 3.2 so the three Home status cards clear the
+ * tab bar on Pixel-class heights while staying near the ~225–250 dp mock band.
  */
-const HERO_DISC = spacing.xl * 7 + spacing.lg;
+const HERO_DISC = spacing.xl * 7;
 
 /** Gap between the solid ring and the faint dotted orbit in home-screen.jpg. */
-const HERO_ORBIT_PAD = spacing.md;
+const HERO_ORBIT_PAD = spacing.sm;
 
 const HERO_SIZE = HERO_DISC + HERO_ORBIT_PAD * 2;
 
@@ -84,10 +84,11 @@ export function Button({
   };
 
   if (variant === 'hero') {
-    const ringWidth = spacing.xs;
+    const ringWidth = spacing.sm - spacing.xs / 2;
     const centre = HERO_SIZE / 2;
     const discRadius = HERO_DISC / 2;
     const inner = HERO_DISC - ringWidth * 2;
+    const orbitStroke = spacing.xs;
 
     return (
       <Animated.View style={[animatedStyle, style]}>
@@ -123,12 +124,12 @@ export function Button({
             <Circle
               cx={centre}
               cy={centre}
-              r={centre - spacing.xs / 2}
+              r={centre - orbitStroke / 2}
               fill="none"
               stroke={colors.heroGlow}
-              strokeWidth={spacing.xs / 2}
-              strokeDasharray={`${spacing.xs} ${spacing.sm}`}
-              opacity={0.85}
+              strokeWidth={orbitStroke}
+              strokeDasharray={`${spacing.sm} ${spacing.sm}`}
+              opacity={1}
             />
             <Circle
               cx={centre}
@@ -145,8 +146,8 @@ export function Button({
               height: inner,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: spacing.sm,
-              paddingHorizontal: spacing.lg,
+              gap: spacing.xs,
+              paddingHorizontal: spacing.md,
             }}
           >
             {icon}

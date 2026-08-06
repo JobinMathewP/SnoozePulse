@@ -16,23 +16,20 @@ import {
   mockCalibrationStatus,
   mockMicrophoneStatus,
 } from './mock';
-import { BatteryPercent, StatusCheck, StatusGlyph } from './StatusAffordance';
-
-function batteryIconName(level: number, isLow: boolean): keyof typeof Ionicons.glyphMap {
-  if (isLow || level < 0.25) {
-    return 'battery-dead-outline';
-  }
-  if (level < 0.6) {
-    return 'battery-half-outline';
-  }
-  return 'battery-full-outline';
-}
+import {
+  BatteryPercent,
+  BatteryStatusIcon,
+  MicStatusIcon,
+  PulseStatusIcon,
+  StatusCheck,
+} from './StatusAffordance';
 
 /**
  * Home landing: brand header, hero start control, and three readiness cards.
  *
  * Maps to docs/home-screen.jpg (ADR-08 branding). Battery is live; mic and calibration
- * are mock until later milestones.
+ * are mock until later milestones. Vertical spacing is tightened so the three cards clear
+ * the tab bar on Pixel-class heights (Task 3.2 P0).
  */
 export function HomeScreen() {
   const navigation = useNavigation();
@@ -40,7 +37,6 @@ export function HomeScreen() {
   const batteryLevel = useBatteryLevel();
 
   const levelKnown = batteryLevel >= 0;
-  const level = levelKnown ? batteryLevel : 1;
   const percent = levelKnown ? Math.round(batteryLevel * 100) : null;
   const batteryLow = levelKnown && batteryLevel <= BATTERY_LOW_THRESHOLD;
   const batteryTone = batteryLow ? 'alert' : 'success';
@@ -91,9 +87,17 @@ export function HomeScreen() {
     });
   }, [navigation, router]);
 
+  const cardCompact = { paddingVertical: spacing.sm };
+
   return (
-    <Screen variant="scroll" background="app" edges={['left', 'right', 'bottom']} testID="home-screen">
-      <View style={{ alignItems: 'center', paddingTop: spacing.lg, gap: spacing.sm }}>
+    <Screen
+      variant="scroll"
+      background="app"
+      edges={['left', 'right', 'bottom']}
+      contentContainerStyle={{ paddingBottom: spacing.sm }}
+      testID="home-screen"
+    >
+      <View style={{ alignItems: 'center', paddingTop: spacing.sm, gap: spacing.xs }}>
         <Text
           accessibilityRole="header"
           style={{
@@ -112,7 +116,7 @@ export function HomeScreen() {
             color: colors.fgBody,
             fontFamily: fontFamily.regular,
             fontSize: fontSize.body,
-            lineHeight: lineHeight.bodyLg,
+            lineHeight: lineHeight.body,
             textAlign: 'center',
             paddingHorizontal: spacing.lg,
             maxWidth: spacing.xl * 10,
@@ -122,7 +126,7 @@ export function HomeScreen() {
         </Text>
       </View>
 
-      <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+      <View style={{ alignItems: 'center', paddingTop: spacing.md, paddingBottom: spacing.md }}>
         <Button
           variant="hero"
           label={homeCopy.heroLabel}
@@ -136,13 +140,14 @@ export function HomeScreen() {
         />
       </View>
 
-      <View style={{ gap: spacing.sm, paddingBottom: spacing.md }}>
+      <View style={{ gap: spacing.sm, paddingBottom: spacing.xs }}>
         <StatusCard
           tone={batteryTone}
           title={batteryLow ? batteryCopy.lowTitle : batteryCopy.okTitle}
           subtitle={batteryLow ? batteryCopy.lowSubtitle : batteryCopy.okSubtitle}
-          icon={<StatusGlyph name={batteryIconName(level, batteryLow)} color={batteryColor} />}
+          icon={<BatteryStatusIcon color={batteryColor} />}
           trailing={<BatteryPercent percent={percent} color={batteryColor} />}
+          style={cardCompact}
           accessibilityLabel={
             percent === null
               ? `${batteryLow ? batteryCopy.lowTitle : batteryCopy.okTitle}. Battery level unavailable.`
@@ -154,16 +159,18 @@ export function HomeScreen() {
           tone={mockMicrophoneStatus.tone}
           title={mockMicrophoneStatus.title}
           subtitle={mockMicrophoneStatus.subtitle}
-          icon={<StatusGlyph name="mic-outline" color={colors.successText} />}
+          icon={<MicStatusIcon color={colors.successText} />}
           trailing={<StatusCheck />}
+          style={cardCompact}
           testID="home-status-microphone"
         />
         <StatusCard
           tone={mockCalibrationStatus.tone}
           title={mockCalibrationStatus.title}
           subtitle={mockCalibrationStatus.subtitle}
-          icon={<StatusGlyph name="pulse-outline" color={colors.primary} />}
+          icon={<PulseStatusIcon color={colors.primary} />}
           trailing={<StatusCheck />}
+          style={cardCompact}
           testID="home-status-calibration"
         />
       </View>

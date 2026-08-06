@@ -1,5 +1,5 @@
 /**
- * Business-logic contracts and the SQLite client (Task 4.1).
+ * Business-logic contracts, SQLite client, and service implementations (Tasks 4.1–4.3).
  *
  * Services own orchestration, scoring, retention, and the recording lifecycle. They never
  * contain query SQL (ADR-19) — schema DDL lives only under `database/` for migrations.
@@ -10,6 +10,12 @@
 export type { IAudioService } from './IAudioService';
 export type { ISleepService, RetentionCleanup, SessionReadiness } from './ISleepService';
 export type { IAnalyticsService } from './IAnalyticsService';
+export type { ISnippetStorage } from './ISnippetStorage';
+
+export { AudioService } from './AudioService';
+export { SleepService } from './SleepService';
+export { ExpoSnippetStorage } from './ExpoSnippetStorage';
+export { FakeAudioEngine } from './fakes/FakeAudioEngine';
 
 export {
   DATABASE_VERSION,

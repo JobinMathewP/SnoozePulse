@@ -92,7 +92,9 @@ export class SleepRepository implements ISleepRepository {
     return ok(mapped.value);
   }
 
-  async listSessions(request: PageRequest): Promise<Result<Page<SleepSession>>> {
+  async listSessions(
+    request: PageRequest,
+  ): Promise<Result<Page<SleepSession>>> {
     const offset = Math.max(0, request.offset);
     const limit = Math.max(0, request.limit);
 
@@ -164,7 +166,9 @@ export class SleepRepository implements ISleepRepository {
     });
   }
 
-  async getBuckets(sessionId: string): Promise<Result<readonly SessionBucket[]>> {
+  async getBuckets(
+    sessionId: string,
+  ): Promise<Result<readonly SessionBucket[]>> {
     return mapPersistence(async () => {
       const rows = await this.db.getAllAsync<SessionBucketRow>(
         `SELECT * FROM session_buckets

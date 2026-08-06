@@ -10,6 +10,7 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ensureDatabase } from '@/services/database';
 import { colors } from '@/theme';
@@ -47,37 +48,39 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerTintColor: colors.fg,
-        headerStyle: { backgroundColor: colors.bgApp },
-        headerTitleStyle: { fontFamily: 'Inter_600SemiBold', color: colors.fg },
-        contentStyle: { backgroundColor: colors.bgApp },
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="session/active"
-        options={{
-          headerShown: false,
-          // iOS interactive pop; Android relies on no header back affordance.
-          gestureEnabled: false,
-          animation: 'fade',
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack
+        screenOptions={{
+          headerTintColor: colors.fg,
+          headerStyle: { backgroundColor: colors.bgApp },
+          headerTitleStyle: { fontFamily: 'Inter_600SemiBold', color: colors.fg },
+          contentStyle: { backgroundColor: colors.bgApp },
         }}
-      />
-      <Stack.Screen
-        name="session/[id]/summary"
-        options={{
-          title: 'Sleep Summary',
-          headerBackTitle: 'Back',
-        }}
-      />
-      <Stack.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-        }}
-      />
-    </Stack>
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="session/active"
+          options={{
+            headerShown: false,
+            // iOS interactive pop; Android relies on no header back affordance.
+            gestureEnabled: false,
+            animation: 'fade',
+          }}
+        />
+        <Stack.Screen
+          name="session/[id]/summary"
+          options={{
+            title: 'Sleep Summary',
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+          }}
+        />
+      </Stack>
+    </GestureHandlerRootView>
   );
 }

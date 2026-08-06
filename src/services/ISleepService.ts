@@ -3,7 +3,9 @@ import type {
   MicrophonePermissionStatus,
   Page,
   PageRequest,
+  SessionBucket,
   SleepSession,
+  SleepSessionCompletion,
 } from '@/types';
 
 import type { Result } from '@/repositories';
@@ -45,14 +47,29 @@ export interface ISleepService {
   /** Run ambient calibration via the engine and remember the result for this launch. */
   calibrateAmbient(): Promise<Result<CalibrationResult>>;
 
+  /**
+   * Insert the session row when recording starts. Uses the last calibration baseline.
+   * Fails with `CALIBRATION` when no baseline is available this launch.
+   */
+  beginSession(): Promise<Result<SleepSession>>;
+
+  /** Write completion totals and the terminal state after the engine has stopped. */
+  completeSession(
+    id: string,
+    completion: SleepSessionCompletion,
+  ): Promise<Result<SleepSession>>;
+
   getSession(id: string): Promise<Result<SleepSession>>;
 
   /** Paginated history, newest first. */
   listSessions(request: PageRequest): Promise<Result<Page<SleepSession>>>;
 
+  /** Persist pre-aggregated timeline buckets (ADR-11). */
+  saveBuckets(buckets: readonly SessionBucket[]): Promise<Result<void>>;
+
   /**
    * Delete a session and everything that belongs to it (events, buckets, snippets).
-   * Cascades through the repository; this method decides *that* deletion is allowed.
+   * Cascades through the repository; this method unlinks orphaned snippet files.
    */
   deleteSession(id: string): Promise<Result<void>>;
 

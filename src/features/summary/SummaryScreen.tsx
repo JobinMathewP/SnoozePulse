@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { CardRow, MetricCard, Screen, SectionHeader, TimelineCard } from '@/components/ui';
+import { CardRow, MetricCard, Screen, SectionHeader, TimelineCard, Button } from '@/components/ui';
 import { useInsights, useSnippetPlayback } from '@/hooks';
 import type { SessionDetail } from '@/store';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
@@ -94,10 +94,12 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
   const [sessions, setSessions] = useState<readonly SleepSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      setLoading(true);
       const [detailResult, listResult] = await Promise.all([
         loadSessionDetail(sessionId),
         listRecentSessions(),
@@ -121,7 +123,7 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, loadSessionDetail, listRecentSessions]);
+  }, [sessionId, loadSessionDetail, listRecentSessions, reloadToken]);
 
   useEffect(() => {
     return () => {
@@ -194,6 +196,17 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
           >
             {errorMessage ?? summaryCopy.emptyBody}
           </Text>
+          {errorMessage ? (
+            <Button
+              variant="primary"
+              label={summaryCopy.retryLabel}
+              accessibilityLabel={summaryCopy.retryAccessibilityLabel}
+              onPress={() => {
+                setReloadToken((n) => n + 1);
+              }}
+              testID="summary-retry"
+            />
+          ) : null}
         </View>
       </Screen>
     );

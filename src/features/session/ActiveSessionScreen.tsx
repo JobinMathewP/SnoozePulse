@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 import { Text, useWindowDimensions, View } from 'react-native';
-import { useKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { type SharedValue } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -78,7 +78,14 @@ const WavePanel = memo(function WavePanel({ level, width }: WavePanelProps) {
  * No pause control (ADR-14). Waveform level is the live shared value (ADR-13).
  */
 export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) {
-  useKeepAwake();
+  // Avoid uncaught ExpoKeepAwake.deactivate when the activity is already gone (force-kill).
+  useEffect(() => {
+    const tag = 'snoozepulse-active-session';
+    void activateKeepAwakeAsync(tag).catch(() => undefined);
+    return () => {
+      void deactivateKeepAwake(tag).catch(() => undefined);
+    };
+  }, []);
 
   const { level, band } = useLiveAudioLevel();
   const { width: windowWidth } = useWindowDimensions();

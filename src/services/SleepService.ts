@@ -1,3 +1,5 @@
+import { Paths } from 'expo-file-system';
+
 import type { IAudioEngine } from '@/native';
 import type { ISleepRepository, ISnoreRepository, Result } from '@/repositories';
 import { err, ok, persistenceError } from '@/repositories';
@@ -22,6 +24,9 @@ import type {
   RetentionCleanup,
   SessionReadiness,
 } from './ISleepService';
+
+/** Refuse new snippets when free disk is below this floor (Task 5.5). */
+const FREE_DISK_FLOOR_BYTES = 10 * 1024 * 1024;
 
 /**
  * Session CRUD, readiness, and snippet retention (ADR-15). Zero SQL (ADR-19).
@@ -157,6 +162,44 @@ export class SleepService implements ISleepService {
     });
   }
 
+  async checkSnippetQuota(): Promise<Result<void>> {
+    const listed = await this.snippetStorage.listFiles();
+    if (!listed.ok) {
+      return listed;
+    }
+    let usedBytes = 0;
+    for (const file of listed.value) {
+      usedBytes += file.sizeBytes;
+    }
+
+    if (usedBytes >= SNIPPET_QUOTA_BYTES) {
+      return err({
+        code: 'STORAGE_QUOTA',
+        message:
+          'Snore audio storage is full. Detection continues, but new clips may be skipped.',
+        usedBytes,
+        limitBytes: SNIPPET_QUOTA_BYTES,
+      });
+    }
+
+    try {
+      const free = Paths.availableDiskSpace;
+      if (typeof free === 'number' && free >= 0 && free < FREE_DISK_FLOOR_BYTES) {
+        return err({
+          code: 'STORAGE_QUOTA',
+          message:
+            'Device storage is nearly full. Detection continues, but new clips may be skipped.',
+          usedBytes,
+          limitBytes: SNIPPET_QUOTA_BYTES,
+        });
+      }
+    } catch {
+      // Disk probe is best-effort; do not fail the quota check on platform quirks.
+    }
+
+    return ok(undefined);
+  }
+
   async reclaimOrphanedSnippets(): Promise<Result<number>> {
     const referenced = await this.collectReferencedSnippetPaths();
     if (!referenced.ok) {
@@ -180,6 +223,36 @@ export class SleepService implements ISleepService {
       removedCount += 1;
     }
     return ok(removedCount);
+  }
+
+  async recoverInterruptedSessions(): Promise<Result<number>> {
+    const page = await this.sleepRepository.listSessions({ offset: 0, limit: 100 });
+    if (!page.ok) {
+      return page;
+    }
+
+    let closed = 0;
+    const endedAt = Date.now();
+    for (const session of page.value.items) {
+      if (session.endedAt !== null) {
+        continue;
+      }
+      const finished = await this.sleepRepository.finishSession(session.id, {
+        endedAt,
+        state: 'ERROR',
+        snoreCount: session.snoreCount,
+        totalSnoringMs: session.totalSnoringMs,
+        peakDb: session.peakDb,
+        peakAt: session.peakAt,
+        sleepScore: session.sleepScore ?? 0,
+        snoreScore: session.snoreScore ?? 0,
+      });
+      if (!finished.ok) {
+        return finished;
+      }
+      closed += 1;
+    }
+    return ok(closed);
   }
 
   private async collectReferencedSnippetPaths(): Promise<Result<ReadonlySet<string>>> {

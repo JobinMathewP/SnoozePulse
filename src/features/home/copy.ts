@@ -29,9 +29,17 @@ export const microphoneCopy = {
   grantedTitle: 'Microphone Access',
   grantedSubtitle: 'Permission granted',
   deniedTitle: 'Microphone Access',
-  deniedSubtitle: 'Permission required — tap Start to allow',
+  deniedSubtitle: 'Permission required — tap here to open Settings',
   undeterminedTitle: 'Microphone Access',
   undeterminedSubtitle: 'Permission needed before recording',
+  openSettingsAccessibilityLabel: 'Open system settings for microphone access',
+} as const;
+
+export const homeErrorCopy = {
+  recoverLabel: 'Dismiss and return',
+  recoverAccessibilityLabel: 'Dismiss session error and return to ready state',
+  retryLabel: 'Try again',
+  retryAccessibilityLabel: 'Retry starting a sleep session',
 } as const;
 
 export const calibrationCopy = {

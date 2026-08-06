@@ -23,6 +23,8 @@ export const summaryCopy = {
   emptyTitle: 'No session data',
   emptyBody: 'Complete a sleep session to see your summary.',
   loadingLabel: 'Loading summary…',
+  retryLabel: 'Try again',
+  retryAccessibilityLabel: 'Retry loading summary',
 } as const;
 
 export type SnippetRowModel = {

@@ -11,6 +11,10 @@ export const activeSessionCopy = {
   slideAccessibilityHint:
     'Double tap to end the session, or slide the handle all the way to the right',
   recordingIndicatorAccessibilityLabel: 'Microphone in use',
+  recoverHomeLabel: 'Return home',
+  recoverHomeAccessibilityLabel: 'End failed session and return home',
+  storageWarningDismissLabel: 'Dismiss',
+  storageWarningDismissAccessibilityLabel: 'Dismiss storage warning',
 } as const;
 
 export type AudioLevelBand = 'Low' | 'Moderate' | 'High';

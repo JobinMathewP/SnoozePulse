@@ -1,5 +1,5 @@
 import type { SnippetPlaybackStatus } from '@/services';
-import type { AudioLevelEvent, SnoreEvent } from '@/types';
+import type { AppError, AudioLevelEvent, SnoreEvent, StorageQuotaError } from '@/types';
 
 import type { StoreDependencies } from './container';
 import type { Result } from './result';
@@ -13,21 +13,28 @@ const IDLE_PLAYBACK: SnippetPlaybackStatus = {
   durationMs: 0,
 };
 
-/** Audio slice — throttled level, last snore, and snippet playback (ADR-13 / Task 5.4). */
+/** Audio slice — throttled level, last snore, playback, and storage warnings (Task 5.5). */
 export type AudioSlice = {
   readonly currentDecibel: number;
   readonly lastSnoreEvent: SnoreEvent | null;
   readonly playback: SnippetPlaybackStatus;
+  /** Non-fatal: snippets may be skipped while capture continues (ADR-15). */
+  readonly storageQuotaWarning: StorageQuotaError | null;
 
   updateAudioLevel: (event: AudioLevelEvent) => void;
   addSnoreEvent: (event: SnoreEvent) => void;
   setPlaybackStatus: (status: SnippetPlaybackStatus) => void;
+  clearStorageQuotaWarning: () => void;
   playSnippet: (eventId: string, audioPath: string) => Promise<Result<void>>;
   pauseSnippet: () => Promise<Result<void>>;
   stopSnippet: () => Promise<Result<void>>;
 };
 
 type SetState = (partial: Partial<AudioSlice>) => void;
+
+function isStorageQuota(error: AppError): error is StorageQuotaError {
+  return error.code === 'STORAGE_QUOTA';
+}
 
 export function createAudioSlice(
   deps: StoreDependencies,
@@ -37,6 +44,7 @@ export function createAudioSlice(
     currentDecibel: 0,
     lastSnoreEvent: null,
     playback: IDLE_PLAYBACK,
+    storageQuotaWarning: null,
 
     updateAudioLevel(event) {
       set({ currentDecibel: event.decibel });
@@ -44,10 +52,24 @@ export function createAudioSlice(
 
     addSnoreEvent(event) {
       set({ lastSnoreEvent: event });
+      if (event.audioPath !== null) {
+        return;
+      }
+      // Snippet write failed — probe quota so the UI can explain skipped audio (Task 5.5).
+      void (async () => {
+        const quota = await deps.sleepService.checkSnippetQuota();
+        if (!quota.ok && isStorageQuota(quota.error)) {
+          set({ storageQuotaWarning: quota.error });
+        }
+      })();
     },
 
     setPlaybackStatus(status) {
       set({ playback: status });
+    },
+
+    clearStorageQuotaWarning() {
+      set({ storageQuotaWarning: null });
     },
 
     async playSnippet(eventId, audioPath) {

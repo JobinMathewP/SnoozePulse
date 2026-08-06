@@ -1,4 +1,5 @@
 export { canTransition, SESSION_TRANSITIONS } from './sessionTransitions';
+export { errorRecoveryHint, errorTitle } from './errorMessages';
 export {
   SNIPPET_DIRECTORY_NAME,
   SNIPPET_QUOTA_BYTES,

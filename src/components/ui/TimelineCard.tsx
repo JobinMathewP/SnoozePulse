@@ -5,6 +5,7 @@ import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/the
 
 import { Card } from './Card';
 import { SectionHeader } from './SectionHeader';
+import { hitSlopForVisualSize, TOUCH_TARGET } from './touchTarget';
 
 /** Default Y-axis ceiling matching summary-screen.jpg (0–80 dB). */
 const DEFAULT_MAX_DB = 80;
@@ -169,14 +170,15 @@ export function TimelineCard({
                     accessibilityRole="button"
                     accessibilityLabel={`Snore level ${Math.round(bar.peakDb)} decibels at ${bar.timeLabel || 'this time'}`}
                     accessibilityHint="Double tap to play audio for this time range"
-                    hitSlop={spacing.xs}
+                    hitSlop={hitSlopForVisualSize(TOUCH_TARGET)}
                     onPress={() => {
                       onBarPress(bar);
                     }}
                     style={{
                       flex: 1,
-                      minWidth: 1,
-                      height: PLOT_HEIGHT,
+                      minWidth: spacing.sm,
+                      minHeight: TOUCH_TARGET,
+                      height: Math.max(PLOT_HEIGHT, TOUCH_TARGET),
                       justifyContent: 'flex-end',
                       alignItems: 'center',
                     }}

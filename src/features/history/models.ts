@@ -29,6 +29,8 @@ export const historyCopy = {
   snoreCountLabel: 'Snore Count (Avg.)',
   emptyOverview: 'No scored nights in this period yet.',
   loadingLabel: 'Loading progress…',
+  retryLabel: 'Try again',
+  retryAccessibilityLabel: 'Retry loading history',
 } as const;
 
 export type DayColumnModel = {

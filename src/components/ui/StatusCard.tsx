@@ -1,9 +1,10 @@
 import { type ReactNode } from 'react';
-import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
 import { Card } from './Card';
+import { TOUCH_TARGET } from './touchTarget';
 
 /**
  * The three Home readiness states visible in home-screen.jpg:
@@ -25,6 +26,8 @@ type StatusCardProps = {
   readonly style?: StyleProp<ViewStyle>;
   readonly testID?: string;
   readonly accessibilityLabel?: string;
+  /** When set, the whole card is a press target (e.g. Open Settings for mic deny). */
+  readonly onPress?: () => void;
 };
 
 const titleColor = (tone: StatusCardTone): string => {
@@ -52,47 +55,66 @@ export function StatusCard({
   style,
   testID,
   accessibilityLabel,
+  onPress,
 }: StatusCardProps) {
+  const label = accessibilityLabel ?? `${title}. ${subtitle}`;
+  const body = (
+    <View
+      accessible={onPress === undefined}
+      accessibilityLabel={onPress === undefined ? label : undefined}
+      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}
+    >
+      <View style={{ width: spacing.xl, alignItems: 'center', justifyContent: 'center' }}>{icon}</View>
+      <View style={{ flex: 1, gap: spacing.xs, minWidth: 0 }}>
+        <Text
+          style={{
+            color: titleColor(tone),
+            fontFamily: fontFamily.semibold,
+            fontSize: fontSize.body,
+            lineHeight: lineHeight.body,
+          }}
+        >
+          {title}
+        </Text>
+        <Text
+          style={{
+            color: colors.fgCaption,
+            fontFamily: fontFamily.regular,
+            fontSize: fontSize.caption,
+            lineHeight: lineHeight.caption,
+          }}
+        >
+          {subtitle}
+        </Text>
+      </View>
+      {trailing ? (
+        <View style={{ marginLeft: spacing.sm, alignItems: 'center', justifyContent: 'center' }}>{trailing}</View>
+      ) : null}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <Card width="full" style={[{ minHeight: TOUCH_TARGET }, style]} testID={testID}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          onPress={onPress}
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', minHeight: TOUCH_TARGET }}
+        >
+          {body}
+        </Pressable>
+      </Card>
+    );
+  }
+
   return (
     <Card
       width="full"
       style={[{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }, style]}
       testID={testID}
     >
-      <View
-        accessible
-        accessibilityLabel={accessibilityLabel ?? `${title}. ${subtitle}`}
-        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}
-      >
-        <View style={{ width: spacing.xl, alignItems: 'center', justifyContent: 'center' }}>{icon}</View>
-        <View style={{ flex: 1, gap: spacing.xs, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{
-              color: titleColor(tone),
-              fontFamily: fontFamily.semibold,
-              fontSize: fontSize.body,
-              lineHeight: lineHeight.body,
-            }}
-          >
-            {title}
-          </Text>
-          <Text
-            numberOfLines={2}
-            style={{
-              color: colors.fgCaption,
-              fontFamily: fontFamily.regular,
-              fontSize: fontSize.caption,
-              lineHeight: lineHeight.caption,
-            }}
-          >
-            {subtitle}
-          </Text>
-        </View>
-        {trailing ? (
-          <View style={{ marginLeft: spacing.sm, alignItems: 'center', justifyContent: 'center' }}>{trailing}</View>
-        ) : null}
-      </View>
+      {body}
     </Card>
   );
 }

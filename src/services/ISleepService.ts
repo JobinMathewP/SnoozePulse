@@ -87,8 +87,20 @@ export interface ISleepService {
   enforceRetention(): Promise<Result<RetentionCleanup>>;
 
   /**
+   * Non-fatal probe: returns `STORAGE_QUOTA` when the ADR-15 cap or free disk floor is hit.
+   * Used when a snore event arrives with `audioPath === null` so the UI can explain skips.
+   */
+  checkSnippetQuota(): Promise<Result<void>>;
+
+  /**
    * Delete snippet files on disk that no longer have a matching session or event row.
    * Returns the number of files removed. Called at app start after a possible crash.
    */
   reclaimOrphanedSnippets(): Promise<Result<number>>;
+
+  /**
+   * Close sessions left open after a force-kill (endedAt null) as `ERROR`.
+   * Returns how many rows were closed. Safe at boot before a new Start.
+   */
+  recoverInterruptedSessions(): Promise<Result<number>>;
 }

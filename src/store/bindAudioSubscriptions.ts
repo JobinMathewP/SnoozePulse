@@ -38,9 +38,17 @@ export function bindAudioSubscriptions(
 
   const unsubInterruption = audioService.subscribeInterruption((event) => {
     if (event.resumed) {
-      void store.getState().resumeSession();
+      void store.getState().resumeSession().then((result) => {
+        if (!result.ok) {
+          console.warn('[audio] resume after interruption failed', result.error);
+        }
+      });
     } else {
-      void store.getState().pauseSession();
+      void store.getState().pauseSession().then((result) => {
+        if (!result.ok) {
+          console.warn('[audio] pause for interruption failed', result.error);
+        }
+      });
     }
   });
 

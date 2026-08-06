@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { Screen, SectionHeader, SegmentedControl } from '@/components/ui';
+import { Button, Screen, SectionHeader, SegmentedControl } from '@/components/ui';
 import { useInsights } from '@/hooks';
 import type { HistoryTrends } from '@/store';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
@@ -35,6 +35,7 @@ export function HistoryScreen() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,11 +60,17 @@ export function HistoryScreen() {
     return () => {
       cancelled = true;
     };
-  }, [period, loadHistoryTrends]);
+  }, [period, loadHistoryTrends, reloadToken]);
 
   const onPeriodChange = (next: TrendPeriod) => {
     setLoading(true);
     setPeriod(next);
+  };
+
+  const onRetry = () => {
+    setLoading(true);
+    setErrorMessage(null);
+    setReloadToken((n) => n + 1);
   };
 
   const days = trends ? toDayColumns(trends.daily) : [];
@@ -114,17 +121,26 @@ export function HistoryScreen() {
         ) : (
           <>
             {errorMessage ? (
-              <Text
-                accessibilityRole="alert"
-                style={{
-                  color: colors.alertText,
-                  fontFamily: fontFamily.regular,
-                  fontSize: fontSize.body,
-                  textAlign: 'center',
-                }}
-              >
-                {errorMessage}
-              </Text>
+              <View style={{ gap: spacing.sm, alignItems: 'center', paddingVertical: spacing.md }}>
+                <Text
+                  accessibilityRole="alert"
+                  style={{
+                    color: colors.alertText,
+                    fontFamily: fontFamily.regular,
+                    fontSize: fontSize.body,
+                    textAlign: 'center',
+                  }}
+                >
+                  {errorMessage}
+                </Text>
+                <Button
+                  variant="primary"
+                  label={historyCopy.retryLabel}
+                  accessibilityLabel={historyCopy.retryAccessibilityLabel}
+                  onPress={onRetry}
+                  testID="history-retry"
+                />
+              </View>
             ) : null}
 
             <View style={{ gap: spacing.xs }}>

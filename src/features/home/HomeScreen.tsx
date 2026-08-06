@@ -2,9 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useBatteryLevel } from 'expo-battery';
 import { useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native';
 
-import { Button, Screen, StatusCard } from '@/components/ui';
+import { Button, ErrorPanel, Screen, StatusCard } from '@/components/ui';
 import { TOUCH_TARGET } from '@/components/ui/touchTarget';
 import { useSession, useSettings } from '@/hooks';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
@@ -16,6 +16,7 @@ import {
   batteryCopy,
   calibrationCopy,
   homeCopy,
+  homeErrorCopy,
   microphoneCopy,
 } from './copy';
 import {
@@ -77,7 +78,7 @@ export function HomeScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const batteryLevel = useBatteryLevel();
-  const { startSession, sessionState } = useSession();
+  const { startSession, sessionState, lastError, recoverSession } = useSession();
   const {
     readiness,
     refreshReadiness,
@@ -104,6 +105,7 @@ export function HomeScreen() {
   const mic = microphoneCard(readiness?.microphone);
   const calibrated = readiness?.calibration !== null && readiness?.calibration !== undefined;
   const calibrationTone: StatusTone = 'informational';
+  const inError = sessionState === 'ERROR' && lastError !== null;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -159,6 +161,10 @@ export function HomeScreen() {
     setErrorMessage(null);
     setBusy(true);
     try {
+      if (sessionState === 'ERROR') {
+        await recoverSession();
+      }
+
       let current = await refreshReadiness();
       if (!current.ok) {
         setErrorMessage(current.error.message);
@@ -166,11 +172,15 @@ export function HomeScreen() {
       }
 
       if (current.value.microphone !== 'granted') {
+        if (current.value.microphone === 'denied') {
+          setErrorMessage(microphoneCopy.deniedSubtitle);
+          return;
+        }
         const permission = await requestMicrophonePermission();
         if (!permission.ok || permission.value !== 'granted') {
           setErrorMessage(
             permission.ok
-              ? 'Microphone permission is required to record.'
+              ? microphoneCopy.deniedSubtitle
               : permission.error.message,
           );
           return;
@@ -206,6 +216,7 @@ export function HomeScreen() {
   }, [
     busy,
     sessionState,
+    recoverSession,
     refreshReadiness,
     requestMicrophonePermission,
     calibrateAmbient,
@@ -253,47 +264,67 @@ export function HomeScreen() {
         </Text>
       </View>
 
-      <View style={{ alignItems: 'center', paddingTop: spacing.md, paddingBottom: spacing.md }}>
-        <Button
-          variant="hero"
-          label={starting ? homeCopy.startingLabel : homeCopy.heroLabel}
-          sublabel={homeCopy.heroSublabel}
-          accessibilityLabel={homeCopy.heroAccessibilityLabel}
-          icon={starting ? <ActivityIndicator color={colors.fg} /> : <HeroMoonIcon />}
-          onPress={() => {
-            void onStart();
-          }}
-          disabled={starting}
-          testID="home-start-session"
-        />
-        {busyLabel ? (
-          <Text
-            style={{
-              marginTop: spacing.sm,
-              color: colors.fgCaption,
-              fontFamily: fontFamily.regular,
-              fontSize: fontSize.caption,
+      {inError && lastError ? (
+        <View style={{ paddingVertical: spacing.sm }}>
+          <ErrorPanel
+            error={lastError}
+            primaryLabel={homeErrorCopy.retryLabel}
+            primaryAccessibilityLabel={homeErrorCopy.retryAccessibilityLabel}
+            onPrimary={() => {
+              void onStart();
             }}
-          >
-            {busyLabel}
-          </Text>
-        ) : null}
-        {errorMessage ? (
-          <Text
-            accessibilityRole="alert"
-            style={{
-              marginTop: spacing.sm,
-              color: colors.alertText,
-              fontFamily: fontFamily.regular,
-              fontSize: fontSize.caption,
-              textAlign: 'center',
-              paddingHorizontal: spacing.md,
+            secondaryLabel={homeErrorCopy.recoverLabel}
+            secondaryAccessibilityLabel={homeErrorCopy.recoverAccessibilityLabel}
+            onSecondary={() => {
+              void recoverSession();
+              setErrorMessage(null);
             }}
-          >
-            {errorMessage}
-          </Text>
-        ) : null}
-      </View>
+            testID="home-session-error"
+          />
+        </View>
+      ) : (
+        <View style={{ alignItems: 'center', paddingTop: spacing.md, paddingBottom: spacing.md }}>
+          <Button
+            variant="hero"
+            label={starting ? homeCopy.startingLabel : homeCopy.heroLabel}
+            sublabel={homeCopy.heroSublabel}
+            accessibilityLabel={homeCopy.heroAccessibilityLabel}
+            icon={starting ? <ActivityIndicator color={colors.fg} /> : <HeroMoonIcon />}
+            onPress={() => {
+              void onStart();
+            }}
+            disabled={starting}
+            testID="home-start-session"
+          />
+          {busyLabel ? (
+            <Text
+              style={{
+                marginTop: spacing.sm,
+                color: colors.fgCaption,
+                fontFamily: fontFamily.regular,
+                fontSize: fontSize.caption,
+              }}
+            >
+              {busyLabel}
+            </Text>
+          ) : null}
+          {errorMessage ? (
+            <Text
+              accessibilityRole="alert"
+              style={{
+                marginTop: spacing.sm,
+                color: colors.alertText,
+                fontFamily: fontFamily.regular,
+                fontSize: fontSize.caption,
+                textAlign: 'center',
+                paddingHorizontal: spacing.md,
+              }}
+            >
+              {errorMessage}
+            </Text>
+          ) : null}
+        </View>
+      )}
 
       <View style={{ gap: spacing.sm, paddingBottom: spacing.xs }}>
         <StatusCard
@@ -319,6 +350,18 @@ export function HomeScreen() {
           }
           trailing={mic.ok ? <StatusCheck /> : undefined}
           style={cardCompact}
+          onPress={
+            readiness?.microphone === 'denied'
+              ? () => {
+                  void Linking.openSettings();
+                }
+              : undefined
+          }
+          accessibilityLabel={
+            readiness?.microphone === 'denied'
+              ? microphoneCopy.openSettingsAccessibilityLabel
+              : undefined
+          }
           testID="home-status-microphone"
         />
         <StatusCard

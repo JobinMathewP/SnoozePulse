@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 
 import { Card } from '@/components/ui';
+import { hitSlopForVisualSize } from '@/components/ui/touchTarget';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
 import type { SnippetRowModel } from './format';
@@ -21,7 +22,7 @@ type SnippetRowProps = {
 
 const MINI_WEIGHTS = [0.4, 0.7, 0.35, 0.9, 0.55, 0.75, 0.45, 0.65, 0.5, 0.8] as const;
 
-/** Visual play disc — list-row scale; hitSlop preserves accessibility. */
+/** Visual play disc — list-row scale; hitSlop preserves 44×44. */
 const PLAY = spacing.lg;
 
 /**
@@ -58,7 +59,7 @@ export function SnippetRow({
           }
           accessibilityState={{ disabled: !playable }}
           disabled={!playable}
-          hitSlop={spacing.sm}
+          hitSlop={hitSlopForVisualSize(PLAY)}
           onPress={onPlay}
           style={{
             width: PLAY,

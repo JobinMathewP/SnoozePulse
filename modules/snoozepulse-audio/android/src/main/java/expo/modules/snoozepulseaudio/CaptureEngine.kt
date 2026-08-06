@@ -73,13 +73,18 @@ internal class CaptureEngine(
   fun isRunning(): Boolean = running.get()
 
   /**
-   * Measure ambient floor for [CALIBRATION_MS]. Must not be called while recording.
+   * Measure ambient floor for [CALIBRATION_MS]. Stops an orphaned capture first so a
+   * force-killed session cannot block the next Start.
    */
   fun calibrate(): Map<String, Any> {
     if (running.get()) {
-      throw IllegalStateException("Cannot calibrate while recording")
+      stop()
     }
     val record = buildRecorder()
+    if (record.state != AudioRecord.STATE_INITIALIZED) {
+      record.release()
+      throw IllegalStateException("Microphone is unavailable — close other apps using the mic and try again")
+    }
     record.startRecording()
     val deadline = System.currentTimeMillis() + CALIBRATION_MS
     var sumDb = 0.0
@@ -96,10 +101,16 @@ internal class CaptureEngine(
         }
       }
     } finally {
-      record.stop()
+      try {
+        record.stop()
+      } catch (_: Exception) {
+      }
       record.release()
     }
-    val baseline = if (samples > 0) sumDb / samples else 32.0
+    if (samples == 0) {
+      throw IllegalStateException("No ambient samples captured — check microphone access and try again")
+    }
+    val baseline = sumDb / samples
     ambientBaselineDb = baseline
     val environment =
       when {

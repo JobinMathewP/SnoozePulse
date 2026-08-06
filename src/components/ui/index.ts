@@ -11,6 +11,7 @@ export { SectionHeader } from './SectionHeader';
 export { StatusCard, type StatusCardTone } from './StatusCard';
 export { MetricCard } from './MetricCard';
 export { Button } from './Button';
+export { ErrorPanel } from './ErrorPanel';
 export { Waveform, type WaveformProps } from './Waveform';
 export {
   TimelineCard,
@@ -18,3 +19,4 @@ export {
   type TimelinePeakCallout,
 } from './TimelineCard';
 export { SegmentedControl, type SegmentOption } from './SegmentedControl';
+export { TOUCH_TARGET, hitSlopForVisualSize } from './touchTarget';

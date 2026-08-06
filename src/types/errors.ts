@@ -113,6 +113,7 @@ export interface NotFoundError {
 export interface CalibrationError {
   readonly code: 'CALIBRATION';
   readonly message: string;
+  readonly cause?: unknown;
 }
 
 /**

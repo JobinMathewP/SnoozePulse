@@ -150,14 +150,24 @@ export class AudioEngine implements IAudioEngine {
 
   async calibrate(): Promise<Result<CalibrationResult>> {
     try {
+      // Force-kill / Fast Refresh can leave native capture or FGS held — clear first.
+      await SnoozePulseAudioModule.stopRecording();
       const payload = await SnoozePulseAudioModule.calibrate();
       return { ok: true, value: mapCalibration(payload) };
-    } catch {
+    } catch (cause) {
+      const detail =
+        typeof cause === 'object' &&
+        cause !== null &&
+        'message' in cause &&
+        typeof (cause as { message: unknown }).message === 'string'
+          ? (cause as { message: string }).message
+          : 'Ambient calibration failed';
       return {
         ok: false,
         error: {
           code: 'CALIBRATION',
-          message: 'Ambient calibration failed',
+          message: detail.length > 0 ? detail : 'Ambient calibration failed',
+          cause,
         },
       };
     }

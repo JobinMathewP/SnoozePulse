@@ -1,19 +1,26 @@
-import type { Result } from './result';
-import { err, ok } from './result';
-import type { SessionState, SleepSession } from '@/types';
+import type { AppError, SessionState, SleepSession } from '@/types';
 import { canTransition } from '@/utils';
 
 import type { StoreDependencies } from './container';
 import { liveAudioLevel } from './liveAudioLevel';
+import type { Result } from './result';
+import { err, ok } from './result';
 
 /** Session slice — owns the live state machine (architecture.md §3). */
 export type SessionSlice = {
   readonly sessionState: SessionState;
   readonly isRecording: boolean;
   readonly activeSession: SleepSession | null;
+  /** Last typed failure that put the machine in `ERROR` (Task 5.5). */
+  readonly lastError: AppError | null;
 
   startSession: () => Promise<Result<SleepSession>>;
   stopSession: () => Promise<Result<SleepSession>>;
+  /**
+   * Clear `ERROR` → `IDLE`, stop any lingering capture, and drop `lastError`.
+   * Safe to call from Home / Active recovery UI.
+   */
+  recoverSession: () => Promise<Result<void>>;
   /**
    * System-only (ADR-14). Wired from the audio interruption subscription at the
    * composition root — never exposed on UI hooks.
@@ -48,38 +55,42 @@ export function createSessionSlice(
     return ok(undefined);
   };
 
+  const enterError = (error: AppError, clearSession: boolean): void => {
+    set({
+      sessionState: 'ERROR',
+      isRecording: false,
+      lastError: error,
+      ...(clearSession ? { activeSession: null } : {}),
+    });
+  };
+
   return {
     sessionState: 'IDLE',
     isRecording: false,
     activeSession: null,
+    lastError: null,
 
     async startSession() {
       const toStarting = transition('STARTING');
       if (!toStarting.ok) {
+        enterError(toStarting.error, true);
         return toStarting;
       }
+      set({ lastError: null });
 
       const result = await deps.audioService.startSession();
       if (!result.ok) {
-        set({
-          sessionState: 'ERROR',
-          isRecording: false,
-          activeSession: null,
-        });
+        enterError(result.error, true);
         return result;
       }
 
       const toRecording = transition('RECORDING');
       if (!toRecording.ok) {
-        set({
-          sessionState: 'ERROR',
-          isRecording: false,
-          activeSession: null,
-        });
+        enterError(toRecording.error, true);
         return toRecording;
       }
 
-      set({ activeSession: result.value });
+      set({ activeSession: result.value, lastError: null });
       return result;
     },
 
@@ -93,12 +104,14 @@ export function createSessionSlice(
           sessionState: 'IDLE',
           isRecording: false,
           activeSession: null,
+          lastError: null,
         });
         liveAudioLevel.value = 0;
         if (recovered.ok && recovered.value) {
           return ok(recovered.value);
         }
         if (!recovered.ok) {
+          enterError(recovered.error, true);
           return recovered;
         }
         return err({
@@ -111,39 +124,65 @@ export function createSessionSlice(
 
       const toStopping = transition('STOPPING');
       if (!toStopping.ok) {
+        enterError(toStopping.error, false);
         return toStopping;
       }
 
       const result = await deps.audioService.stopSession();
       if (!result.ok) {
-        set({
-          sessionState: 'ERROR',
-          isRecording: false,
-        });
+        enterError(result.error, false);
         return result;
       }
 
       const toCompleted = transition('COMPLETED');
       if (!toCompleted.ok) {
-        set({ sessionState: 'ERROR', isRecording: false });
+        enterError(toCompleted.error, false);
         return toCompleted;
       }
 
-      set({ activeSession: result.value });
+      set({ activeSession: result.value, lastError: null });
       transition('IDLE');
       set({ activeSession: null });
       liveAudioLevel.value = 0;
       return result;
     },
 
+    async recoverSession() {
+      await deps.audioService.forceStopRecording();
+      const from = get().sessionState;
+      if (from === 'ERROR') {
+        const idle = transition('IDLE');
+        if (!idle.ok) {
+          set({
+            sessionState: 'IDLE',
+            isRecording: false,
+            activeSession: null,
+            lastError: null,
+          });
+        } else {
+          set({ activeSession: null, lastError: null });
+        }
+      } else {
+        set({
+          sessionState: 'IDLE',
+          isRecording: false,
+          activeSession: null,
+          lastError: null,
+        });
+      }
+      liveAudioLevel.value = 0;
+      return ok(undefined);
+    },
+
     async pauseSession() {
       const paused = transition('PAUSED');
       if (!paused.ok) {
+        enterError(paused.error, false);
         return paused;
       }
       const result = await deps.audioService.pauseSession();
       if (!result.ok) {
-        set({ sessionState: 'ERROR', isRecording: false });
+        enterError(result.error, false);
         return result;
       }
       return ok(undefined);
@@ -152,11 +191,12 @@ export function createSessionSlice(
     async resumeSession() {
       const resumed = transition('RECORDING');
       if (!resumed.ok) {
+        enterError(resumed.error, false);
         return resumed;
       }
       const result = await deps.audioService.resumeSession();
       if (!result.ok) {
-        set({ sessionState: 'ERROR', isRecording: false });
+        enterError(result.error, false);
         return result;
       }
       return ok(undefined);

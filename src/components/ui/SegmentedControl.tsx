@@ -57,7 +57,7 @@ export function SegmentedControl<T extends string>({
             }}
             style={{
               flex: 1,
-              minHeight: TOUCH_TARGET - spacing.xs * 2,
+              minHeight: TOUCH_TARGET,
               borderRadius: radius.full,
               alignItems: 'center',
               justifyContent: 'center',

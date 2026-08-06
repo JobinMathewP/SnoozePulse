@@ -41,8 +41,10 @@ export function useSession() {
       sessionState: state.sessionState,
       isRecording: state.isRecording,
       activeSession: state.activeSession,
+      lastError: state.lastError,
       startSession: state.startSession,
       stopSession: state.stopSession,
+      recoverSession: state.recoverSession,
     })),
   );
 }
@@ -53,6 +55,8 @@ export function useAudioLevels() {
     useShallow((state) => ({
       currentDecibel: state.currentDecibel,
       lastSnoreEvent: state.lastSnoreEvent,
+      storageQuotaWarning: state.storageQuotaWarning,
+      clearStorageQuotaWarning: state.clearStorageQuotaWarning,
     })),
   );
 }

@@ -64,10 +64,25 @@ export async function createContainer(): Promise<Container> {
     analyticsService,
   );
 
-  // 4) Boot maintenance — ensure dir exists, then reclaim orphans / enforce ADR-15 caps.
+  // 4) Boot recovery — clear any leftover native capture / sticky mic FGS, close DB
+  //    sessions left open after a force-kill, then ADR-15 retention.
+  await audioEngine.stopRecording();
+  const recovered = await sleepService.recoverInterruptedSessions();
+  if (!recovered.ok) {
+    console.warn('[boot] interrupted session recovery failed', recovered.error);
+  } else if (recovered.value > 0) {
+    console.info(`[boot] closed ${recovered.value} interrupted session(s)`);
+  }
+
   await snippetStorage.ensureDirectory();
-  void sleepService.reclaimOrphanedSnippets();
-  void sleepService.enforceRetention();
+  const reclaimed = await sleepService.reclaimOrphanedSnippets();
+  if (!reclaimed.ok) {
+    console.warn('[retention] orphan reclaim failed', reclaimed.error);
+  }
+  const enforced = await sleepService.enforceRetention();
+  if (!enforced.ok) {
+    console.warn('[retention] enforce failed', enforced.error);
+  }
 
   return {
     audioEngine,

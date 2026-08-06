@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 
 import { Card } from '@/components/ui';
+import { hitSlopForVisualSize } from '@/components/ui/touchTarget';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
 import { summaryCopy } from './format';
@@ -20,7 +21,7 @@ const MINI_WEIGHTS = [
   0.3, 0.55, 0.8, 0.45, 0.95, 0.6, 0.35, 0.7, 0.5, 0.85, 0.4, 0.65, 0.5, 0.75, 0.55, 0.9, 0.4,
 ] as const;
 
-/** Compact outlined play — visual ~28 dp; hitSlop expands the target. */
+/** Compact outlined play — visual ~28 dp; hitSlop expands to 44. */
 const PLAY = spacing.lg + spacing.xs;
 
 /**
@@ -105,7 +106,7 @@ export function LoudestEpisodeCard({
           }
           accessibilityState={{ disabled: !playable }}
           disabled={!playable}
-          hitSlop={spacing.sm}
+          hitSlop={hitSlopForVisualSize(PLAY)}
           onPress={onPlay}
           style={{
             width: PLAY,

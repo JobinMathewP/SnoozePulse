@@ -3,6 +3,8 @@ import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-nat
 
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
+import { TOUCH_TARGET } from './touchTarget';
+
 type SectionHeaderProps = {
   readonly title: string;
   /**
@@ -56,11 +58,10 @@ export function SectionHeader({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={infoAccessibilityLabel ?? `${title} information`}
-          hitSlop={spacing.sm}
           onPress={onInfoPress}
           style={{
-            width: fontSize.bodyLg,
-            height: fontSize.bodyLg,
+            minWidth: TOUCH_TARGET,
+            minHeight: TOUCH_TARGET,
             alignItems: 'center',
             justifyContent: 'center',
           }}

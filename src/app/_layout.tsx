@@ -9,22 +9,33 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { StoreApi } from 'zustand/vanilla';
 
+import { ErrorPanel, Screen } from '@/components/ui';
 import { createContainer, StoreProvider } from '@/hooks';
 import {
   bindAudioSubscriptions,
   createAppStore,
   type AppStore,
 } from '@/store';
-import { colors } from '@/theme';
+import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
+import type { AppError } from '@/types';
 
 // Held in global scope, not in the component: by the time a hook runs the splash screen may
 // already have been dismissed. Released in the effect below once Inter is resident, so no
 // frame is ever painted in the system face and then reflowed (ADR-07).
 SplashScreen.preventAutoHideAsync();
+
+function toBootError(cause: unknown): AppError {
+  return {
+    code: 'PERSISTENCE',
+    message: 'SnoozePulse could not start. Database or storage failed to open.',
+    cause,
+  };
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -34,39 +45,95 @@ export default function RootLayout() {
     Inter_700Bold,
   });
   const [store, setStore] = useState<StoreApi<AppStore> | null>(null);
+  const [bootError, setBootError] = useState<AppError | null>(null);
+  const [bootAttempt, setBootAttempt] = useState(0);
+
+  const assemble = useCallback(async () => {
+    try {
+      setBootError(null);
+      const container = await createContainer();
+      const appStore = createAppStore(container);
+      const unsubscribe = bindAudioSubscriptions(appStore, container.audioService);
+      setStore(appStore);
+      return unsubscribe;
+    } catch (cause: unknown) {
+      console.error('[composition] failed to assemble container', cause);
+      setStore(null);
+      setBootError(toBootError(cause));
+      return undefined;
+    }
+  }, []);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
 
     void (async () => {
-      try {
-        const container = await createContainer();
-        if (cancelled) {
-          return;
-        }
-        const appStore = createAppStore(container);
-        unsubscribe = bindAudioSubscriptions(appStore, container.audioService);
-        setStore(appStore);
-      } catch (error: unknown) {
-        console.error('[composition] failed to assemble container', error);
+      const result = await assemble();
+      if (cancelled) {
+        result?.();
+        return;
       }
+      unsubscribe = result;
     })();
 
     return () => {
       cancelled = true;
       unsubscribe?.();
     };
-  }, []);
+  }, [assemble, bootAttempt]);
 
   useEffect(() => {
-    // Hold splash until fonts and the composition root are both ready.
-    if ((fontsLoaded || fontError) && store) {
-      SplashScreen.hide();
+    if (fontsLoaded || fontError) {
+      if (store || bootError) {
+        SplashScreen.hide();
+      }
     }
-  }, [fontsLoaded, fontError, store]);
+  }, [fontsLoaded, fontError, store, bootError]);
 
-  if ((!fontsLoaded && !fontError) || !store) {
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
+  if (bootError && !store) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Screen variant="fixed" background="app" testID="boot-error-screen">
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              padding: spacing.md,
+              gap: spacing.md,
+            }}
+          >
+            <ErrorPanel
+              error={bootError}
+              primaryLabel="Try again"
+              primaryAccessibilityLabel="Retry opening SnoozePulse"
+              onPrimary={() => {
+                setBootAttempt((n) => n + 1);
+              }}
+              testID="boot-error"
+            />
+            <Text
+              style={{
+                color: colors.fgCaption,
+                fontFamily: fontFamily.regular,
+                fontSize: fontSize.caption,
+                lineHeight: lineHeight.caption,
+                textAlign: 'center',
+              }}
+            >
+              If this keeps happening, free some device storage and reopen the app.
+            </Text>
+          </View>
+        </Screen>
+      </GestureHandlerRootView>
+    );
+  }
+
+  if (!store) {
     return null;
   }
 
@@ -89,7 +156,6 @@ export default function RootLayout() {
             name="session/active"
             options={{
               headerShown: false,
-              // iOS interactive pop; Android relies on no header back affordance.
               gestureEnabled: false,
               animation: 'fade',
             }}
@@ -112,3 +178,4 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+

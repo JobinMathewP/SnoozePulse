@@ -45,7 +45,13 @@ class MicrophoneForegroundService : Service() {
     } else {
       startForeground(NOTIFICATION_ID, notification)
     }
-    return START_STICKY
+    return START_NOT_STICKY
+  }
+
+  override fun onTaskRemoved(rootIntent: Intent?) {
+    // User swiped the app away mid-session — do not leave a sticky mic FGS behind.
+    stopSelf()
+    super.onTaskRemoved(rootIntent)
   }
 
   override fun onDestroy() {

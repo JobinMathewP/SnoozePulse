@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
+import { TOUCH_TARGET } from '@/components/ui/touchTarget';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
 import { summaryCopy } from './format';
@@ -17,9 +18,16 @@ const ICON = fontSize.body;
 
 /**
  * Compact date strip: ‹  calendar  May 21, 2024  ›  (summary-screen.jpg).
- * Visual controls stay small; hitSlop preserves accessibility.
+ * Visual controls stay small; min touch target is 44×44.
  */
 export function DateNavigator({ label, onPrev, onNext, onCalendar, testID }: DateNavigatorProps) {
+  const iconHit = {
+    minWidth: TOUCH_TARGET,
+    minHeight: TOUCH_TARGET,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  };
+
   return (
     <View
       style={{
@@ -35,9 +43,8 @@ export function DateNavigator({ label, onPrev, onNext, onCalendar, testID }: Dat
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={summaryCopy.prevDayAccessibilityLabel}
-        hitSlop={spacing.md}
         onPress={onPrev}
-        style={{ padding: spacing.xs, alignItems: 'center', justifyContent: 'center' }}
+        style={iconHit}
       >
         <Ionicons name="chevron-back-outline" size={ICON} color={colors.fgBody} />
       </Pressable>
@@ -45,9 +52,8 @@ export function DateNavigator({ label, onPrev, onNext, onCalendar, testID }: Dat
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={summaryCopy.calendarAccessibilityLabel}
-        hitSlop={spacing.md}
         onPress={onCalendar}
-        style={{ padding: spacing.xs / 2, alignItems: 'center', justifyContent: 'center' }}
+        style={iconHit}
       >
         <Ionicons name="calendar-outline" size={ICON} color={colors.fgBody} />
       </Pressable>
@@ -60,6 +66,7 @@ export function DateNavigator({ label, onPrev, onNext, onCalendar, testID }: Dat
           lineHeight: lineHeight.body,
           textAlign: 'center',
           opacity: 0.72,
+          flexShrink: 1,
         }}
       >
         {label}
@@ -68,9 +75,8 @@ export function DateNavigator({ label, onPrev, onNext, onCalendar, testID }: Dat
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={summaryCopy.nextDayAccessibilityLabel}
-        hitSlop={spacing.md}
         onPress={onNext}
-        style={{ padding: spacing.xs, alignItems: 'center', justifyContent: 'center' }}
+        style={iconHit}
       >
         <Ionicons name="chevron-forward-outline" size={ICON} color={colors.fgBody} />
       </Pressable>

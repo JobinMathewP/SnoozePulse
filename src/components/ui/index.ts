@@ -12,7 +12,6 @@ export { StatusCard, type StatusCardTone } from './StatusCard';
 export { MetricCard } from './MetricCard';
 export { Button } from './Button';
 export { Waveform, type WaveformProps } from './Waveform';
-export { WaveformProof } from './WaveformProof';
 export {
   TimelineCard,
   type TimelineBarModel,

@@ -10,14 +10,21 @@ import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 
 import { colors, fontFamily, fontSize, lineHeight, radius, shadows, spacing } from '@/theme';
 
-/** ui-guidelines.md minimum touch target. */
-const TOUCH_TARGET = 44;
+import { TOUCH_TARGET } from './touchTarget';
 
 /** Press animation duration — within the 150–250 ms band from ui-guidelines.md. */
 const PRESS_MS = 180;
 
-/** Hero disc diameter, scaled from the home-screen.jpg circle (~250 dp at the mockup density). */
-const HERO_SIZE = spacing.xl * 7 + spacing.md;
+/**
+ * Solid disc diameter. home-screen.jpg ring spans ~225–250 dp at the mockup density;
+ * xl*7+lg lands at 248 — within the Task 2.5 correction band.
+ */
+const HERO_DISC = spacing.xl * 7 + spacing.lg;
+
+/** Gap between the solid ring and the faint dotted orbit in home-screen.jpg. */
+const HERO_ORBIT_PAD = spacing.md;
+
+const HERO_SIZE = HERO_DISC + HERO_ORBIT_PAD * 2;
 
 const pressEasing = Easing.out(Easing.cubic);
 
@@ -25,6 +32,11 @@ type ButtonVariant = 'primary' | 'hero';
 
 type ButtonProps = {
   readonly label: string;
+  /**
+   * Second line inside the hero disc ("SLEEP SESSION" under "START" on Home).
+   * Ignored for the primary variant.
+   */
+  readonly sublabel?: string;
   readonly accessibilityLabel: string;
   readonly onPress: () => void;
   readonly variant?: ButtonVariant;
@@ -39,10 +51,12 @@ type ButtonProps = {
  * Pressable control with a standard primary pill and the Home hero disc.
  *
  * The hero variant is built only from sampled tokens: radial fill `heroCore` → `heroEdge`,
- * ring `heroRing`, and glow `shadows.heroGlow` (ADR-06). Press scale is Reanimated.
+ * ring `heroRing`, dotted orbit `heroGlow`, and glow `shadows.heroGlow` (ADR-06).
+ * Press scale is Reanimated.
  */
 export function Button({
   label,
+  sublabel,
   accessibilityLabel,
   onPress,
   variant = 'primary',
@@ -71,7 +85,9 @@ export function Button({
 
   if (variant === 'hero') {
     const ringWidth = spacing.xs;
-    const inner = HERO_SIZE - ringWidth * 2;
+    const centre = HERO_SIZE / 2;
+    const discRadius = HERO_DISC / 2;
+    const inner = HERO_DISC - ringWidth * 2;
 
     return (
       <Animated.View style={[animatedStyle, style]}>
@@ -105,9 +121,19 @@ export function Button({
               </RadialGradient>
             </Defs>
             <Circle
-              cx={HERO_SIZE / 2}
-              cy={HERO_SIZE / 2}
-              r={HERO_SIZE / 2 - ringWidth / 2}
+              cx={centre}
+              cy={centre}
+              r={centre - spacing.xs / 2}
+              fill="none"
+              stroke={colors.heroGlow}
+              strokeWidth={spacing.xs / 2}
+              strokeDasharray={`${spacing.xs} ${spacing.sm}`}
+              opacity={0.85}
+            />
+            <Circle
+              cx={centre}
+              cy={centre}
+              r={discRadius - ringWidth / 2}
               fill="url(#heroFill)"
               stroke={colors.heroRing}
               strokeWidth={ringWidth}
@@ -124,18 +150,34 @@ export function Button({
             }}
           >
             {icon}
-            <Text
-              style={{
-                color: colors.fg,
-                fontFamily: fontFamily.bold,
-                fontSize: fontSize.body,
-                lineHeight: lineHeight.body,
-                textAlign: 'center',
-                textTransform: 'uppercase',
-              }}
-            >
-              {label}
-            </Text>
+            <View style={{ alignItems: 'center', gap: spacing.xs / 2 }}>
+              <Text
+                style={{
+                  color: colors.fg,
+                  fontFamily: fontFamily.bold,
+                  fontSize: fontSize.title,
+                  lineHeight: lineHeight.title,
+                  textAlign: 'center',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {label}
+              </Text>
+              {sublabel ? (
+                <Text
+                  style={{
+                    color: colors.fg,
+                    fontFamily: fontFamily.semibold,
+                    fontSize: fontSize.caption,
+                    lineHeight: lineHeight.caption,
+                    textAlign: 'center',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {sublabel}
+                </Text>
+              ) : null}
+            </View>
           </View>
         </Pressable>
       </Animated.View>

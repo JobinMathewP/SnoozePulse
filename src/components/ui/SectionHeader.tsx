@@ -3,8 +3,7 @@ import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-nat
 
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-/** Minimum touch target from ui-guidelines.md — not a visual token, an a11y floor. */
-const TOUCH_TARGET = 44;
+import { TOUCH_TARGET } from './touchTarget';
 
 type SectionHeaderProps = {
   readonly title: string;

@@ -5,9 +5,7 @@ import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/the
 
 import { Card } from './Card';
 import { SectionHeader } from './SectionHeader';
-
-/** ui-guidelines.md minimum touch target. */
-const TOUCH_TARGET = 44;
+import { TOUCH_TARGET } from './touchTarget';
 
 /** Default Y-axis ceiling matching summary-screen.jpg (0–80 dB). */
 const DEFAULT_MAX_DB = 80;

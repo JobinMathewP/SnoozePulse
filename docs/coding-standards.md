@@ -72,10 +72,11 @@ The store never calls a repository directly.
 4. Relative imports
 
 ## Styling
-- NativeWind is the styling layer.
-- The Tailwind config is generated from `src/theme/`, so theme tokens remain the single
-  source of truth. Never add a raw color or spacing value to the Tailwind config or to a
-  className.
+- NativeWind v5 with Tailwind CSS 4 is the styling layer (ADR-20).
+- Tailwind 4 defines theme in CSS via `@theme`, not a JavaScript config. There is no
+  `tailwind.config.js`.
+- The `@theme` block is generated from `src/theme/`, so theme tokens remain the single source
+  of truth. Never write a raw color or spacing value into the CSS theme or into a className.
 
 ## Cursor Rules
 - Modify only requested files.

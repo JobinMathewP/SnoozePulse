@@ -189,3 +189,43 @@ services/                    repositories/
 ```
 
 A repository never contains a business rule. A service never contains SQL.
+
+---
+
+## ADR-20 — NativeWind v5 preview with Tailwind CSS 4
+
+Ratified during Task 1.1.
+
+NativeWind's current stable line (4.2.6) depends on `react-native-css-interop@0.2.6`, which
+declares `tailwindcss: "~3"` as a peer, and its documentation targets Expo SDK 54. NativeWind
+v5 is the line that supports React Native 0.81+. This project runs React Native 0.86 on Expo
+SDK 57, which is New Architecture only, so **v5 is the only line that claims support for our
+runtime**.
+
+Accepted: v5 is still a preview release.
+
+Approved package set, beyond the original M1 list:
+
+```text
+nativewind@preview        react-native-css
+tailwindcss (4.x)         @tailwindcss/postcss  (dev)
+                          postcss               (dev)
+```
+
+Plus a pinned `lightningcss` override, which NativeWind's own installation guide requires to
+avoid `global.css` deserialization errors:
+
+```json
+{ "overrides": { "lightningcss": "1.30.1" } }
+```
+
+**Installation is deferred to Task 1.3**, where NativeWind is configured and verified in one
+step, rather than installed blind in Task 1.1 and only exercised later.
+
+### Consequence for theme tokens
+
+Tailwind 4 moves theme definition out of `tailwind.config.js` and into CSS via `@theme`.
+ADR-06 and the "Tailwind config is generated from `src/theme/`" rule are unchanged in
+principle — `src/theme/` remains the single source of truth — but the mechanism changes:
+Task 1.4 generates CSS custom properties into an `@theme` block instead of a JavaScript
+config object. There is no `tailwind.config.js` in this project.

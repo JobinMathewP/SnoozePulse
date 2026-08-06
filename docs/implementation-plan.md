@@ -48,13 +48,17 @@ Install only at the task named. Anything not listed still needs approval.
 
 | Install at | Packages |
 | --- | --- |
-| Task 1.1 | `zustand`, `nativewind`, `tailwindcss`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint`, `eslint-config-expo` |
+| Task 1.1 | `zustand`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint` (dev), `eslint-config-expo` (dev) |
+| Task 1.3 | `nativewind@preview`, `react-native-css`, `tailwindcss` (dev), `@tailwindcss/postcss` (dev), `postcss` (dev), plus a `lightningcss` override pin |
 | Task 3.1 | `expo-battery`, `expo-keep-awake` |
 | Task 4.1 | `expo-sqlite` |
 | Task 5.1 | `expo-audio`, `expo-file-system` |
 | Task 5.6 | `jest`, `jest-expo`, `@testing-library/react-native` |
 
 `react-native-reanimated` (4.5.1) and `react-native-worklets` are already installed.
+
+NativeWind moved from Task 1.1 to Task 1.3 so that it is installed, configured, and verified
+in a single step rather than installed blind. See ADR-20 for the version rationale.
 
 ---
 
@@ -110,6 +114,8 @@ every interface the rest of the build depends on is defined with zero implementa
 
 ## Task 1.1 — Toolchain and M1 dependencies
 
+**Status: complete.**
+
 **Objective**
 Install the M1 dependency set and make `npm run lint` functional. No source changes.
 
@@ -134,12 +140,16 @@ tsconfig.json
 ```
 
 **Acceptance criteria**
-- All nine M1 packages installed at SDK 57 compatible versions, resolved via
+- The seven Task 1.1 packages installed at SDK 57 compatible versions, resolved via
   `npx expo install` where the package is an Expo package.
-- `eslint.config.js` exists and extends `eslint-config-expo`.
+- `eslint` and `eslint-config-expo` are in `devDependencies`, not `dependencies`.
+- `eslint.config.js` exists and extends `eslint-config-expo/flat`.
 - `npm run lint` runs without an interactive prompt.
 - `npm run typecheck` still passes with zero errors.
 - No source file changed.
+
+Lint is not expected to exit clean until Task 1.2, because template files that Task 1.1 may
+not touch contain lint errors. Do not add ignore rules to mask them.
 
 **Validation**
 ```bash
@@ -150,9 +160,18 @@ git status --short
 
 **STOP.** Report installed versions and the lint baseline. Wait for review.
 
+**Execution notes**
+- `expo install` adds an `expo-font` config plugin entry to `app.json`. Task 1.1 may not
+  modify `app.json`; revert it. Runtime font loading in Task 1.4 does not need the plugin.
+- The Windows `"--" --dev` form from Expo's ESLint guide did not route packages to
+  `devDependencies`; a follow-up `npm install --save-dev` with the Expo-resolved ranges was
+  required.
+
 ---
 
 ## Task 1.2 — Remove the starter template and create the folder structure
+
+**Status: complete.**
 
 **Objective**
 Delete all `create-expo-app` scaffolding and lay down the eleven-directory structure.
@@ -202,25 +221,40 @@ The app must boot to a blank screen with no red box and no console warnings.
 
 ---
 
-## Task 1.3 — NativeWind configuration
+## Task 1.3 — NativeWind installation and configuration
 
 **Objective**
-Wire NativeWind so styling works, with the Tailwind config structured to consume theme
-tokens in the next task.
+Install and wire NativeWind v5 so styling works, leaving the `@theme` block empty for Task
+1.4 to populate from theme tokens.
 
 **Read first**
+- `docs/decisions.md` (ADR-20, ADR-06)
 - `docs/coding-standards.md` — Styling
 - `docs/ui-guidelines.md`
-- NativeWind installation docs for React Native 0.86 / Reanimated 4
+- https://www.nativewind.dev/v5/getting-started/installation — follow the v5 guide, not v4
+
+**Install** (ADR-20)
+```bash
+npx expo install nativewind@preview react-native-css@latest
+npx expo install --dev tailwindcss @tailwindcss/postcss postcss
+```
+Then pin the override in `package.json`:
+```json
+{ "overrides": { "lightningcss": "1.30.1" } }
+```
+Without the pin, `global.css` fails with deserialization errors at build time.
 
 **May modify**
 ```text
-tailwind.config.js      (create)
+package.json            (approved installs + lightningcss override)
+package-lock.json
 babel.config.js         (create or modify)
 metro.config.js         (create or modify)
+postcss.config.mjs      (create)
 global.css              (create — NativeWind entry stylesheet)
 nativewind-env.d.ts     (create)
 src/app/_layout.tsx     (import the stylesheet only)
+src/app/index.tsx       (temporary className proof only; reverted before STOP)
 tsconfig.json           (types entry only)
 ```
 
@@ -230,13 +264,21 @@ src/theme/**
 src/components/**
 src/features/**
 docs/**
+app.json
 ```
 
 **Acceptance criteria**
-- A `className` on a `View` visibly applies.
-- `tailwind.config.js` contains **no literal color, spacing, or radius values** — its theme
-  section is left empty and wired in Task 1.4.
-- Reanimated and NativeWind coexist; the Babel plugin order is correct and the app runs.
+- A `className` on a `View` visibly applies on a running Android device.
+- `metro.config.js` wraps the default config with `withNativewind(config)`. v5 takes no CSS
+  path argument — unlike v4, the stylesheet is linked by importing it in `src/app/_layout.tsx`.
+- `global.css` uses the v5 at-rules (`@import "tailwindcss/theme.css" layer(theme)` and
+  siblings), not the legacy `@tailwind` directives.
+- The `@theme` block contains **no literal color, spacing, or radius values**. It is left
+  empty and populated from `src/theme/` in Task 1.4.
+- `nativewind-env.d.ts` contains a triple-slash reference to `react-native-css/types`. It must
+  not be named `nativewind.d.ts` or `app.d.ts`, or the types will not be picked up.
+- **There is no `tailwind.config.js`.** Tailwind 4 defines theme in CSS (ADR-20).
+- Reanimated and NativeWind coexist; the app runs and the Android bundle builds.
 - `npm run typecheck` and `npm run lint` clean.
 
 **Validation**
@@ -246,7 +288,10 @@ npm run lint
 npx expo start --android
 ```
 
-**STOP.** Confirm a `className` renders. Wait for review.
+Requires the Android SDK: this is the first task whose acceptance criterion cannot be proven
+without a running emulator or device.
+
+**STOP.** Confirm a `className` renders, with a screenshot. Wait for review.
 
 ---
 
@@ -264,7 +309,8 @@ Build the token layer and make it the single source of truth for Tailwind.
 **May modify**
 ```text
 src/theme/**
-tailwind.config.js
+global.css              (@theme block only)
+app.json                (expo-font plugin registration, only if build-time embedding is used)
 src/app/_layout.tsx     (font loading only)
 ```
 
@@ -284,8 +330,13 @@ docs/**
   three text tints, card border, OLED background, active accent, hero gradient, timeline
   gradient, and tab bar.
 - Inter is bundled and loaded via `expo-font`; the splash screen holds until fonts are ready.
+  Task 1.2 removed the previous `preventAutoHideAsync()` call, so reintroduce the hold and its
+  matching `hideAsync()` together.
 - Spacing is exactly `xs 4 / sm 8 / md 16 / lg 24 / xl 32`.
-- `tailwind.config.js` is generated from these files — changing a token changes the utility.
+- The `@theme` block in `global.css` is generated from `src/theme/` — changing a token changes
+  the utility. Under Tailwind 4 this means emitting CSS custom properties, not a JavaScript
+  config object; there is no `tailwind.config.js` (ADR-20). `src/theme/` remains the single
+  source of truth, and no literal value is written directly into the CSS.
 
 **Deliverable alongside the code**
 A provenance table: token name, hex, source image, element sampled.
@@ -1411,9 +1462,9 @@ npx expo run:android --variant release
 
 | Task | Title | Status |
 | --- | --- | --- |
-| 1.1 | Toolchain and M1 dependencies | Not started |
-| 1.2 | Remove starter template, create folders | Not started |
-| 1.3 | NativeWind configuration | Not started |
+| 1.1 | Toolchain and M1 dependencies | Complete |
+| 1.2 | Remove starter template, create folders | Complete |
+| 1.3 | NativeWind installation and configuration | Not started |
 | 1.4 | Theme system with sampled tokens | Not started |
 | 1.5 | Shared types | Not started |
 | 1.6 | Interfaces and composition root contract | Not started |

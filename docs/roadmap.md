@@ -74,7 +74,7 @@ of the phase named below and requires no separate approval.
 
 | Milestone | Phases | Install at | Packages |
 | --- | --- | --- | --- |
-| **M1** Foundation | 1–4 | Phase 1 | `zustand`, `nativewind`, `tailwindcss`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint`, `eslint-config-expo` |
+| **M1** Foundation | 1–4 | Phase 1 | `zustand`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint`, `eslint-config-expo`, then `nativewind@preview`, `react-native-css`, `tailwindcss`, `@tailwindcss/postcss`, `postcss` (ADR-20) |
 | **M2** Navigation & UI primitives | 5–6 | — | — |
 | **M3** Screens (mock data) | 7–14 | Phase 7 | `expo-battery`, `expo-keep-awake` |
 | **M4** Data, state & analytics | 15–17 | Phase 15 | `expo-sqlite` |
@@ -122,7 +122,7 @@ Deliverable:
 
 Allowed:
 - package.json (dependency install only)
-- tailwind.config.js, babel.config.js, metro.config.js, global.css (NativeWind setup)
+- babel.config.js, metro.config.js, postcss.config.mjs, global.css (NativeWind setup)
 - eslint config
 - app.json
 - README.md
@@ -179,7 +179,7 @@ Exit criteria:
 
 Allowed:
 - src/theme/**
-- tailwind.config.js
+- global.css (`@theme` block only)
 
 Tasks:
 - colors.ts
@@ -188,7 +188,9 @@ Tasks:
 - radius.ts
 - shadows.ts
 - Load Inter via `expo-font` (ADR-07).
-- Generate the Tailwind config from these tokens so tokens remain the single source of truth.
+- Generate the `@theme` block from these tokens so tokens remain the single source of truth.
+  Tailwind 4 defines theme in CSS, so this emits custom properties rather than a JavaScript
+  config object (ADR-20).
 
 **Color sampling (ADR-06).** Before writing `colors.ts`, sample every additional token
 directly from the reference images. Do not guess a value. Record token name, hex, source

@@ -1,6 +1,9 @@
 /**
  * Wire payloads from the native module. Domain mapping happens in `src/native/AudioEngine.ts`
  * — keep this file free of app types so the module stays publishable in isolation.
+ *
+ * Task 5.2: levels / snore / interruption are produced by real capture + DSP on both
+ * platforms. PCM never appears in these payloads.
  */
 
 export type NativeAudioLevelPayload = {
@@ -17,6 +20,7 @@ export type NativeSnorePayload = {
   timestamp: number;
   durationMs: number;
   peakDb: number;
+  /** Absolute path under documents/snippets, or null when write failed. */
   audioPath: string | null;
 };
 

@@ -1383,19 +1383,33 @@ src/**
 - Audio session arbitration implemented; system interruption drives pause and resume
   (ADR-14).
 - On Android 14+ the foreground service starts while the app is foregrounded.
-- Memory is flat across a long run.
+- Memory is flat across a long run — **soak verification deferred to Task 5.3** (see
+  Validation dependency below). Not treating an incomplete soak as a Task 5.2 failure:
+  Task 5.2 must not modify `src/**`, so no UI recording path exists yet.
 
-**Validation**
+**Validation — completed**
 
 ```bash
-npm run typecheck
-npm run lint
-npx expo run:android
+npm run typecheck   # pass
+npm run lint        # pass
+npx expo run:android  # BUILD SUCCESSFUL; app launched on emulator
 ```
+
+**Validation — Blocked by Task 5.3**
 
 Record for 30+ minutes with the screen locked. Report memory at start and end.
 
-**STOP.** iOS remains unvalidated locally; note it explicitly. Wait for review.
+This soak **cannot** run in Task 5.2: Home and session flows still use M3 mocks, so the
+app never starts native capture from the UI. Do not fabricate results or add a temporary
+harness that bypasses the product path.
+
+**Dependency (carry-forward):** Execute the 30+ minute locked-screen memory soak
+**immediately after Task 5.3** enables end-to-end recording (UI → store → services →
+native). Report start/end memory there; that closes this Task 5.2 validation item.
+
+**STOP.** Task 5.2 is complete pending review for the items that *can* be validated now.
+The soak remains open and owned by Task 5.3 — not a Task 5.2 failure. iOS remains
+unvalidated locally (Windows host); note it explicitly. Wait for review.
 
 ---
 
@@ -1409,6 +1423,7 @@ Replace every piece of mock data with live data through the full chain.
 - `docs/architecture.md` §2.1
 - `docs/decisions.md` (ADR-12, ADR-13, ADR-18)
 - Every mock file created in M3
+- Task 5.2 Validation — Blocked by Task 5.3 (locked-screen memory soak carry-forward)
 
 **May modify**
 
@@ -1439,6 +1454,8 @@ docs/**
 - Summary and History render real persisted data with real computed scores.
 - No screen imports a repository or the native module directly.
 - A full recorded session survives an app restart.
+- **Carry-forward from Task 5.2:** after live recording works, memory is flat across a
+  30+ minute locked-screen run (start vs end PSS reported).
 
 **Validation**
 
@@ -1449,6 +1466,11 @@ npx expo run:android
 ```
 
 Full loop: start, record, end, view summary, view history, restart app, reopen the session.
+
+**Immediately after** the live recording path works: record for 30+ minutes with the
+screen locked; report memory (e.g. `adb shell dumpsys meminfo <package>`) at start and
+end. This closes the Task 5.2 soak item that was blocked here — do not skip or defer
+further without an explicit plan amendment.
 
 **STOP.** Wait for review.
 
@@ -1644,8 +1666,8 @@ npx expo run:android --variant release
 | 4.3  | Sleep and audio services                  | Not started |
 | 4.4  | Zustand store and composition root        | Not started |
 | 4.5  | Analytics service                         | Not started |
-| 5.1  | Native module scaffold and config         | Not started |
-| 5.2  | Native audio engine                       | Not started |
+| 5.1  | Native module scaffold and config         | Complete    |
+| 5.2  | Native audio engine                       | Complete (soak → 5.3) |
 | 5.3  | End-to-end integration                    | Not started |
 | 5.4  | Charts and audio playback                 | Not started |
 | 5.5  | Error handling, retention, accessibility  | Not started |

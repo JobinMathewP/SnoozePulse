@@ -11,6 +11,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
+import { colors } from '@/theme';
+
 // Held in global scope, not in the component: by the time a hook runs the splash screen may
 // already have been dismissed. Released in the effect below once Inter is resident, so no
 // frame is ever painted in the system face and then reflowed (ADR-07).
@@ -35,5 +37,38 @@ export default function RootLayout() {
     return null;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack
+      screenOptions={{
+        headerTintColor: colors.fg,
+        headerStyle: { backgroundColor: colors.bgApp },
+        headerTitleStyle: { fontFamily: 'Inter_600SemiBold', color: colors.fg },
+        contentStyle: { backgroundColor: colors.bgApp },
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="session/active"
+        options={{
+          headerShown: false,
+          // iOS interactive pop; Android relies on no header back affordance.
+          gestureEnabled: false,
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen
+        name="session/[id]/summary"
+        options={{
+          title: 'Sleep Summary',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+        }}
+      />
+    </Stack>
+  );
 }

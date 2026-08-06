@@ -3,3 +3,74 @@
 @import "tailwindcss/utilities.css";
 
 @import "nativewind/theme";
+
+/* BEGIN generated theme — produced by src/theme/build-css.mjs. Do not edit. */
+@theme {
+  /* colours */
+  --color-background: #0B0F17;
+  --color-surface: #161F30;
+  --color-primary: #6366F1;
+  --color-alert: #F43F5E;
+  --color-success: #10B981;
+  --color-bg-app: #070E1E;
+  --color-bg-oled: #000000;
+  --color-card: #081127;
+  --color-card-elevated: #0D1729;
+  --color-tabbar: #051027;
+  --color-pill: #1E1E1E;
+  --color-border-card: #1F2940;
+  --color-fg: #FFFFFF;
+  --color-fg-body: #CCD0E0;
+  --color-fg-caption: #C4C9D8;
+  --color-fg-oled: #BEC1C5;
+  --color-warning: #FFA901;
+  --color-alert-text: #FB3B46;
+  --color-success-text: #03F982;
+  --color-accent-active: #03FD8C;
+  --color-accent-waveform: #01F08A;
+  --color-hero-core: #101968;
+  --color-hero-edge: #3532E3;
+  --color-hero-ring: #E5E7FE;
+  --color-hero-glow: #4B48DC;
+  --color-timeline-low: #27299A;
+  --color-timeline-mid: #4841DB;
+  --color-timeline-peak: #FD4046;
+  --color-tab-active: #4843FC;
+  --color-tab-inactive: #858CA4;
+
+  /* spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* radius */
+  --radius-none: 0px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* type */
+  --font-regular: Inter_400Regular;
+  --font-medium: Inter_500Medium;
+  --font-semibold: Inter_600SemiBold;
+  --font-bold: Inter_700Bold;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-body: 14px;
+  --text-body--line-height: 20px;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-title: 20px;
+  --text-title--line-height: 28px;
+  --text-heading: 24px;
+  --text-heading--line-height: 32px;
+  --text-display: 32px;
+  --text-display--line-height: 40px;
+  --text-metric: 44px;
+  --text-metric--line-height: 52px;
+}
+/* END generated theme */

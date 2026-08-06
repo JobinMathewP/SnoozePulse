@@ -1,56 +1,90 @@
-# Welcome to your Expo app 👋
+# SnoozePulse
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A privacy-first sleep monitoring app that detects snoring overnight, records only the audio
+that matters, and turns it into sleep insights. All processing and storage happen on the
+device — no audio is ever uploaded.
 
-## Get started
+Android and iOS, built with Expo Development Builds. Web is not a supported target.
 
-1. Install dependencies
+## Requirements
 
-   ```bash
-   npm install
-   ```
+- Node.js 20+
+- An Expo Development Build. **Expo Go will not work** — the app depends on a custom native
+  audio module.
+- Android Studio with an emulator, or a physical Android device. Android is the primary
+  development target; iOS is built via EAS.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Getting started
 
 ```bash
-npm run reset-project
+npm install
+npx expo start --android
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Scripts
 
-### Other setup steps
+| Command | Purpose |
+| --- | --- |
+| `npm start` | Start the dev server |
+| `npm run android` | Start and open on Android |
+| `npm run ios` | Start and open on iOS |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint via `expo lint` |
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+`npm run typecheck` and `npm run lint` must both pass before any phase is considered
+complete.
 
-## Learn more
+## Architecture
 
-To learn more about developing your project with Expo, look at the following resources:
+Strict unidirectional layering, with all audio DSP on native threads:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```text
+UI → Store → Services → Repositories → SQLite / Native
+```
 
-## Join the community
+The store never calls a repository directly, the UI never touches SQLite or a native module,
+and no DSP runs in JavaScript. Concrete implementations are constructed once at a composition
+root and injected as interfaces.
 
-Join our community of developers creating universal apps.
+## Project structure
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```text
+src/
+  app/            Expo Router routes
+  components/ui/  shared presentational primitives
+  features/       screen-level composition
+  hooks/
+  native/         JS-side interface and wrapper for the audio module
+  repositories/   SQL only
+  services/       business logic only
+  store/          Zustand slices
+  theme/          design tokens
+  types/
+  utils/
+
+modules/
+  snoozepulse-audio/   Expo local module: Swift + Kotlin
+```
+
+## Documentation
+
+Start with `docs/decisions.md` — it records the ratified architecture decisions and is the
+tie-breaker whenever any other document disagrees.
+
+| Document | Contents |
+| --- | --- |
+| `docs/decisions.md` | Architecture decision record |
+| `docs/implementation-plan.md` | Task-by-task execution plan |
+| `docs/roadmap.md` | Phase definitions |
+| `docs/architecture.md` | System topology and layering |
+| `docs/api-contracts.md` | Interfaces and event payloads |
+| `docs/native-audio.md` | Native audio pipeline |
+| `docs/ui-guidelines.md` | Design tokens and rules |
+| `docs/design-spec.md` | Screen references and navigation map |
+| `docs/coding-standards.md` | Code conventions |
+| `docs/testing-strategy.md` | Test pyramid and QA checklist |
+| `docs/SnoreTracker_App_PRD_Specification.md` | Product requirements |
+
+## License
+
+See `LICENSE`.

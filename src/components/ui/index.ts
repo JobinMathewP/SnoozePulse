@@ -17,3 +17,4 @@ export {
   type TimelineBarModel,
   type TimelinePeakCallout,
 } from './TimelineCard';
+export { SegmentedControl, type SegmentOption } from './SegmentedControl';

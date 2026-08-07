@@ -376,7 +376,7 @@ src/features/home/**       (calibration copy only, no functional change)
 
 ```text
 modules/snoozepulse-audio/**/YamnetClassifier.*
-modules/snoozepulse-audio/**/MelSpectrogram.*
+modules/snoozepulse-audio/**/WaveformWindow.*
 modules/snoozepulse-audio/**/AudioDsp.*
 modules/snoozepulse-audio/src/**
 src/native/**
@@ -611,8 +611,8 @@ Manual visual pass against reference images on Pixel 6 and (later) an iPhone.
 | ---- | --------------------------------------------------------- | --------- |
 | 6.1  | TFLite runtime scaffold and model asset                   | complete  |
 | 6.2  | Waveform-window front-end and byte-parity harness         | complete  |
-| 6.3  | Classifier-driven episode builder; delete loudness path   | active    |
-| 6.4  | AGC-safe capture and rolling noise floor                  | pending   |
+| 6.3  | Classifier-driven episode builder; delete loudness path   | complete  |
+| 6.4  | AGC-safe capture and rolling noise floor                  | active    |
 | 6.5  | V2 analytics and destructive schema migration             | pending   |
 | 6.6  | Regression corpus, precision / recall gates, RC-2         | pending   |
 | 6.7  | UI refresh for the ML detector                            | pending   |

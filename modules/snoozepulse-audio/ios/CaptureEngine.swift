@@ -11,12 +11,18 @@ import Foundation
  * Task 6.3 rewrites detection around `SnoreClassifier` (ADR-21). The dB threshold
  * (`snoreMarginDb`) is removed entirely per ADR-23. dB survives only as a display value
  * on `AudioLevelEvent` and as `SnoreEvent.peakDb` for legacy metric cards.
+ *
+ * Task 6.4 (ADR-25) additionally:
+ * - Retains `.measurement` mode (AGC disabled) and logs the session category / mode on
+ *   start so we have parity with the Android capture-source log.
+ * - Maintains a rolling 60 s median of display dB and publishes it as
+ *   `AudioLevelEvent.noiseFloorDb`.
+ * - Turns `calibrate()` into an immediate query over that rolling median (no 3 s wait).
  */
 final class CaptureEngine {
   static let sampleRate = 16_000
   private static let ringSeconds = 5
   private static let emitIntervalMs: Double = 150
-  private static let calibrationMs: Double = 3_000
 
   // Task 6.3 hysteresis (ADR-21 / api-contracts.md).
   private static let snoreEnterConfidence: Float = 0.55
@@ -27,6 +33,14 @@ final class CaptureEngine {
   private static let classLabelSnoring = "snoring"
   private static let classLabelSnort = "snort"
 
+  // Task 6.4 noise-floor window (ADR-25). 60 s / emitIntervalMs ≈ 400 samples.
+  private static let noiseFloorWindowMs: Double = 60_000
+  private static let noiseFloorCapacity: Int = max(1, Int(noiseFloorWindowMs / emitIntervalMs))
+
+  // Environment thresholds preserved from the M5 UX — see docs/api-contracts.md.
+  private static let quietUpperDb: Double = 35
+  private static let moderateUpperDb: Double = 48
+
   private let classifier: SnoreClassifier?
 
   private let ring: PcmRingBuffer
@@ -35,12 +49,12 @@ final class CaptureEngine {
   private var convertScratch: [Int16]
   private let waveform = WaveformWindow()
   private var patchScratch: [Int16]
+  private let noiseFloor = NoiseFloor(capacity: CaptureEngine.noiseFloorCapacity)
 
   private let engine = AVAudioEngine()
   private var isRunning = false
   private var isPaused = false
   private var sessionId: String?
-  private var ambientBaselineDb: Double = 32.0
 
   private var snoreActive = false
   private var snoreStartedAt: Int64 = 0
@@ -72,47 +86,29 @@ final class CaptureEngine {
 
   func running() -> Bool { isRunning }
 
+  /// Return the current rolling-median noise floor without blocking (ADR-25). The M5
+  /// three-second sampling loop is gone; the noise floor is now maintained continuously
+  /// during capture. On cold start (no capture has ever run) the floor is 0 and the
+  /// environment is reported as "quiet" — the Home affordance stays as cosmetic feedback
+  /// while the first minute of the rolling window fills.
   func calibrate() throws -> [String: Any] {
-    if isRunning {
-      throw NSError(domain: "SnoozePulseAudio", code: 1, userInfo: [
-        NSLocalizedDescriptionKey: "Cannot calibrate while recording",
-      ])
-    }
-    try configureSession()
-    let input = engine.inputNode
-    let format = input.inputFormat(forBus: 0)
-    var sumDb = 0.0
-    var samples = 0
-    let lock = NSLock()
-    input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-      guard let self else { return }
-      let count = self.floatBufferToInt16(buffer)
-      guard count > 0 else { return }
-      let rms = AudioDsp.rms(samples: self.convertScratch, count: count)
-      let db = AudioDsp.rmsToDb(rms)
-      lock.lock()
-      sumDb += db
-      samples += 1
-      lock.unlock()
-    }
-    engine.prepare()
-    try engine.start()
-    Thread.sleep(forTimeInterval: Self.calibrationMs / 1000.0)
-    input.removeTap(onBus: 0)
-    engine.stop()
-    let baseline = samples > 0 ? sumDb / Double(samples) : 32.0
-    ambientBaselineDb = baseline
-    let environment: String
-    if baseline < 35 { environment = "quiet" }
-    else if baseline < 48 { environment = "moderate" }
-    else { environment = "noisy" }
+    let baseline = noiseFloor.current()
     return [
       "baselineDb": baseline,
-      "sampledMs": Self.calibrationMs,
-      "environment": environment,
+      "sampledMs": 0.0,
+      "environment": classifyEnvironment(baseline),
     ]
   }
 
+  private func classifyEnvironment(_ baseline: Double) -> String {
+    if baseline < Self.quietUpperDb { return "quiet" }
+    if baseline < Self.moderateUpperDb { return "moderate" }
+    return "noisy"
+  }
+
+  /// - Parameter baselineDb: Ignored under ADR-23/-25. The parameter is retained so the
+  ///   Expo module callsite stays stable; the noise floor is now maintained by the rolling
+  ///   median instead.
   func start(sessionId: String, baselineDb: Double?) throws {
     if isRunning {
       throw NSError(domain: "SnoozePulseAudio", code: 2, userInfo: [
@@ -120,9 +116,9 @@ final class CaptureEngine {
       ])
     }
     self.sessionId = sessionId
-    if let baselineDb { ambientBaselineDb = baselineDb }
     isPaused = false
     ring.clear()
+    noiseFloor.reset()
     resetSnoreState()
     try configureSession()
     observeInterruptions()
@@ -141,6 +137,12 @@ final class CaptureEngine {
     engine.prepare()
     try engine.start()
     isRunning = true
+    let session = AVAudioSession.sharedInstance()
+    NSLog(
+      "CaptureEngine capture source granted: mode=%@ category=%@",
+      session.mode.rawValue,
+      session.category.rawValue
+    )
     startEmitTimer()
   }
 
@@ -285,6 +287,11 @@ final class CaptureEngine {
     let db = AudioDsp.rmsToDb(rms)
     let peakDb = AudioDsp.rmsToDb(Double(peak))
 
+    // Update the rolling 60 s noise-floor median before emitting so this tick's value
+    // reflects the sample we just captured (ADR-25).
+    noiseFloor.push(db)
+    let noiseFloorDb = noiseFloor.current()
+
     let classification = classifyIfReady()
     let confidence = classification?.combined ?? 0
     let now = Int64(Date().timeIntervalSince1970 * 1000)
@@ -300,9 +307,7 @@ final class CaptureEngine {
       "rms": rms / 32768.0,
       "snoreDetected": snoreActive,
       "confidence": Double(confidence),
-      // Task 6.4 will replace this with the rolling 60 s median (ADR-25). Emit 0.0 for
-      // now so downstream types are stable.
-      "noiseFloorDb": 0.0,
+      "noiseFloorDb": noiseFloorDb,
     ])
   }
 
@@ -410,5 +415,49 @@ final class CaptureEngine {
     snoreClassifiedFrames = 0
     snoreLastAboveAt = 0
     snoreEpisodeId = nil
+  }
+
+  /// Rolling median of display dB over the last `capacity` emit ticks (ADR-25). Fixed
+  /// pre-allocated storage, no allocations after construction. The median-per-query is an
+  /// `O(n log n)` sort on ≈ 400 doubles — well under one millisecond and only runs on the
+  /// emit timer, once per ~150 ms.
+  private final class NoiseFloor {
+    private let capacity: Int
+    private var ring: [Double]
+    private var scratch: [Double]
+    private var writeIndex = 0
+    private var filled = 0
+    private let lock = NSLock()
+
+    init(capacity: Int) {
+      self.capacity = capacity
+      ring = [Double](repeating: 0, count: capacity)
+      scratch = [Double](repeating: 0, count: capacity)
+    }
+
+    func push(_ db: Double) {
+      lock.lock()
+      defer { lock.unlock() }
+      ring[writeIndex] = db
+      writeIndex = (writeIndex + 1) % capacity
+      if filled < capacity { filled += 1 }
+    }
+
+    func current() -> Double {
+      lock.lock()
+      defer { lock.unlock() }
+      guard filled > 0 else { return 0 }
+      for i in 0..<filled { scratch[i] = ring[i] }
+      // Sort only the filled prefix; the tail is stale storage we don't consult.
+      scratch[0..<filled].sort()
+      return scratch[filled / 2]
+    }
+
+    func reset() {
+      lock.lock()
+      defer { lock.unlock() }
+      writeIndex = 0
+      filled = 0
+    }
   }
 }

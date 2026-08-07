@@ -21,8 +21,6 @@ class SnoozePulseAudioModule : Module() {
 
   private var engine: CaptureEngine? = null
   private var classifier: SnoreClassifier? = null
-  /** Last calibration baseline, applied on the next [startRecording]. */
-  private var lastBaselineDb: Double? = null
 
   private fun ensureEngine(): CaptureEngine {
     engine?.let { return it }
@@ -73,7 +71,9 @@ class SnoozePulseAudioModule : Module() {
 
     AsyncFunction("startRecording") { id: String, promise: Promise ->
       try {
-        ensureEngine().start(id, lastBaselineDb)
+        // baselineDb is retained on the CaptureEngine signature but ignored (ADR-25);
+        // the rolling noise-floor median replaces the M5 one-shot calibration.
+        ensureEngine().start(id, null)
         promise.resolve(null)
       } catch (error: IllegalStateException) {
         promise.reject("AUDIO_BUSY", error.message, error)
@@ -112,7 +112,6 @@ class SnoozePulseAudioModule : Module() {
     AsyncFunction("calibrate") { promise: Promise ->
       try {
         val result = ensureEngine().calibrate()
-        lastBaselineDb = result["baselineDb"] as? Double
         promise.resolve(result)
       } catch (error: Exception) {
         promise.reject("CALIBRATION", error.message, error)

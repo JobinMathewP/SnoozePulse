@@ -13,7 +13,6 @@ import Foundation
 public class SnoozePulseAudioModule: Module {
   private var engine: CaptureEngine?
   private var classifier: SnoreClassifier?
-  private var lastBaselineDb: Double?
 
   private func ensureEngine() -> CaptureEngine {
     if let engine { return engine }
@@ -64,7 +63,9 @@ public class SnoozePulseAudioModule: Module {
 
     AsyncFunction("startRecording") { (id: String, promise: Promise) in
       do {
-        try self.ensureEngine().start(sessionId: id, baselineDb: self.lastBaselineDb)
+        // baselineDb is retained on the CaptureEngine signature but ignored (ADR-25);
+        // the rolling noise-floor median replaces the M5 one-shot calibration.
+        try self.ensureEngine().start(sessionId: id, baselineDb: nil)
         promise.resolve(nil)
       } catch {
         promise.reject("AUDIO_BUSY", error.localizedDescription)
@@ -97,7 +98,6 @@ public class SnoozePulseAudioModule: Module {
     AsyncFunction("calibrate") { (promise: Promise) in
       do {
         let result = try self.ensureEngine().calibrate()
-        self.lastBaselineDb = result["baselineDb"] as? Double
         promise.resolve(result)
       } catch {
         promise.reject("CALIBRATION", error.localizedDescription)

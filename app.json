@@ -54,7 +54,8 @@
           "microphonePermission": "Allow SnoozePulse to record audio for overnight snore detection.",
           "enableBackgroundRecording": true
         }
-      ]
+      ],
+      "./plugins/withSwiftUICoreFix"
     ],
     "experiments": {
       "typedRoutes": true,

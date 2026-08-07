@@ -541,25 +541,26 @@ figures, confusion matrix, and RC-2 status. Wait for the instruction to commit.
 
 ---
 
-## Task 6.7 — UI refresh for the ML detector _(placeholder — finalised after Task 6.5)_
+## Task 6.7 — UI wiring for the ML detector _(placeholder — finalised after Task 6.6)_
 
 **Objective**
 The M1–M3 screens were built for a loudness-threshold detector and still reference concepts
-that no longer exist (sensitivity slider, ambient-margin readout, dB-driven snore states).
-Refresh the record, session-detail, and history screens to reflect what the app actually
-does after M6.3–M6.5:
+that no longer exist (sensitivity slider, ambient-margin readout, dB-driven snore states,
+"Calibrated - Quiet Environment" style copy). Plumb the ML-driven fields introduced by
+M6.3–M6.5 into the existing screen scaffolding and delete every remnant of the loudness
+narrative. **This task is data plumbing plus copy cleanup — full visual reconciliation with
+the reference mockups is Task 6.8.**
 
 - Surface classifier confidence and hysteretic state on the record screen.
 - Show class distribution (`snoring` vs `snort`), rolling noise floor, and V2 score
   breakdown on the session detail.
-- Retire any "sensitivity" / "threshold" affordances or copy.
+- Retire any "sensitivity" / "threshold" / "ambient calibration" affordances or copy.
 - Update onboarding / marketing screens if any promise loudness-based tuning.
 
 **Read first (finalise when this task starts)**
 
 - `docs/decisions.md` — ADR-21, ADR-24, ADR-26
 - `docs/api-contracts.md` — post-M6.3 `AudioLevelEvent`, `SnoreEvent`, `ScoreInputs` shapes
-- The reference images under `docs/` for each screen
 
 **May modify (draft — refine when this task starts)**
 
@@ -577,16 +578,16 @@ modules/**              (native pipeline is frozen by Task 6.3–6.5 sign-off)
 src/services/**
 src/repositories/**
 src/native/**
-docs/**                 (except a single reference-image update, if the design shifts)
+docs/**
 ```
 
 **Acceptance criteria (draft)**
 
-- Every screen visually reconciled with its reference image per ADR-17.
+- Confidence, `classLabel`, and rolling `noiseFloorDb` are all rendered on screen (not
+  buried in dev overlays).
+- V2 score breakdown from Task 6.5 is visible on the session detail.
 - No dead references to "sensitivity", "threshold", or "loudness detection" remain in
   copy, component names, or props.
-- Confidence and class-label are surfaced somewhere the user can actually see them (not
-  buried in dev overlays).
 - The regression gate from Task 6.6 still passes; UI changes do not regress detector
   behaviour or scoring.
 
@@ -599,9 +600,88 @@ npm test
 npx expo run:android
 ```
 
-Manual visual pass against reference images on Pixel 6 and (later) an iPhone.
+Manual pass on Pixel 6 to confirm ML fields render and dead copy is gone. Visual fidelity
+to the mockups is deferred to Task 6.8.
 
-**STOP.** Report which screens shipped, the deleted concepts, and screenshots.
+**STOP.** Report which fields are surfaced where, the deleted concepts, and screenshots.
+
+---
+
+## Task 6.8 — Mockup-aligned visual polish _(placeholder — finalised after Task 6.7)_
+
+**Objective**
+Bring every user-facing screen up to its reference image under `docs/`. This is the pure
+visual system pass — layout, cards, graphs, typography, palette, spacing — applied
+consistently through a small set of reusable primitives so we do not accumulate one-offs.
+Feature parity where the app supports it; skip or restyle mockup elements whose data the
+app does not produce (e.g. weekly comparison arrows without weekly aggregates).
+
+Screens in scope, each with a dedicated reference image:
+
+- Home — `docs/home-screen.jpg`
+- Active Session (dimmed / lock-friendly) — `docs/active-session.jpg`
+- Morning Summary & Analytics — `docs/summary-screen.jpg`
+- History & Weekly Trends — `docs/history-screen.jpg`
+
+The four-panel composite `docs/mockup.jpg` is the cross-screen consistency reference (nav
+bar, color rhythm, card treatments).
+
+**Read first (finalise when this task starts)**
+
+- `.cursor/rules/01-guardrails.mdc` — Design Rules and Definition of Done
+- `docs/decisions.md` — ADR-06 (theme tokens), ADR-17 (design fidelity)
+- The four per-screen reference images plus `docs/mockup.jpg`
+
+**May modify (draft — refine when this task starts)**
+
+```text
+src/features/**
+src/components/**
+src/theme/**            (sample colors from reference images per ADR-06; no invented values)
+src/app/**              (route-level layout / tab-bar treatment)
+assets/**               (if new icons / illustrations are required and cannot be composed)
+```
+
+**Must not modify**
+
+```text
+modules/**
+src/services/**
+src/repositories/**
+src/native/**
+src/types/**
+src/store/**            (visual polish must not touch business logic or selectors)
+docs/**
+```
+
+**Acceptance criteria (draft)**
+
+- Each in-scope screen visually reconciles with its reference image per ADR-17. Where a
+  mockup element has no backing data, the omission is deliberate and documented in the
+  STOP report — no fake numbers.
+- Every card / graph / tab / list-row is a reusable primitive in `src/components/ui`; no
+  one-off `View + Text + StyleSheet` clusters remain in feature files.
+- Colors come from theme tokens (ADR-06). Grep proof: no hex literals outside
+  `src/theme/**`.
+- Typography respects the design scale — no inline `fontSize` outside theme.
+- Accessibility labels on every interactive element (Definition of Done #4).
+- The regression gates from Tasks 6.6 and 6.7 still pass; visual polish must not regress
+  the detector, scoring, or ML wiring.
+
+**Validation**
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npx expo run:android
+```
+
+Manual side-by-side visual pass on Pixel 6, iterating until the rendered screen matches
+its reference image (guardrail step 4).
+
+**STOP.** Report per-screen: before/after screenshots, deviations from the mockup and why,
+and the list of new primitives added under `src/components/ui`.
 
 ---
 
@@ -615,4 +695,5 @@ Manual visual pass against reference images on Pixel 6 and (later) an iPhone.
 | 6.4  | AGC-safe capture and rolling noise floor                  | active    |
 | 6.5  | V2 analytics and destructive schema migration             | pending   |
 | 6.6  | Regression corpus, precision / recall gates, RC-2         | pending   |
-| 6.7  | UI refresh for the ML detector                            | pending   |
+| 6.7  | UI wiring for the ML detector                             | pending   |
+| 6.8  | Mockup-aligned visual polish                              | pending   |

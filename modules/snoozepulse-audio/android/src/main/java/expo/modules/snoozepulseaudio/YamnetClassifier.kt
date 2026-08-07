@@ -78,7 +78,7 @@ internal class YamnetClassifier(private val context: Context) : SnoreClassifier 
     return resolvedDelegate
   }
 
-  override fun classify(patch: FloatArray): Float {
+  override fun classify(patch: FloatArray): SnoreClassifier.Classification {
     val ip = interpreter ?: throw IllegalStateException("YamnetClassifier not loaded")
     require(patch.size == INPUT_SAMPLES) {
       "YAMNet expects $INPUT_SAMPLES samples, received ${patch.size}"
@@ -102,8 +102,10 @@ internal class YamnetClassifier(private val context: Context) : SnoreClassifier 
       snortSum += frame[CLASS_SNORT]
     }
     val frames = scores.size.coerceAtLeast(1).toFloat()
-    val combined = (snoreSum + snortSum) / frames
-    return combined.coerceIn(0f, 1f)
+    val snoring = (snoreSum / frames).coerceIn(0f, 1f)
+    val snort = (snortSum / frames).coerceIn(0f, 1f)
+    val combined = (snoring + snort).coerceIn(0f, 1f)
+    return SnoreClassifier.Classification(combined = combined, snoring = snoring, snort = snort)
   }
 
   override fun close() {

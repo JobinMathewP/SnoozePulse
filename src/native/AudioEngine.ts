@@ -217,6 +217,8 @@ function mapAudioLevel(payload: NativeAudioLevelPayload): AudioLevelEvent {
     decibel: payload.decibel,
     rms: payload.rms,
     snoreDetected: payload.snoreDetected,
+    confidence: payload.confidence,
+    noiseFloorDb: payload.noiseFloorDb,
   };
 }
 
@@ -227,6 +229,9 @@ function mapSnore(payload: NativeSnorePayload): SnoreEvent {
     timestamp: payload.timestamp,
     durationMs: payload.durationMs,
     peakDb: payload.peakDb,
+    confidence: payload.confidence,
+    classLabel: payload.classLabel,
+    spectralPeakHz: payload.spectralPeakHz,
     audioPath: payload.audioPath,
   };
 }

@@ -291,21 +291,27 @@ grow the event payloads, and delete every code path where dB feeds detection.
 ```text
 modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/CaptureEngine.kt
 modules/snoozepulse-audio/ios/CaptureEngine.swift
+modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/SnoozePulseAudioModule.kt   (wire classifier into CaptureEngine constructor only)
+modules/snoozepulse-audio/ios/SnoozePulseAudioModule.swift                                                 (wire classifier into CaptureEngine constructor only)
+modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/SnoreClassifier.kt           (widen classify() return type only)
+modules/snoozepulse-audio/ios/SnoreClassifier.swift                                                        (widen classify() return type only)
+modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/YamnetClassifier.kt          (return-value plumbing only; delegate + model loading are frozen)
+modules/snoozepulse-audio/ios/YamnetClassifier.swift                                                       (return-value plumbing only; delegate + model loading are frozen)
 modules/snoozepulse-audio/src/SnoozePulseAudio.types.ts
 src/native/AudioEngine.ts
-src/types/**              (only AudioLevelEvent, SnoreEvent, and their close relatives)
+src/types/**                (only AudioLevelEvent, SnoreEvent, and their close relatives)
+src/repositories/mappers.ts (populate M6-added SnoreEvent fields with sentinel defaults until Task 6.5 adds the SQL columns)
 ```
 
 **Must not modify**
 
 ```text
-modules/snoozepulse-audio/**/YamnetClassifier.*
-modules/snoozepulse-audio/**/MelSpectrogram.*
+modules/snoozepulse-audio/**/WaveformWindow.*
 modules/snoozepulse-audio/**/AudioDsp.*     (kept only for display dB)
 src/store/**
 src/features/**
 src/services/**            (no signature changes to IAudioService)
-src/repositories/**
+src/repositories/**        (except mappers.ts as narrowly noted above)
 ```
 
 **Acceptance criteria**
@@ -479,8 +485,9 @@ verified.
 ## Task 6.6 — Regression corpus, precision / recall gates, RC-2
 
 **Objective**
-Assemble the public regression corpus, add golden-audio tests that exercise the log-mel +
-YAMNet + episode-builder pipeline, publish a confusion matrix, and cut RC-2.
+Assemble the public regression corpus, add golden-audio tests that exercise the
+`WaveformWindow` + YAMNet + episode-builder pipeline, publish a confusion matrix, and cut
+RC-2.
 
 **Read first**
 
@@ -511,7 +518,7 @@ application source, except to fix a defect a test reveals
 - Corpus size: ≥ 50 labelled snore clips, ≥ 100 non-snore clips (fans, coughs, speech,
   music, rain, blanket rustle). Every clip is CC0, CC-BY-4.0, or otherwise redistributable;
   license and attribution recorded in `LICENSES.md` and, where required, in `NOTICES.md`.
-- Golden-audio Jest suite loads each clip, runs it through the log-mel front-end and the
+- Golden-audio Jest suite loads each clip, runs it through the `WaveformWindow` +
   YAMNet classifier via a native-parity test harness, and asserts the episode builder's
   output against the label.
 - Precision ≥ 0.85 and recall ≥ 0.90 on the labelled dev set. Failing the gate fails the
@@ -529,18 +536,83 @@ npm test
 npx expo run:android --variant release
 ```
 
-**STOP.** M6 complete. Report the precision / recall figures, confusion matrix, and RC-2
-status. Wait for the instruction to commit.
+**STOP.** M6 complete except for the UI refresh (Task 6.7). Report the precision / recall
+figures, confusion matrix, and RC-2 status. Wait for the instruction to commit.
+
+---
+
+## Task 6.7 — UI refresh for the ML detector _(placeholder — finalised after Task 6.5)_
+
+**Objective**
+The M1–M3 screens were built for a loudness-threshold detector and still reference concepts
+that no longer exist (sensitivity slider, ambient-margin readout, dB-driven snore states).
+Refresh the record, session-detail, and history screens to reflect what the app actually
+does after M6.3–M6.5:
+
+- Surface classifier confidence and hysteretic state on the record screen.
+- Show class distribution (`snoring` vs `snort`), rolling noise floor, and V2 score
+  breakdown on the session detail.
+- Retire any "sensitivity" / "threshold" affordances or copy.
+- Update onboarding / marketing screens if any promise loudness-based tuning.
+
+**Read first (finalise when this task starts)**
+
+- `docs/decisions.md` — ADR-21, ADR-24, ADR-26
+- `docs/api-contracts.md` — post-M6.3 `AudioLevelEvent`, `SnoreEvent`, `ScoreInputs` shapes
+- The reference images under `docs/` for each screen
+
+**May modify (draft — refine when this task starts)**
+
+```text
+src/features/**
+src/components/**
+src/theme/**            (only if a new token is genuinely missing; sample colors from reference images per ADR-06)
+src/store/**            (only for selector additions; no business-logic changes)
+```
+
+**Must not modify**
+
+```text
+modules/**              (native pipeline is frozen by Task 6.3–6.5 sign-off)
+src/services/**
+src/repositories/**
+src/native/**
+docs/**                 (except a single reference-image update, if the design shifts)
+```
+
+**Acceptance criteria (draft)**
+
+- Every screen visually reconciled with its reference image per ADR-17.
+- No dead references to "sensitivity", "threshold", or "loudness detection" remain in
+  copy, component names, or props.
+- Confidence and class-label are surfaced somewhere the user can actually see them (not
+  buried in dev overlays).
+- The regression gate from Task 6.6 still passes; UI changes do not regress detector
+  behaviour or scoring.
+
+**Validation**
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npx expo run:android
+```
+
+Manual visual pass against reference images on Pixel 6 and (later) an iPhone.
+
+**STOP.** Report which screens shipped, the deleted concepts, and screenshots.
 
 ---
 
 # Progress Tracker
 
-| Task | Title                                                     | Status  |
-| ---- | --------------------------------------------------------- | ------- |
-| 6.1  | TFLite runtime scaffold and model asset                   | pending |
-| 6.2  | Log-mel feature front-end on the native thread            | pending |
-| 6.3  | Classifier-driven episode builder; delete loudness path   | pending |
-| 6.4  | AGC-safe capture and rolling noise floor                  | pending |
-| 6.5  | V2 analytics and destructive schema migration             | pending |
-| 6.6  | Regression corpus, precision / recall gates, RC-2         | pending |
+| Task | Title                                                     | Status    |
+| ---- | --------------------------------------------------------- | --------- |
+| 6.1  | TFLite runtime scaffold and model asset                   | complete  |
+| 6.2  | Waveform-window front-end and byte-parity harness         | complete  |
+| 6.3  | Classifier-driven episode builder; delete loudness path   | active    |
+| 6.4  | AGC-safe capture and rolling noise floor                  | pending   |
+| 6.5  | V2 analytics and destructive schema migration             | pending   |
+| 6.6  | Regression corpus, precision / recall gates, RC-2         | pending   |
+| 6.7  | UI refresh for the ML detector                            | pending   |

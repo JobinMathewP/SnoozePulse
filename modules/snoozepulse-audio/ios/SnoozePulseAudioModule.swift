@@ -5,9 +5,10 @@ import Foundation
  * Expo bridge for iOS capture (Task 5.2). Same event names / method surface as Android.
  * Swift is written for later macOS compile/verify — not runtime-validated on Windows (ADR-17).
  *
- * Task 6.1 additionally lazy-constructs `YamnetClassifier` on first module use and warms
- * it once. `CaptureEngine` still runs the M5 loudness detector; the classifier is not on
- * the capture path until Task 6.3 (ADR-23).
+ * Task 6.3 hands the warmed `SnoreClassifier` to `CaptureEngine` so the capture path
+ * drives detection through YAMNet (ADR-21, ADR-23). When warmup fails, the engine is
+ * still constructed with a nil classifier; the pipeline degrades to "no episodes emitted"
+ * rather than crashing capture.
  */
 public class SnoozePulseAudioModule: Module {
   private var engine: CaptureEngine?
@@ -17,7 +18,7 @@ public class SnoozePulseAudioModule: Module {
   private func ensureEngine() -> CaptureEngine {
     if let engine { return engine }
     warmClassifierIfNeeded()
-    let capture = CaptureEngine()
+    let capture = CaptureEngine(classifier: classifier)
     capture.onLevel = { [weak self] payload in
       self?.sendEvent("onAudioLevel", payload)
     }

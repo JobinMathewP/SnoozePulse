@@ -9,9 +9,10 @@ import expo.modules.kotlin.modules.ModuleDefinition
  * Expo bridge for the native capture engine (Task 5.2).
  * JS receives only throttled levels / snore / interruption events — never PCM.
  *
- * Task 6.1 additionally lazy-constructs [YamnetClassifier] on first module use and warms
- * it once. `CaptureEngine` still runs the M5 loudness detector; the classifier is not on
- * the capture path until Task 6.3 (ADR-23).
+ * Task 6.3 hands the warmed [SnoreClassifier] to [CaptureEngine] so the capture path
+ * drives detection through YAMNet (ADR-21, ADR-23). When warmup fails, the engine is
+ * still constructed with a null classifier; the pipeline degrades to "no episodes emitted"
+ * rather than crashing capture.
  */
 class SnoozePulseAudioModule : Module() {
   companion object {
@@ -32,6 +33,7 @@ class SnoozePulseAudioModule : Module() {
     val created =
       CaptureEngine(
         context = ctx,
+        classifier = classifier,
         emitLevel = { payload -> sendEvent("onAudioLevel", payload) },
         emitSnore = { payload -> sendEvent("onSnore", payload) },
         emitInterruption = { payload -> sendEvent("onInterruption", payload) },

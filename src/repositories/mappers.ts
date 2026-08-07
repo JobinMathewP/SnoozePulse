@@ -26,12 +26,20 @@ export function mapSleepSessionRow(row: SleepSessionRow): SleepSession {
 }
 
 export function mapSnoreEventRow(row: SnoreEventRow): SnoreEvent {
+  // M6-added event fields (confidence, classLabel, spectralPeakHz) do not have SQL
+  // columns yet. Task 6.5 introduces the schema migration and — per ADR-26 — wipes every
+  // pre-M6 session in the same transaction, so these placeholders are never observed by
+  // real users. They exist purely so this mapper type-checks between Task 6.3 (payload
+  // shape) and Task 6.5 (persistence).
   return {
     id: row.id,
     sessionId: row.session_id,
     timestamp: row.timestamp,
     durationMs: row.duration_ms,
     peakDb: row.peak_db,
+    confidence: 0,
+    classLabel: 'snoring',
+    spectralPeakHz: null,
     audioPath: row.audio_path,
   };
 }

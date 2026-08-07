@@ -84,7 +84,7 @@ final class YamnetClassifier: SnoreClassifier {
     return resolvedDelegate
   }
 
-  func classify(patch: [Float]) throws -> Float {
+  func classify(patch: [Float]) throws -> SnoreClassification {
     guard let ip = interpreter else { throw ClassifierError.notLoaded }
     guard patch.count == Self.inputSamples else {
       throw ClassifierError.inputSizeMismatch(
@@ -113,8 +113,11 @@ final class YamnetClassifier: SnoreClassifier {
       snoreSum += scores[base + Self.classSnoring]
       snortSum += scores[base + Self.classSnort]
     }
-    let combined = (snoreSum + snortSum) / Float(framesInOutput)
-    return min(1.0, max(0.0, combined))
+    let framesF = Float(framesInOutput)
+    let snoring = min(1.0, max(0.0, snoreSum / framesF))
+    let snort = min(1.0, max(0.0, snortSum / framesF))
+    let combined = min(1.0, max(0.0, snoring + snort))
+    return SnoreClassification(combined: combined, snoring: snoring, snort: snort)
   }
 
   func close() {

@@ -75,6 +75,12 @@ See `docs/performance-rc.md` for the Task 5.6 soak procedure and ADR-13 Jest cov
 
 ## Classifier Regression (M6)
 
+> **Status: deferred (ADR-29).** The corpus and the automated gate described below are
+> postponed to post-M6 hardening. Until ADR-29's trigger fires (app distributed outside
+> the development team, or any change to the detection pipeline), the section stands as
+> the target design, not an active test path. On-device smoke tests are the current
+> substitute.
+
 The M6 detector is validated against a labelled corpus of public audio clips (ADR-27). The
 Task 6.6 gate fails a release if the classifier falls below its precision or recall bar.
 

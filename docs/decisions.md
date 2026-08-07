@@ -462,3 +462,58 @@ modules/snoozepulse-audio/
 Documentation Priority (from `docs/roadmap.md`) is unchanged: `docs/decisions.md` still
 wins over every other doc. This ADR is the tie-breaker for any lingering M1–M5 language
 that contradicts M6.
+
+---
+
+## ADR-29 — Regression corpus and RC-2 gate deferred to post-M6 hardening
+
+Ratified after Task 6.5 sign-off, before Task 6.7 starts.
+
+Task 6.6 (originally: assemble a ≥ 150-clip public regression corpus and enforce a
+precision / recall gate) is **deferred**, not cancelled. The gate is postponed to a
+post-M6 hardening task that lands **after** Task 6.8 and **before either**:
+
+- the app is distributed to any user outside the development team, **or**
+- any change is made to the detection pipeline (model swap, threshold retune, class-label
+  edit, front-end change).
+
+Whichever trigger fires first re-opens the gate. Until then the corpus is not required
+for M6 sign-off.
+
+**Rationale**
+
+- The YAMNet classifier already passes on-device smoke tests after Task 6.3–6.5
+  (snore audio fires episodes, cough / speech / music / rain do not).
+- ADR-21 fixes YAMNet as-is for M6. No detector tuning, threshold changes, or model swap
+  is planned across Tasks 6.7 or 6.8, so the gate would not exercise anything that is
+  currently in motion.
+- Building a compliant corpus is ~a day of ops work (Freesound / AudioSet fetch, per-clip
+  license verification, `LICENSES.md` and `NOTICES.md` authorship, ~40–60 MB of committed
+  audio, harness). That effort is materially larger than any other M6 task and returns
+  its full value only once we start iterating on the detector — which we are not.
+- Building the corpus *after* dogfooding through Tasks 6.7 and 6.8 lets it codify the
+  failure modes we actually observe on real bedrooms, rather than failure modes we
+  imagined ahead of time.
+
+**Scope of the deferral**
+
+- Task 6.6's original section in `docs/implementation-plan.md` and Phase 31 in
+  `docs/roadmap.md` remain as the definition of the eventual gate, tagged **deferred**.
+  Nothing in them is deleted — a future agent picks it up under this ADR.
+- The M6 exit condition drops the phrase "and the regression suite meets its
+  precision / recall gates on the public corpus." That sentence is replaced with
+  "and the classifier passes on-device smoke tests; a formal regression gate lands under
+  ADR-29 before any release outside the development team."
+- The `Classifier Regression (M6)` section of `docs/testing-strategy.md` stays as the
+  target design and is banner-tagged deferred.
+
+**What the trigger obliges**
+
+When either trigger above fires, the reopened task must, at minimum:
+
+- Meet ADR-27's corpus rules (public, redistributable, attributed).
+- Meet the original Precision ≥ 0.85 / Recall ≥ 0.90 bars from Task 6.6.
+- Include at least one failure clip per failure mode observed during Task 6.7 / 6.8
+  dogfooding.
+
+This ADR does not weaken ADR-27 or ADR-21. It sequences the work, not the standard.

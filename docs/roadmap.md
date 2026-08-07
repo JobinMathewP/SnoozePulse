@@ -12,7 +12,9 @@
 
 M1–M5 shipped as debug builds on Android and iOS in August 2026. The M5 detector was a
 loudness-over-baseline threshold and could not distinguish snores from other sounds. It is
-superseded by **Milestone 6 — Acoustic Recognition** (Phases 26–31, Tasks 6.1–6.6).
+superseded by **Milestone 6 — Acoustic Recognition** (Phases 26–31, Tasks 6.1–6.8). Phase
+31 / Task 6.6 (regression corpus and RC-2 gate) is deferred to post-M6 hardening under
+ADR-29; it is not required for M6 exit.
 
 The archived M1–M5 roadmap lives at `docs/archive/roadmap-m1-m5.md`. Do not follow it as an
 active plan. See ADR-28 for the restructure and ADR-21 for why the detector is being
@@ -89,7 +91,13 @@ M1–M5 are archived. M6 is the only active milestone.
 | Milestone | Status   | Phases  | Install at | Packages |
 | --------- | -------- | ------- | ---------- | -------- |
 | M1–M5     | archived | 1–25    | —          | see `docs/archive/roadmap-m1-m5.md` |
-| **M6** Acoustic Recognition | active | 26–31 | Task 6.1 | Android (Gradle): `org.tensorflow:tensorflow-lite:2.16.1`, `org.tensorflow:tensorflow-lite-support:0.4.4`. iOS (CocoaPods): `TensorFlowLiteSwift ~> 2.14`, `TensorFlowLiteCCoreML ~> 2.14`. JS: none. |
+| **M6** Acoustic Recognition | active | 26–33 | Task 6.1 | Android (Gradle): `org.tensorflow:tensorflow-lite:2.16.1`, `org.tensorflow:tensorflow-lite-support:0.4.4`. iOS (CocoaPods): `TensorFlowLiteSwift ~> 2.14`, `TensorFlowLiteCCoreML ~> 2.14`. JS: none. |
+
+Phases 26–30 correspond to Tasks 6.1–6.5. Phase 31 (regression corpus + RC-2 gate) is
+deferred per ADR-29 and does not map to an active task. Phase 32 (Task 6.7 — UI wiring
+for the ML detector) and Phase 33 (Task 6.8 — mockup-aligned visual polish) were added
+after Task 6.5 sign-off; see `docs/implementation-plan.md` for the executable spec of
+each.
 
 No JavaScript-side ML library is installed. Inference is native (ADR-22).
 
@@ -114,8 +122,10 @@ snores are separated from coughs, speech, fans, blanket rustle, and rain.
 
 Exit condition for M6: a recorded session detects snores via the classifier only, `AudioDsp`
 no longer contributes to detection, `AudioLevelEvent` and `SnoreEvent` carry `confidence`,
-V2 scores compute from confidence-weighted inputs, and the regression suite meets its
-precision / recall gates on the public corpus.
+V2 scores compute from confidence-weighted inputs, the ML-driven fields are surfaced in
+the UI (Phase 32 / Task 6.7), and the visual polish reconciles with the reference mockups
+(Phase 33 / Task 6.8). The classifier passes on-device smoke tests; a formal regression
+gate lands under ADR-29 before any release outside the development team.
 
 ---
 
@@ -261,12 +271,18 @@ Tasks:
 
 ---
 
-## Phase 31 — Regression corpus, precision / recall gates, RC-2
+## Phase 31 — Regression corpus, precision / recall gates, RC-2 _(deferred, ADR-29)_
+
+> **Status: deferred.** Postponed to post-M6 hardening under ADR-29. Reopens when the app
+> is distributed outside the development team, or when any change is made to the
+> detection pipeline. The rest of this phase is preserved verbatim as the definition of
+> the eventual gate.
 
 Reference:
 
 - docs/testing-strategy.md — Classifier Regression
 - ADR-27
+- ADR-29
 
 Allowed:
 

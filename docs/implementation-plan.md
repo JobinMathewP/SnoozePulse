@@ -13,8 +13,10 @@ be touched, and how to prove it is done_.
 
 Tasks 1.1 through 5.6 are complete and archived at
 `docs/archive/implementation-plan-m1-m5.md`. The M5 detector shipped, and its acoustic
-performance is inadequate. Milestone 6 (Tasks 6.1–6.6) rewrites the detector and the
-scoring stack around an on-device YAMNet classifier.
+performance is inadequate. Milestone 6 (Tasks 6.1–6.8) rewrites the detector and the
+scoring stack around an on-device YAMNet classifier and then refreshes the UI on top of
+it. Task 6.6 (regression corpus and RC-2 gate) is deferred to post-M6 hardening per
+ADR-29.
 
 ---
 
@@ -41,7 +43,11 @@ Where any document disagrees with `docs/decisions.md`, `decisions.md` wins.
 | M3        | Screens (mock data)                 | 3.1 – 3.6 | archived | 7 – 14  |
 | M4        | Data, State & Analytics             | 4.1 – 4.5 | archived | 15 – 17 |
 | M5        | Native Audio, Integration & Release | 5.1 – 5.6 | archived | 18 – 25 |
-| **M6**    | Acoustic Recognition                | 6.1 – 6.6 | active   | 26 – 31 |
+| **M6**    | Acoustic Recognition                | 6.1 – 6.8 | active   | 26 – 31 |
+
+Task 6.6 (regression corpus + RC-2 gate) is deferred to post-M6 hardening under ADR-29
+and is not required for M6 exit. Tasks 6.7 and 6.8 add the ML-driven UI wiring and the
+mockup-aligned visual polish that were not present in the original phase list.
 
 Archived tasks live in `docs/archive/implementation-plan-m1-m5.md`. They are preserved
 verbatim; do not follow them as active work.
@@ -111,8 +117,10 @@ app separates snores from coughs, speech, fans, blanket rustle, and rain.
 
 Exit condition for M6: a recorded session detects snores via the classifier only,
 `AudioDsp` no longer contributes to detection, `AudioLevelEvent` and `SnoreEvent` carry
-`confidence`, V2 scores compute from confidence-weighted inputs, and the regression suite
-meets its precision / recall gates on the public corpus.
+`confidence`, V2 scores compute from confidence-weighted inputs, the ML-driven fields are
+surfaced in the UI, and the visual polish reconciles with the reference mockups. The
+classifier passes on-device smoke tests; a formal regression gate lands under ADR-29
+before any release outside the development team.
 
 ---
 
@@ -482,7 +490,14 @@ verified.
 
 ---
 
-## Task 6.6 — Regression corpus, precision / recall gates, RC-2
+## Task 6.6 — Regression corpus, precision / recall gates, RC-2 _(deferred, ADR-29)_
+
+> **Status: deferred.** ADR-29 postpones this task to post-M6 hardening. It reopens the
+> moment either of these triggers fires (whichever comes first): the app is distributed
+> outside the development team, or any change is made to the detection pipeline (model
+> swap, threshold retune, class-label edit, front-end change). The rest of this section is
+> preserved verbatim as the definition of the eventual gate — a future agent picks it up
+> under ADR-29. Do **not** execute this task as part of the M6 exit path.
 
 **Objective**
 Assemble the public regression corpus, add golden-audio tests that exercise the
@@ -588,8 +603,9 @@ docs/**
 - V2 score breakdown from Task 6.5 is visible on the session detail.
 - No dead references to "sensitivity", "threshold", or "loudness detection" remain in
   copy, component names, or props.
-- The regression gate from Task 6.6 still passes; UI changes do not regress detector
-  behaviour or scoring.
+- On-device smoke tests still confirm detector behaviour on a real snore clip vs
+  non-snore clips (Task 6.6's formal gate is deferred per ADR-29). UI changes do not
+  regress detector behaviour or scoring.
 
 **Validation**
 
@@ -665,8 +681,9 @@ docs/**
   `src/theme/**`.
 - Typography respects the design scale — no inline `fontSize` outside theme.
 - Accessibility labels on every interactive element (Definition of Done #4).
-- The regression gates from Tasks 6.6 and 6.7 still pass; visual polish must not regress
-  the detector, scoring, or ML wiring.
+- The gate from Task 6.7 still passes; on-device smoke tests still confirm detector
+  behaviour (Task 6.6's formal regression gate is deferred per ADR-29). Visual polish
+  must not regress the detector, scoring, or ML wiring.
 
 **Validation**
 
@@ -693,7 +710,7 @@ and the list of new primitives added under `src/components/ui`.
 | 6.2  | Waveform-window front-end and byte-parity harness         | complete  |
 | 6.3  | Classifier-driven episode builder; delete loudness path   | complete  |
 | 6.4  | AGC-safe capture and rolling noise floor                  | complete  |
-| 6.5  | V2 analytics and destructive schema migration             | active    |
-| 6.6  | Regression corpus, precision / recall gates, RC-2         | pending   |
-| 6.7  | UI wiring for the ML detector                             | pending   |
+| 6.5  | V2 analytics and destructive schema migration             | complete  |
+| 6.6  | Regression corpus, precision / recall gates, RC-2         | deferred (ADR-29) |
+| 6.7  | UI wiring for the ML detector                             | active    |
 | 6.8  | Mockup-aligned visual polish                              | pending   |

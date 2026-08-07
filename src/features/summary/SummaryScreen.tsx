@@ -28,6 +28,8 @@ import {
   toSnippetRows,
 } from './format';
 import { LoudestEpisodeCard } from './LoudestEpisodeCard';
+import { ScoreBreakdownCard } from './ScoreBreakdownCard';
+import { deriveScoreBreakdown } from './scoreBreakdown';
 import { SummaryMetricsStrip } from './SummaryMetricsStrip';
 import { SnippetRow } from './SnippetRow';
 
@@ -219,6 +221,7 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
   const loudest = loudestDisplay(summary);
   const loudestEpisode = summary.loudestEpisode;
   const dateAnchor = summary.range.endedAt;
+  const scoreBreakdown = deriveScoreBreakdown(events, summary);
   const progress =
     playback.durationMs > 0 ? playback.positionMs / playback.durationMs : 0;
 
@@ -293,6 +296,13 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
               toggleEventPlayback(loudestEpisode);
             }}
             testID="summary-loudest-episode"
+          />
+        ) : null}
+
+        {events.length > 0 ? (
+          <ScoreBreakdownCard
+            breakdown={scoreBreakdown}
+            testID="summary-score-breakdown"
           />
         ) : null}
 

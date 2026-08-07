@@ -27,6 +27,24 @@ export const summaryCopy = {
   retryAccessibilityLabel: 'Retry loading summary',
 } as const;
 
+/**
+ * Task 6.7 — copy for the V2 score breakdown card on Summary. Kept beside `summaryCopy`
+ * so a future 6.8 pass can restyle both together.
+ */
+export const scoreBreakdownCopy = {
+  title: 'Detection breakdown',
+  avgConfidenceLabel: 'Average confidence',
+  snoringShareLabel: 'Snoring share (confidence-weighted)',
+  spectralConsistencyLabel: 'Spectral consistency',
+  episodeRegularityLabel: 'Episode regularity',
+  classDistributionLabel: 'Snoring · Snort',
+  classDistributionEmpty: '—',
+  qualityHigh: 'High',
+  qualityMedium: 'Medium',
+  qualityLow: 'Low',
+  qualityUnavailable: '—',
+} as const;
+
 export type SnippetRowModel = {
   readonly event: SnoreEvent;
   readonly timeLabel: string;

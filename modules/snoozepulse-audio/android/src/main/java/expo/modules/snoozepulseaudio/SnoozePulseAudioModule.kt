@@ -1,5 +1,6 @@
 package expo.modules.snoozepulseaudio
 
+import android.util.Log
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -7,9 +8,18 @@ import expo.modules.kotlin.modules.ModuleDefinition
 /**
  * Expo bridge for the native capture engine (Task 5.2).
  * JS receives only throttled levels / snore / interruption events — never PCM.
+ *
+ * Task 6.1 additionally lazy-constructs [YamnetClassifier] on first module use and warms
+ * it once. `CaptureEngine` still runs the M5 loudness detector; the classifier is not on
+ * the capture path until Task 6.3 (ADR-23).
  */
 class SnoozePulseAudioModule : Module() {
+  companion object {
+    private const val TAG = "SnoozePulseAudioModule"
+  }
+
   private var engine: CaptureEngine? = null
+  private var classifier: SnoreClassifier? = null
   /** Last calibration baseline, applied on the next [startRecording]. */
   private var lastBaselineDb: Double? = null
 
@@ -18,6 +28,7 @@ class SnoozePulseAudioModule : Module() {
     val ctx =
       appContext.reactContext
         ?: throw IllegalStateException("React context not ready")
+    warmClassifierIfNeeded(ctx)
     val created =
       CaptureEngine(
         context = ctx,
@@ -27,6 +38,19 @@ class SnoozePulseAudioModule : Module() {
       )
     engine = created
     return created
+  }
+
+  private fun warmClassifierIfNeeded(ctx: android.content.Context) {
+    if (classifier != null) return
+    val created = YamnetClassifier(ctx)
+    try {
+      val delegate = created.warm()
+      Log.i(TAG, "SnoreClassifier ready (delegate=$delegate)")
+      classifier = created
+    } catch (error: Exception) {
+      Log.e(TAG, "SnoreClassifier warmup failed; running without ML detector", error)
+      created.close()
+    }
   }
 
   override fun definition() = ModuleDefinition {
@@ -41,6 +65,8 @@ class SnoozePulseAudioModule : Module() {
     OnDestroy {
       engine?.stop()
       engine = null
+      classifier?.close()
+      classifier = null
     }
 
     AsyncFunction("startRecording") { id: String, promise: Promise ->

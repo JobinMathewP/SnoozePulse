@@ -13,6 +13,9 @@ Pod::Spec.new do |s|
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
+  # M6 Task 6.1: on-device YAMNet inference (ADR-21, ADR-22).
+  s.dependency 'TensorFlowLiteSwift', '~> 2.14'
+  s.dependency 'TensorFlowLiteCCoreML', '~> 2.14'
 
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {
@@ -20,4 +23,5 @@ Pod::Spec.new do |s|
   }
 
   s.source_files = "**/*.{h,m,mm,swift,hpp,cpp}"
+  s.resources    = "Resources/**/*"
 end

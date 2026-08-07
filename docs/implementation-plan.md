@@ -191,24 +191,33 @@ platforms verified. Wait for review.
 
 ---
 
-## Task 6.2 — Log-mel feature front-end on the native thread
+## Task 6.2 — Waveform-window front-end and byte-parity harness
 
 **Objective**
-Compute YAMNet's front-end log-mel patches natively, with byte-parity to a Python reference
-fixture, allocation-free after warmup.
+Prepare YAMNet's *native* input — a 15,600-sample Float32 patch normalized to `[-1.0, 1.0]`
+via `sample / 32768.0` — with byte-parity to a Python oracle, allocation-free after
+warmup. **No mel spectrogram is computed** because the shipped YAMNet variant
+(`lite-model/yamnet/classification/tflite/1`) has the log-mel front-end baked into the graph
+(input tensor `[1, 15600]`, ADR-21). This task builds the input-preparation stage and its
+regression fixture; the classifier remains uncalled from `CaptureEngine` until Task 6.3.
 
 **Read first**
 
-- YAMNet's published front-end specification
-- ADR-22
+- `docs/decisions.md` — ADR-21, ADR-22
+- YAMNet classifier variant page on TF Hub / Kaggle Models — confirm the input tensor
+  is `[1, 15600]` float32 in `[-1.0, 1.0]`.
 
 **May modify**
 
 ```text
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/MelSpectrogram.kt
-modules/snoozepulse-audio/ios/MelSpectrogram.swift
-modules/snoozepulse-audio/__fixtures__/mel/**
-modules/snoozepulse-audio/__fixtures__/audio/reference_tone.wav     (one CC0 fixture only)
+modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/WaveformWindow.kt
+modules/snoozepulse-audio/android/src/test/java/expo/modules/snoozepulseaudio/WaveformWindowTest.kt
+modules/snoozepulse-audio/android/build.gradle       (test dep + test resource srcDir only)
+modules/snoozepulse-audio/ios/WaveformWindow.swift
+modules/snoozepulse-audio/ios/Tests/WaveformWindowTests.swift
+modules/snoozepulse-audio/__fixtures__/audio/reference_tone.wav              (procedurally generated)
+modules/snoozepulse-audio/__fixtures__/waveform/reference_tone_windows.bin   (float32 LE oracle)
+modules/snoozepulse-audio/__fixtures__/waveform/generate_fixtures.py         (reproducible generator)
 modules/snoozepulse-audio/__fixtures__/LICENSES.md
 ```
 
@@ -218,24 +227,34 @@ modules/snoozepulse-audio/__fixtures__/LICENSES.md
 modules/snoozepulse-audio/**/CaptureEngine.*
 modules/snoozepulse-audio/**/AudioDsp.*
 modules/snoozepulse-audio/**/YamnetClassifier.*
+modules/snoozepulse-audio/**/SnoozePulseAudioModule.*
 modules/snoozepulse-audio/src/**
 src/**
 ```
 
 **Acceptance criteria**
 
-- `MelSpectrogram` produces a `float[96 * 64]` patch from 15,600 mono Int16 samples at
-  16 kHz for each 0.975 s window with 50% overlap.
-- Front-end parameters: 25 ms window (400 samples), 10 ms hop (160 samples), 64 mel bins,
-  frequency range 125 Hz – 7500 Hz, log with a 1e-3 offset. Any deviation from YAMNet's
-  published values is a bug.
-- No allocation in the hot path after the first call; all scratch buffers are held on the
-  instance.
-- A JVM/Swift unit test compares the output for `reference_tone.wav` against the fixture
-  in `__fixtures__/mel/reference_tone.npy` (or a `.bin` variant we can decode without
-  numpy in Swift) and asserts a mean absolute error `≤ 1e-4`.
-- The classifier from Task 6.1 is still not called by `CaptureEngine`. This task ends
-  with a front-end but no detector rewrite.
+- `WaveformWindow` exposes:
+  - `fill(samples: ShortArray, count: Int): FloatArray` — copies exactly `patchSamples`
+    samples into a pre-allocated `FloatArray(patchSamples)` normalized via
+    `sample / 32768.0f` and returns the same instance every call. Throws if
+    `count != patchSamples`.
+  - `slidingWindows(mono16k: ShortArray, totalCount: Int, onPatch: (FloatArray) -> Unit)` —
+    calls `onPatch` once per full 15,600-sample window with a `hopSamples` = 7,800 step
+    (50 % overlap). Trailing partial window is discarded.
+- Constants: `patchSamples = 15_600` (0.975 s @ 16 kHz), `hopSamples = 7_800`.
+- No heap allocation in the hot path after construction; all scratch buffers are held on
+  the instance and reused. Verified by an "allocation-free" assertion that calls `fill`
+  twice and confirms the returned reference is identity-equal.
+- A JVM (Kotlin) parity test compares the flattened window output for
+  `__fixtures__/audio/reference_tone.wav` against
+  `__fixtures__/waveform/reference_tone_windows.bin` and asserts mean absolute error
+  `≤ 1e-6`. Equivalent Swift XCTest exists; Windows hosts may mark iOS execution as
+  deferred to a Mac host.
+- The Python oracle (`generate_fixtures.py`) is deterministic (fixed seed / analytic
+  waveform) and regenerates both files bit-for-bit.
+- `YamnetClassifier.classify(patch: FloatArray)` is *not* called from `WaveformWindow` or
+  anywhere in `CaptureEngine`. This task ends with an input preparer, no detector rewrite.
 
 **Validation**
 
@@ -243,13 +262,15 @@ src/**
 npm run typecheck
 npm run lint
 npm test
+cd modules/snoozepulse-audio/android && ./gradlew :snoozepulse-audio:test
 ```
 
-Run the platform-specific parity tests (`gradlew :snoozepulse-audio:test` on Android and
-the equivalent `xcodebuild test` invocation on iOS via EAS or a mac host — Windows may
-report iOS as deferred).
+On a Mac host, additionally run `xcodebuild test -scheme SnoozePulseAudio` or the Expo
+prebuild equivalent to execute `WaveformWindowTests.swift`. Windows may report the iOS
+test as deferred.
 
-**STOP.** Report parity MAE for each platform. Wait for review.
+**STOP.** Report parity MAE for each platform run and the fixture SHA-256 hashes. Wait for
+review.
 
 ---
 

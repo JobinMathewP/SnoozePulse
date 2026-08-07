@@ -454,8 +454,8 @@ modules/snoozepulse-audio/
   android/src/main/assets/yamnet.tflite     # bundled AAR asset
   ios/Resources/yamnet.tflite               # copied into the framework bundle
   __fixtures__/
-    audio/                                  # regression corpus (ADR-27)
-    mel/                                    # log-mel parity fixtures (Task 6.2)
+    audio/                                  # regression corpus (ADR-27) + reference_tone.wav
+    waveform/                               # Int16 → Float32 window parity fixtures (Task 6.2)
     LICENSES.md
 ```
 

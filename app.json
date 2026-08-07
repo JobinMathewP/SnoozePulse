@@ -11,8 +11,12 @@
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.snoozepulse.app",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
-        "NSMicrophoneUsageDescription": "SnoozePulse needs the microphone to detect and record snoring overnight."
+        "UIBackgroundModes": [
+          "audio",
+          "audio"
+        ],
+        "NSMicrophoneUsageDescription": "SnoozePulse needs the microphone to detect and record snoring overnight.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -23,7 +27,15 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.snoozepulse.app"
+      "package": "com.snoozepulse.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -47,6 +59,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ca3fe6f9-2f93-45cf-bced-8737df89aa08"
+      }
     }
   }
 }

@@ -66,6 +66,10 @@ arbitration; playback must not start while capture is active.
 
 - Never send raw PCM to JavaScript.
 - Perform RMS, peak detection and filtering natively.
+- **Both platforms must store snippets as 16 kHz, 16-bit mono PCM WAV.** Android opens
+  `AudioRecord` at 16 kHz. iOS must resample the hardware input rate (often 48 kHz) down to
+  16 kHz before the ring buffer and `SnippetWriter` — otherwise the WAV header says 16 kHz
+  while the samples are still 48 kHz and playback sounds slow / growling.
 - JS subscribes only.
 - SQLite writes occur asynchronously and in batches, never once per event.
 - Use foreground service on Android.

@@ -5,8 +5,8 @@ import Foundation
  * AVAudioEngine capture + DSP. Mirrors Android CaptureEngine contracts so JS stays identical.
  * PCM never leaves this type — only throttled level / snore / interruption payloads.
  *
- * Input taps use the hardware float format and convert into a pre-sized Int16 scratch
- * buffer (no per-frame allocation of the ring itself).
+ * Input taps use the hardware float format, resample to 16 kHz Int16, then write a
+ * pre-sized ring (no per-frame allocation of the ring itself).
  */
 final class CaptureEngine {
   static let sampleRate = 16_000
@@ -169,25 +169,54 @@ final class CaptureEngine {
     }
   }
 
-  /// Convert float PCM from the input tap into [convertScratch]; returns sample count.
-  private func floatBufferToInt16(_ buffer: AVAudioPCMBuffer) -> Int {
-    guard let channel = buffer.floatChannelData?[0] else { return 0 }
-    let frameCount = Int(buffer.frameLength)
-    if frameCount > convertScratch.count {
-      // Rare hardware burst — grow once (still not per steady-state frame).
-      convertScratch = [Int16](repeating: 0, count: frameCount)
-    }
-    for i in 0..<frameCount {
-      let clamped = max(-1.0, min(1.0, Double(channel[i])))
-      convertScratch[i] = Int16(clamped * 32767.0)
-    }
-    return frameCount
-  }
-
   private func configureSession() throws {
     let session = AVAudioSession.sharedInstance()
     try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .allowBluetooth])
+    // Prefer 16 kHz to match Android AudioRecord; hardware may still deliver 44.1/48 kHz.
+    try? session.setPreferredSampleRate(Double(Self.sampleRate))
     try session.setActive(true, options: .notifyOthersOnDeactivation)
+  }
+
+  /// Convert input tap PCM to mono Int16 at `sampleRate` (resample when hardware ≠ 16 kHz).
+  private func floatBufferToInt16(_ buffer: AVAudioPCMBuffer) -> Int {
+    guard let channel = buffer.floatChannelData?[0] else { return 0 }
+    let inFrames = Int(buffer.frameLength)
+    guard inFrames > 0 else { return 0 }
+
+    let inRate = buffer.format.sampleRate
+    let outRate = Double(Self.sampleRate)
+    let outCount: Int
+    if abs(inRate - outRate) < 1.0 {
+      outCount = inFrames
+      ensureConvertCapacity(outCount)
+      for i in 0..<inFrames {
+        let clamped = max(-1.0, min(1.0, Double(channel[i])))
+        convertScratch[i] = Int16(clamped * 32767.0)
+      }
+      return outCount
+    }
+
+    // Linear resample hardware rate → 16 kHz (same target as Android CaptureEngine).
+    outCount = max(1, Int((Double(inFrames) * outRate / inRate).rounded(.down)))
+    ensureConvertCapacity(outCount)
+    let step = inRate / outRate
+    for i in 0..<outCount {
+      let srcPos = Double(i) * step
+      let idx = min(inFrames - 1, Int(srcPos))
+      let frac = srcPos - Double(idx)
+      let s0 = Double(channel[idx])
+      let s1 = Double(channel[min(inFrames - 1, idx + 1)])
+      let sample = s0 + (s1 - s0) * frac
+      let clamped = max(-1.0, min(1.0, sample))
+      convertScratch[i] = Int16(clamped * 32767.0)
+    }
+    return outCount
+  }
+
+  private func ensureConvertCapacity(_ count: Int) {
+    if count > convertScratch.count {
+      convertScratch = [Int16](repeating: 0, count: count)
+    }
   }
 
   private func observeInterruptions() {

@@ -73,10 +73,52 @@ deferred because the development machine is Windows (ADR-17).
 
 See `docs/performance-rc.md` for the Task 5.6 soak procedure and ADR-13 Jest coverage.
 
+## Classifier Regression (M6)
+
+> **Status: deferred (ADR-29).** The corpus and the automated gate described below are
+> postponed to post-M6 hardening. Until ADR-29's trigger fires (app distributed outside
+> the development team, or any change to the detection pipeline), the section stands as
+> the target design, not an active test path. On-device smoke tests are the current
+> substitute.
+
+The M6 detector is validated against a labelled corpus of public audio clips (ADR-27). The
+Task 6.6 gate fails a release if the classifier falls below its precision or recall bar.
+
+### Corpus
+
+- Location: `modules/snoozepulse-audio/__fixtures__/audio/`
+- Composition:
+  - ≥ 50 labelled snore clips
+  - ≥ 100 non-snore clips covering: cough, speech, fan / HVAC, TV / music, rain, blanket
+    or cloth rustle, phone vibration, dog bark
+- Sources permitted: Google AudioSet (redistributable subset), Freesound.org (CC0 or
+  CC-BY-4.0), other public-domain sleep-lab recordings. Every clip carries its license
+  and attribution in `modules/snoozepulse-audio/__fixtures__/LICENSES.md` and, where
+  required, in the repository-root `NOTICES.md`.
+
+### Golden-Audio Suite
+
+- Runs from Jest via a platform-parity harness. Each clip is fed through the log-mel
+  front-end and the YAMNet classifier, then through the episode builder, exactly as
+  `CaptureEngine` would at runtime.
+- Assertions per clip: expected episode count, expected total duration bounds, and
+  expected class label.
+- Aggregate assertions across the corpus:
+  - **Precision ≥ 0.85** — episodes labelled as snores that were actually snores.
+  - **Recall ≥ 0.90** — snore clips for which at least one episode fired.
+- The suite prints a full confusion matrix on completion; the RC report captures it.
+
+### Log-Mel Parity
+
+Task 6.2 ships a byte-parity fixture at `modules/snoozepulse-audio/__fixtures__/mel/`.
+The platform-specific parity tests must stay green with mean absolute error `≤ 1e-4`
+against the reference patch. A regression there is a Task 6.2 defect, not a corpus issue.
+
 ## Cursor Workflow
 After every phase:
 1. Run `npm run typecheck`
 2. Run `npm run lint`
-3. Fix issues
-4. Summarize changed files
-5. Commit before next phase
+3. Run `npm test`
+4. Fix issues
+5. Summarize changed files
+6. Commit before next phase

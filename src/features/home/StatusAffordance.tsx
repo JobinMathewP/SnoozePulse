@@ -49,7 +49,7 @@ export function MicStatusIcon({ color, size = fontSize.heading }: StatusIconProp
   );
 }
 
-/** Vertical pulse / waveform for ambient calibration. */
+/** Vertical pulse / waveform for the Environment card — rolling noise floor (ADR-25). */
 export function PulseStatusIcon({ color, size = fontSize.heading }: StatusIconProps) {
   return (
     <Svg

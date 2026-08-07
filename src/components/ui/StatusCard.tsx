@@ -11,7 +11,7 @@ import { TOUCH_TARGET } from './touchTarget';
  *
  * - `alert`         — Battery Low (red title)
  * - `success`       — Microphone Access (green title)
- * - `informational` — Ambient Noise Calibration (indigo title)
+ * - `informational` — Environment (indigo title, rolling noise floor per ADR-25)
  */
 export type StatusCardTone = 'alert' | 'success' | 'informational';
 

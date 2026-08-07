@@ -12,7 +12,7 @@ export const homeCopy = {
   heroAccessibilityLabel: 'Start sleep session',
   settingsAccessibilityLabel: 'Open settings',
   startingLabel: 'Starting…',
-  calibratingLabel: 'Calibrating ambient noise…',
+  calibratingLabel: 'Measuring environment…',
 } as const;
 
 /** Fraction of charge at or below which the battery card uses the alert tone. */
@@ -43,9 +43,9 @@ export const homeErrorCopy = {
 } as const;
 
 export const calibrationCopy = {
-  pendingTitle: 'Ambient Noise Calibration',
-  pendingSubtitle: 'Will calibrate when you start',
-  quietSubtitle: 'Calibrated - Quiet Environment',
-  moderateSubtitle: 'Calibrated - Moderate Environment',
-  noisySubtitle: 'Calibrated - Noisy Environment',
+  pendingTitle: 'Environment',
+  pendingSubtitle: 'Measured while you sleep',
+  quietSubtitle: 'Quiet environment',
+  moderateSubtitle: 'Moderate environment',
+  noisySubtitle: 'Noisy environment',
 } as const;

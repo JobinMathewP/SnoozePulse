@@ -1,15 +1,18 @@
+/**
+ * @deprecated V1 heuristic. Kept for archival reads only; no write path calls this after
+ * M6 (Task 6.5 / ADR-26). Do not extend or rewire — use `sleepScoreV2.ts` instead.
+ */
+
 import type { ScoreInputs, SleepScore } from '@/types';
 
 import { SLEEP_SCORE_V1 } from './scoringConstants';
 
 /**
- * V1 sleep score heuristic — scheduled for wholesale replacement in V2 (ADR-10).
+ * V1 sleep score heuristic — replaced wholesale by {@link computeSleepScoreV2} in M6.5
+ * (ADR-10, ADR-26). This function and its constants remain compiled for archival reads
+ * only; every write path now targets V2. Kept as-is per the Task 6.5 guardrail.
  *
- * Pure: no I/O, no mutation, no clinical claims. Inputs are limited to recorded session
- * statistics (`ScoreInputs`). Clamp the result to 0–100 for UI safety.
- *
- * Replace this entire function (and `SLEEP_SCORE_V1`) when V2 scoring lands; do not patch
- * weights into call sites.
+ * Pure: no I/O, no mutation, no clinical claims.
  */
 export function computeSleepScoreV1(inputs: ScoreInputs): SleepScore {
   const durationHours = Math.max(inputs.sessionDurationMs, 1) / (60 * 60 * 1000);

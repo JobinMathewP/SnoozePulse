@@ -15,4 +15,28 @@ android {
   lintOptions {
     abortOnError false
   }
+  // TFLite files are memory-mapped by the runtime; compressing them breaks that.
+  aaptOptions {
+    noCompress "tflite"
+  }
+  sourceSets {
+    test {
+      // Reuse the canonical fixture tree so Android and iOS assert against the same bytes (Task 6.2).
+      resources.srcDirs += file("../__fixtures__")
+    }
+  }
+  testOptions {
+    unitTests {
+      includeAndroidResources = false
+    }
+  }
+}
+
+dependencies {
+  // M6 Task 6.1: on-device YAMNet inference (ADR-21, ADR-22).
+  implementation "org.tensorflow:tensorflow-lite:2.16.1"
+  implementation "org.tensorflow:tensorflow-lite-support:0.4.4"
+
+  // Task 6.2: JVM parity harness for WaveformWindow.
+  testImplementation "junit:junit:4.13.2"
 }

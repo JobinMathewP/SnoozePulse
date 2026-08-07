@@ -49,11 +49,20 @@ export function useSession() {
   );
 }
 
-/** Throttled decibel + last snore for non-animated UI (ADR-13). */
+/**
+ * Throttled decibel + last snore for non-animated UI (ADR-13).
+ *
+ * Task 6.7: also surfaces the classifier's throttled confidence, its hysteretic snore
+ * state, and the rolling noise floor so the record screen can render ML-driven fields
+ * without subscribing to raw `AudioLevelEvent`s.
+ */
 export function useAudioLevels() {
   return useAppStore(
     useShallow((state) => ({
       currentDecibel: state.currentDecibel,
+      currentConfidence: state.currentConfidence,
+      currentNoiseFloorDb: state.currentNoiseFloorDb,
+      currentSnoreDetected: state.currentSnoreDetected,
       lastSnoreEvent: state.lastSnoreEvent,
       storageQuotaWarning: state.storageQuotaWarning,
       clearStorageQuotaWarning: state.clearStorageQuotaWarning,

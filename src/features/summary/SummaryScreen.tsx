@@ -9,12 +9,9 @@ import { useInsights, useSnippetPlayback } from '@/hooks';
 import type { SessionDetail } from '@/store';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 import type { SleepSession, SnoreEvent } from '@/types';
-import { TIMELINE_BUCKET_DURATION_MS } from '@/utils';
 
 import { DateNavigator } from './DateNavigator';
 import {
-  bucketStartFromBarId,
-  bucketsToTimelineBars,
   formatClock,
   formatClockRange,
   formatDurationShort,
@@ -22,14 +19,16 @@ import {
   formatPercentOfSleep,
   formatSummaryDateLabel,
   loudestDisplay,
-  loudestEventInBucket,
-  peakCalloutFromSummary,
   summaryCopy,
   toSnippetRows,
 } from './format';
+import { AiInsightsCard } from './AiInsightsCard';
+import { deriveAiInsights } from './aiInsights';
 import { LoudestEpisodeCard } from './LoudestEpisodeCard';
+import { deriveScoreBreakdown } from './scoreBreakdown';
 import { SummaryMetricsStrip } from './SummaryMetricsStrip';
 import { SnippetRow } from './SnippetRow';
+import { barIndexFromBarId, deriveTimelineFromSession, loudestEventInBar } from './timeline';
 
 const noop = (): void => undefined;
 
@@ -212,13 +211,14 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
     );
   }
 
-  const { summary, buckets, events } = detail;
-  const bars = bucketsToTimelineBars(buckets);
-  const peakCallout = peakCalloutFromSummary(summary, buckets);
+  const { summary, events } = detail;
+  const timeline = deriveTimelineFromSession(events, summary);
   const snippets = toSnippetRows(events);
   const loudest = loudestDisplay(summary);
   const loudestEpisode = summary.loudestEpisode;
   const dateAnchor = summary.range.endedAt;
+  const scoreBreakdown = deriveScoreBreakdown(events, summary);
+  const aiInsights = deriveAiInsights(scoreBreakdown);
   const progress =
     playback.durationMs > 0 ? playback.positionMs / playback.durationMs : 0;
 
@@ -296,19 +296,24 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
           />
         ) : null}
 
-        {bars.length > 0 ? (
+        {events.length > 0 ? (
+          <AiInsightsCard view={aiInsights} testID="summary-ai-insights" />
+        ) : null}
+
+        {timeline.bars.length > 0 ? (
           <TimelineCard
-            bars={bars}
-            peakCallout={peakCallout}
+            bars={timeline.bars}
+            peakCallout={timeline.peakCallout}
             onBarPress={(bar) => {
-              const bucketStart = bucketStartFromBarId(bar.id);
-              if (bucketStart === null) {
+              const index = barIndexFromBarId(bar.id);
+              if (index === null) {
                 return;
               }
-              const event = loudestEventInBucket(
+              const event = loudestEventInBar(
                 events,
-                bucketStart,
-                TIMELINE_BUCKET_DURATION_MS,
+                timeline.firstBucketStart,
+                timeline.bucketDurationMs,
+                index,
               );
               if (!event) {
                 return;
@@ -325,6 +330,8 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
             <SectionHeader title={summaryCopy.snippetsTitle} />
             {snippets.map((snippet) => {
               const active = playback.eventId === snippet.event.id;
+              const isLoudest =
+                loudestEpisode !== null && snippet.event.id === loudestEpisode.id;
               return (
                 <SnippetRow
                   key={snippet.event.id}
@@ -334,7 +341,7 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
                   onPlay={() => {
                     toggleEventPlayback(snippet.event);
                   }}
-                  emphasizeTime
+                  emphasizeTime={isLoudest}
                   testID={`summary-snippet-${snippet.event.id}`}
                 />
               );

@@ -7,7 +7,6 @@ import type {
   AudioInterruptionEvent,
   AudioLevelEvent,
   MicrophonePermissionStatus,
-  ScoreInputs,
   SessionState,
   SleepSession,
   SnoreEvent,
@@ -19,6 +18,7 @@ import {
   TIMELINE_BUCKET_DURATION_MS,
 } from '@/utils';
 
+import { deriveScoreInputs } from './analytics';
 import type { IAnalyticsService } from './IAnalyticsService';
 import type { IAudioService, SnippetPlaybackStatus } from './IAudioService';
 import type { ISleepService } from './ISleepService';
@@ -233,12 +233,15 @@ export class AudioService implements IAudioService {
 
     const endedAt = Date.now();
     const totals = summarizeEvents(events.value);
-    const inputs: ScoreInputs = {
-      sessionDurationMs: Math.max(0, endedAt - session.startedAt),
-      snoreCount: totals.snoreCount,
-      totalSnoringMs: totals.totalSnoringMs,
-      peakDb: totals.peakDb,
-    };
+    const inputs = deriveScoreInputs(
+      {
+        sessionDurationMs: Math.max(0, endedAt - session.startedAt),
+        snoreCount: totals.snoreCount,
+        totalSnoringMs: totals.totalSnoringMs,
+        peakDb: totals.peakDb,
+      },
+      events.value,
+    );
 
     const sleepScore = this.analyticsService.computeSleepScore(inputs);
     const snoreScore = this.analyticsService.computeSnoreScore(inputs);

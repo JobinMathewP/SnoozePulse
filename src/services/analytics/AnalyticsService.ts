@@ -23,8 +23,9 @@ import {
 } from '@/utils/trendPeriods';
 
 import { aggregateBucketsFromEvents } from './buckets';
-import { bandForScore, computeSnoreScoreV1, dotsForScore } from './snoreScore';
-import { computeSleepScoreV1 } from './sleepScore';
+import { deriveScoreInputs } from './scoreInputs';
+import { computeSleepScoreV2 } from './sleepScoreV2';
+import { bandForScoreV2, computeSnoreScoreV2, dotsForScoreV2 } from './snoreScoreV2';
 
 /**
  * Scoring, bucket aggregation, and History comparisons.
@@ -40,16 +41,17 @@ export class AnalyticsService implements IAnalyticsService {
   ) {}
 
   /**
-   * Delegates to {@link computeSleepScoreV1}. Kept as an instance method so the store
-   * depends on `IAnalyticsService`, not on the V1 module path.
+   * Delegates to {@link computeSleepScoreV2} (ADR-26). Kept as an instance method so the
+   * store depends on `IAnalyticsService`, not on the V2 module path. V1 remains compiled
+   * for archival reads only and is unreachable from the write path after Task 6.5.
    */
   computeSleepScore(inputs: ScoreInputs): SleepScore {
-    return computeSleepScoreV1(inputs);
+    return computeSleepScoreV2(inputs);
   }
 
-  /** Delegates to {@link computeSnoreScoreV1} (value + band + dots). */
+  /** Delegates to {@link computeSnoreScoreV2} (value + band + dots) (ADR-26). */
   computeSnoreScore(inputs: ScoreInputs): SnoreScore {
-    return computeSnoreScoreV1(inputs);
+    return computeSnoreScoreV2(inputs);
   }
 
   /**
@@ -72,7 +74,15 @@ export class AnalyticsService implements IAnalyticsService {
 
     const endedAt = session.endedAt ?? Date.now();
     const durationMs = Math.max(0, endedAt - session.startedAt);
-    const inputs = scoreInputsFromSession(session, durationMs);
+    const inputs = deriveScoreInputs(
+      {
+        sessionDurationMs: durationMs,
+        snoreCount: session.snoreCount,
+        totalSnoringMs: session.totalSnoringMs,
+        peakDb: session.peakDb,
+      },
+      events,
+    );
 
     const sleepScore: SleepScore =
       session.sleepScore !== null
@@ -227,27 +237,17 @@ export class AnalyticsService implements IAnalyticsService {
   }
 }
 
-function scoreInputsFromSession(
-  session: SleepSession,
-  durationMs: number,
-): ScoreInputs {
-  return {
-    sessionDurationMs: durationMs,
-    snoreCount: session.snoreCount,
-    totalSnoringMs: session.totalSnoringMs,
-    peakDb: session.peakDb,
-  };
-}
-
 /**
  * Rebuild presentation fields from a persisted numeric snore score so band and dots
- * stay locked to {@link bandForScore} / {@link dotsForScore}.
+ * stay locked to the V2 scale table (ADR-26). Every row written after M6.5 is a V2 score;
+ * pre-M6 rows were wiped in the same migration that added the classifier columns, so
+ * this helper is safe to call unconditionally.
  */
 function restoreSnoreScore(value: number): SnoreScore {
   return {
     value,
-    band: bandForScore(value),
-    filledDots: dotsForScore(value),
+    band: bandForScoreV2(value),
+    filledDots: dotsForScoreV2(value),
   };
 }
 

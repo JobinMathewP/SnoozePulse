@@ -4,14 +4,20 @@ import Foundation
 /**
  * Expo bridge for iOS capture (Task 5.2). Same event names / method surface as Android.
  * Swift is written for later macOS compile/verify — not runtime-validated on Windows (ADR-17).
+ *
+ * Task 6.3 hands the warmed `SnoreClassifier` to `CaptureEngine` so the capture path
+ * drives detection through YAMNet (ADR-21, ADR-23). When warmup fails, the engine is
+ * still constructed with a nil classifier; the pipeline degrades to "no episodes emitted"
+ * rather than crashing capture.
  */
 public class SnoozePulseAudioModule: Module {
   private var engine: CaptureEngine?
-  private var lastBaselineDb: Double?
+  private var classifier: SnoreClassifier?
 
   private func ensureEngine() -> CaptureEngine {
     if let engine { return engine }
-    let capture = CaptureEngine()
+    warmClassifierIfNeeded()
+    let capture = CaptureEngine(classifier: classifier)
     capture.onLevel = { [weak self] payload in
       self?.sendEvent("onAudioLevel", payload)
     }
@@ -23,6 +29,20 @@ public class SnoozePulseAudioModule: Module {
     }
     engine = capture
     return capture
+  }
+
+  private func warmClassifierIfNeeded() {
+    if classifier != nil { return }
+    let created = YamnetClassifier()
+    do {
+      let delegate = try created.warm()
+      NSLog("SnoreClassifier ready (delegate=%@)", delegate)
+      classifier = created
+    } catch {
+      NSLog("SnoreClassifier warmup failed; running without ML detector: %@",
+            String(describing: error))
+      created.close()
+    }
   }
 
   public func definition() -> ModuleDefinition {
@@ -37,11 +57,15 @@ public class SnoozePulseAudioModule: Module {
     OnDestroy {
       self.engine?.stop()
       self.engine = nil
+      self.classifier?.close()
+      self.classifier = nil
     }
 
     AsyncFunction("startRecording") { (id: String, promise: Promise) in
       do {
-        try self.ensureEngine().start(sessionId: id, baselineDb: self.lastBaselineDb)
+        // baselineDb is retained on the CaptureEngine signature but ignored (ADR-25);
+        // the rolling noise-floor median replaces the M5 one-shot calibration.
+        try self.ensureEngine().start(sessionId: id, baselineDb: nil)
         promise.resolve(nil)
       } catch {
         promise.reject("AUDIO_BUSY", error.localizedDescription)
@@ -74,7 +98,6 @@ public class SnoozePulseAudioModule: Module {
     AsyncFunction("calibrate") { (promise: Promise) in
       do {
         let result = try self.ensureEngine().calibrate()
-        self.lastBaselineDb = result["baselineDb"] as? Double
         promise.resolve(result)
       } catch {
         promise.reject("CALIBRATION", error.localizedDescription)

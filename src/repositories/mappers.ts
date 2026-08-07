@@ -32,6 +32,9 @@ export function mapSnoreEventRow(row: SnoreEventRow): SnoreEvent {
     timestamp: row.timestamp,
     durationMs: row.duration_ms,
     peakDb: row.peak_db,
+    confidence: row.confidence,
+    classLabel: row.class_label,
+    spectralPeakHz: row.spectral_peak_hz,
     audioPath: row.audio_path,
   };
 }

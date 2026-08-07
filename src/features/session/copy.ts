@@ -5,7 +5,19 @@
 export const activeSessionCopy = {
   status: 'SLEEP SESSION ACTIVE',
   monitoring: 'Monitoring your sleep and snoring...',
-  audioLevelLabel: 'Audio level',
+  /**
+   * Task 6.7: retained for callers that still want a room-noise band label. The record
+   * screen replaces its loudness-detector readout with a classifier-driven pill and
+   * therefore no longer surfaces this string.
+   */
+  audioLevelLabel: 'Room sound',
+  detectionListeningLabel: 'Listening for snoring',
+  detectionActiveLabel: 'Snoring detected',
+  detectionConfidenceLabel: 'Confidence',
+  roomNoiseLabel: 'Room noise (60 s)',
+  roomNoiseUnit: 'dB',
+  detectionStateAccessibilityLabel:
+    'Classifier state — updates while the microphone is listening',
   slideLabel: 'Slide to end session',
   slideAccessibilityLabel: 'End sleep session',
   slideAccessibilityHint:
@@ -39,4 +51,28 @@ export function audioLevelBandFromDb(decibel: number): AudioLevelBand {
     return 'Moderate';
   }
   return 'High';
+}
+
+/**
+ * Task 6.7 — format the classifier's throttled probability as an integer percent for
+ * the record screen. `NaN` and out-of-range values are clamped to `0 %` so the string
+ * never breaks the header layout.
+ */
+export function formatConfidencePercent(confidence: number): string {
+  if (!Number.isFinite(confidence)) {
+    return '0%';
+  }
+  const clamped = Math.max(0, Math.min(1, confidence));
+  return `${Math.round(clamped * 100)}%`;
+}
+
+/**
+ * Task 6.7 — format the rolling noise floor. Reads "—" until the estimator has produced
+ * its first non-zero sample so we do not lie about the room being 0 dB during warmup.
+ */
+export function formatNoiseFloor(noiseFloorDb: number): string {
+  if (!Number.isFinite(noiseFloorDb) || noiseFloorDb <= 0) {
+    return '—';
+  }
+  return `${Math.round(noiseFloorDb)}`;
 }

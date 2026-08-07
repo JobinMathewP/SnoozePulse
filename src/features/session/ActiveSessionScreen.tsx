@@ -8,7 +8,11 @@ import Svg, { Path } from 'react-native-svg';
 import { Screen, Waveform } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
-import { activeSessionCopy } from './copy';
+import {
+  activeSessionCopy,
+  formatConfidencePercent,
+  formatNoiseFloor,
+} from './copy';
 import { SlideToEnd } from './SlideToEnd';
 import { useLiveAudioLevel } from './useLiveAudioLevel';
 
@@ -87,9 +91,15 @@ export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) 
     };
   }, []);
 
-  const { level, band } = useLiveAudioLevel();
+  const { level, confidence, snoreDetected, noiseFloorDb } = useLiveAudioLevel();
   const { width: windowWidth } = useWindowDimensions();
   const waveWidth = Math.max(spacing.xl * 8, windowWidth - spacing.md * 2);
+  const confidenceLabel = formatConfidencePercent(confidence);
+  const noiseFloorLabel = formatNoiseFloor(noiseFloorDb);
+  const detectionLabel = snoreDetected
+    ? activeSessionCopy.detectionActiveLabel
+    : activeSessionCopy.detectionListeningLabel;
+  const detectionColor = snoreDetected ? colors.accentActive : colors.fgOled;
 
   const [clock, setClock] = useState(() => readClock(new Date()));
 
@@ -184,7 +194,27 @@ export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) 
 
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md }}>
             <WavePanel level={level} width={waveWidth} />
-            <View style={{ alignItems: 'center', gap: spacing.xs }}>
+            <View
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={
+                snoreDetected
+                  ? `${activeSessionCopy.detectionActiveLabel}. ${activeSessionCopy.detectionConfidenceLabel} ${confidenceLabel}.`
+                  : `${activeSessionCopy.detectionListeningLabel}. ${activeSessionCopy.detectionConfidenceLabel} ${confidenceLabel}.`
+              }
+              style={{ alignItems: 'center', gap: spacing.xs }}
+              testID="active-session-detection-readout"
+            >
+              <Text
+                style={{
+                  color: detectionColor,
+                  fontFamily: fontFamily.semibold,
+                  fontSize: fontSize.title,
+                  lineHeight: lineHeight.title,
+                }}
+              >
+                {detectionLabel}
+              </Text>
               <Text
                 style={{
                   color: colors.fgOled,
@@ -193,17 +223,17 @@ export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) 
                   lineHeight: lineHeight.body,
                 }}
               >
-                {activeSessionCopy.audioLevelLabel}
+                {`${activeSessionCopy.detectionConfidenceLabel} · ${confidenceLabel}`}
               </Text>
               <Text
                 style={{
-                  color: colors.accentActive,
-                  fontFamily: fontFamily.semibold,
-                  fontSize: fontSize.title,
-                  lineHeight: lineHeight.title,
+                  color: colors.fgOled,
+                  fontFamily: fontFamily.regular,
+                  fontSize: fontSize.caption,
+                  lineHeight: lineHeight.caption,
                 }}
               >
-                {band}
+                {`${activeSessionCopy.roomNoiseLabel} · ${noiseFloorLabel} ${activeSessionCopy.roomNoiseUnit}`}
               </Text>
             </View>
           </View>

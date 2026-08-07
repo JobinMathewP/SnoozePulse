@@ -35,7 +35,7 @@ type TimelineCardProps = {
 };
 
 /** Chart body ~70–90 dp plot from summary-screen.jpg — delicate, not Material-tall. */
-const CALLOUT_ROW = spacing.md;
+const CALLOUT_ROW = spacing.lg;
 const PLOT_HEIGHT = spacing.xl * 2 + spacing.md;
 const AXIS_WIDTH = spacing.xl;
 
@@ -96,32 +96,40 @@ export function TimelineCard({
         </View>
 
         <View style={{ flex: 1 }}>
-          <View style={{ height: CALLOUT_ROW, flexDirection: 'row' }}>
-            {bars.map((bar, index) => (
-              <View key={`callout-${bar.id}`} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
-                {peakCallout && index === peakIndex ? (
-                  <View
+          <View style={{ height: CALLOUT_ROW }}>
+            {peakCallout && peakIndex >= 0 ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: `${((peakIndex + 0.5) / bars.length) * 100}%`,
+                }}
+              >
+                <View
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.alertText,
+                    backgroundColor: colors.bgApp,
+                    borderRadius: radius.xs,
+                    paddingHorizontal: spacing.xs,
+                    paddingVertical: spacing.xs / 2,
+                    transform: [{ translateX: -(spacing.lg / 2 + spacing.xs) }],
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
                     style={{
-                      backgroundColor: colors.alertText,
-                      borderRadius: radius.sm,
-                      paddingHorizontal: spacing.xs,
-                      paddingVertical: 1,
+                      color: colors.alertText,
+                      fontFamily: fontFamily.medium,
+                      fontSize: fontSize.caption,
+                      lineHeight: fontSize.caption,
                     }}
                   >
-                    <Text
-                      style={{
-                        color: colors.fg,
-                        fontFamily: fontFamily.medium,
-                        fontSize: fontSize.caption,
-                        lineHeight: fontSize.caption + 2,
-                      }}
-                    >
-                      {peakCallout.label}
-                    </Text>
-                  </View>
-                ) : null}
+                    {peakCallout.label}
+                  </Text>
+                </View>
               </View>
-            ))}
+            ) : null}
           </View>
 
           <View style={{ height: PLOT_HEIGHT }}>
@@ -145,18 +153,27 @@ export function TimelineCard({
                   />
                 );
               })}
-              {peakIndex >= 0 ? (
-                <Line
-                  x1={`${((peakIndex + 0.5) / bars.length) * 100}%`}
-                  y1={0}
-                  x2={`${((peakIndex + 0.5) / bars.length) * 100}%`}
-                  y2={PLOT_HEIGHT}
-                  stroke={colors.alertText}
-                  strokeOpacity={0.5}
-                  strokeWidth={1}
-                  strokeDasharray="2 3"
-                />
-              ) : null}
+              {peakIndex >= 0 && bars[peakIndex]
+                ? (() => {
+                    const peakIntensity = Math.min(
+                      1,
+                      Math.max(0, bars[peakIndex]!.peakDb / maxDb),
+                    );
+                    const peakBarTop = PLOT_HEIGHT - peakIntensity * PLOT_HEIGHT;
+                    return (
+                      <Line
+                        x1={`${((peakIndex + 0.5) / bars.length) * 100}%`}
+                        y1={0}
+                        x2={`${((peakIndex + 0.5) / bars.length) * 100}%`}
+                        y2={peakBarTop}
+                        stroke={colors.alertText}
+                        strokeOpacity={0.6}
+                        strokeWidth={1}
+                        strokeDasharray="2 3"
+                      />
+                    );
+                  })()
+                : null}
             </Svg>
 
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end' }}>
@@ -221,8 +238,8 @@ export function TimelineCard({
                     position: 'absolute',
                     left: isLast ? undefined : isFirst ? 0 : `${(index / Math.max(bars.length - 1, 1)) * 100}%`,
                     right: isLast ? 0 : undefined,
-                    transform: isFirst || isLast ? undefined : [{ translateX: -spacing.md }],
-                    width: spacing.xl + spacing.sm,
+                    transform: isFirst || isLast ? undefined : [{ translateX: -(spacing.xl / 2 + spacing.xs) }],
+                    width: spacing.xl + spacing.md,
                     color: colors.fgCaption,
                     fontFamily: fontFamily.regular,
                     fontSize: fontSize.caption,

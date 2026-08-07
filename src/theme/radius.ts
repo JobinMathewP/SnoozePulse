@@ -12,6 +12,11 @@
 
 export const radius = {
   none: 0,
+  /**
+   * summary-screen.jpg — "68 dB" peak callout badge corner. Sampled at (492,1150)-(560,1180);
+   * the corner sweep runs ~7 px at the mockup's 2.07 scale, landing at ~4 dp.
+   */
+  xs: 4,
   sm: 8,
   md: 12,
   lg: 16,

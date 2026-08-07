@@ -15,7 +15,12 @@ type SnippetRowProps = {
   readonly playing?: boolean;
   /** 0–1 progress when this row is the active player. */
   readonly progress?: number;
-  /** Snippet times use alert red in summary-screen.jpg. */
+  /**
+   * When true, the row uses the "loudest episode" treatment from summary-screen.jpg: red
+   * time text, red-outlined play button, red mini-waveform. Other rows stay in the neutral
+   * white treatment. Only one row per session is emphasized — the one matching
+   * `SessionSummary.loudestEpisode`.
+   */
   readonly emphasizeTime?: boolean;
   readonly testID?: string;
 };
@@ -42,6 +47,7 @@ export function SnippetRow({
   const gap = spacing.xs / 2;
   const barWidth = (waveWidth - gap * (MINI_WEIGHTS.length - 1)) / MINI_WEIGHTS.length;
   const timeColor = emphasizeTime ? colors.alertText : colors.fg;
+  const emphasisColor = emphasizeTime ? colors.alertText : colors.fg;
   const playable = snippet.event.audioPath !== null;
   const clampedProgress = Math.min(1, Math.max(0, progress));
 
@@ -66,7 +72,7 @@ export function SnippetRow({
             height: PLAY,
             borderRadius: PLAY / 2,
             borderWidth: 1.5,
-            borderColor: playable ? colors.alertText : colors.fgCaption,
+            borderColor: playable ? emphasisColor : colors.fgCaption,
             opacity: playable ? 1 : 0.4,
             alignItems: 'center',
             justifyContent: 'center',
@@ -134,7 +140,7 @@ export function SnippetRow({
                 width={Math.max(1, barWidth)}
                 height={h}
                 rx={1}
-                fill={colors.fg}
+                fill={emphasisColor}
               />
             );
           })}

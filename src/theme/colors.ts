@@ -27,8 +27,11 @@ export const colors = {
   // ---------------------------------------------------------------------------
   // Backgrounds
   // ---------------------------------------------------------------------------
-  /** home-screen.jpg — page background beside the hero, (600,300)-(760,380). */
-  bgApp: '#070E1E',
+  /**
+   * summary-screen.jpg — page fill beside cards, (8,500)-(40,700). Mean ~#030B1B;
+   * #05081D keeps a navy (not purple) cast while lifting slightly above pure black.
+   */
+  bgApp: '#05081D',
   /** active-session.jpg — screen background, (300,1500)-(600,1600). True black, AMOLED. */
   bgOled: '#000000',
 
@@ -37,8 +40,11 @@ export const colors = {
   // ---------------------------------------------------------------------------
   /** home-screen.jpg — status card interior, (600,1233)-(750,1260). history-screen.jpg reads #081228. */
   card: '#081127',
-  /** summary-screen.jpg — metric card interior, (320,285)-(580,305). Summary cards sit one step lighter. */
-  cardElevated: '#0D1729',
+  /**
+   * summary-screen.jpg — metric card fill, dark pixels mean over (90,290)-(200,350) → #0C1527.
+   * Nudged one step lighter so cards separate from `bgApp` on AMOLED.
+   */
+  cardElevated: '#0D1829',
   /** home-screen.jpg — tab bar band, (9,1670)-(60,1700). Fades to #010A1E at its lower edge. */
   tabbar: '#051027',
   /** active-session.jpg — "Slide to end session" track, (620,1660)-(760,1710). */
@@ -49,6 +55,11 @@ export const colors = {
   // ---------------------------------------------------------------------------
   /** history-screen.jpg — card left edge at x=46, y=780. summary-screen.jpg edge reads #1C2536. */
   borderCard: '#1F2940',
+  /**
+   * summary-screen.jpg — hairline card edge at low contrast (audit ~5–6% opacity feel).
+   * Solid stand-in for a translucent stroke on AMOLED.
+   */
+  borderCardSubtle: '#121A2A',
 
   // ---------------------------------------------------------------------------
   // Text tints
@@ -69,8 +80,8 @@ export const colors = {
   // ---------------------------------------------------------------------------
   // Status colours
   // ---------------------------------------------------------------------------
-  /** summary-screen.jpg — "Moderate" snore score. Its dot scale reads #FEA401. */
-  warning: '#FFA901',
+  /** summary-screen.jpg — snore-score dots, saturated median over (620,370)-(760,400). */
+  warning: '#F38D07',
   /** home-screen.jpg — "Battery Low" label. summary-screen.jpg "256" reads #F9505A. */
   alertText: '#FB3B46',
   /** home-screen.jpg — "Microphone Access" label. history-screen.jpg "14%" reads #22DE71. */
@@ -99,12 +110,12 @@ export const colors = {
   // ---------------------------------------------------------------------------
   // Snoring timeline bars. Each bar runs low to peak bottom-to-top.
   // ---------------------------------------------------------------------------
-  /** summary-screen.jpg — bar base, x=244 y=1325. */
-  timelineLow: '#27299A',
-  /** summary-screen.jpg — bar midpoint, x=244 y=1285. */
-  timelineMid: '#4841DB',
-  /** summary-screen.jpg — loudest bar crown, x=244 y=1200. */
-  timelinePeak: '#FD4046',
+  /** summary-screen.jpg — bar base, p75 luminance of saturated pixels (300,1380)-(340,1420). */
+  timelineLow: '#1F1C7B',
+  /** summary-screen.jpg — bar midpoint (300,1300)-(340,1340); mid-stack reads purple-blue. */
+  timelineMid: '#6642B9',
+  /** summary-screen.jpg — loudest bar crown near peak callout (~x=492,y=1200). */
+  timelinePeak: '#FC4144',
 
   // ---------------------------------------------------------------------------
   // Tab bar icons

@@ -1,14 +1,23 @@
 # Coding Standards
 
 ## Purpose
+
 These standards ensure Cursor generates consistent, maintainable, production-quality code.
 
 ## General Principles
+
 - Use TypeScript **strict** mode.
 - Never use `any`; prefer explicit types or `unknown`.
 - Prefer composition over inheritance.
 - Keep components under ~200 lines where practical.
 - One responsibility per file.
+
+## Platform Conventions
+
+- Keep all shared TypeScript code platform-independent.
+- Platform-specific logic belongs only in native modules or platform-specific files.
+- Avoid Android-only APIs in shared code.
+- Maintain identical public interfaces across Android and iOS native implementations.
 
 ## Folder Structure
 
@@ -37,6 +46,7 @@ modules/
 service contains no SQL.
 
 ## Naming
+
 - Components: `PascalCase`
 - Hooks: `useSomething`
 - Interfaces: `IInterfaceName`
@@ -44,34 +54,40 @@ service contains no SQL.
 - Constants: `UPPER_SNAKE_CASE`
 
 ## React
+
 - Functional components only.
 - Prefer custom hooks for reusable logic.
 - No business logic inside components.
 - No direct database or native module access from UI.
 
 ## State
+
 UI → Zustand Store → Services → Repository → SQLite / Native
 
 The store never calls a repository directly.
 
 ## Dependency Injection
+
 - Depend on interfaces (`IAudioEngine`, `ISleepRepository`, …), never on concrete classes.
 - Never write `new SomeConcreteClass()` inside a store, hook, or component.
 - A single composition root constructs the object graph at app start and injects it downward.
 - Every service and repository receives its collaborators through its constructor..
 
 ## Error Handling
+
 - Never swallow errors.
 - Return typed errors.
 - Log only meaningful diagnostics.
 
 ## Imports
+
 1. React
 2. Third-party libraries
 3. Internal aliases
 4. Relative imports
 
 ## Styling
+
 - NativeWind v5 with Tailwind CSS 4 is the styling layer (ADR-20).
 - Tailwind 4 defines theme in CSS via `@theme`, not a JavaScript config. There is no
   `tailwind.config.js`.
@@ -79,12 +95,14 @@ The store never calls a repository directly.
   of truth. Never write a raw color or spacing value into the CSS theme or into a className.
 
 ## Cursor Rules
+
 - Modify only requested files.
 - No TODO placeholders.
 - Explain planned changes before editing.
 - Run `npm run typecheck` and `npm run lint` after implementation.
 
 ## Deferred Implementations
+
 "No TODO placeholders" forbids unfinished code, not deliberately simple V1 logic.
 
 Where a document defers an algorithm to V2 (currently only sleep and snore scoring, ADR-10),

@@ -8,7 +8,12 @@
     "scheme": "snoozepulse",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.snoozepulse.app",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "SnoozePulse needs the microphone to detect and record snoring overnight."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,6 +33,14 @@
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow SnoozePulse to record audio for overnight snore detection.",
+          "enableBackgroundRecording": true
         }
       ]
     ],

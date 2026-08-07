@@ -1,0 +1,84 @@
+import ExpoModulesCore
+import Foundation
+
+/**
+ * Expo bridge for iOS capture (Task 5.2). Same event names / method surface as Android.
+ * Swift is written for later macOS compile/verify — not runtime-validated on Windows (ADR-17).
+ */
+public class SnoozePulseAudioModule: Module {
+  private var engine: CaptureEngine?
+  private var lastBaselineDb: Double?
+
+  private func ensureEngine() -> CaptureEngine {
+    if let engine { return engine }
+    let capture = CaptureEngine()
+    capture.onLevel = { [weak self] payload in
+      self?.sendEvent("onAudioLevel", payload)
+    }
+    capture.onSnore = { [weak self] payload in
+      self?.sendEvent("onSnore", payload)
+    }
+    capture.onInterruption = { [weak self] payload in
+      self?.sendEvent("onInterruption", payload)
+    }
+    engine = capture
+    return capture
+  }
+
+  public func definition() -> ModuleDefinition {
+    Name("SnoozePulseAudio")
+
+    Events("onAudioLevel", "onSnore", "onInterruption")
+
+    Constant("HEARTBEAT_INTERVAL_MS") {
+      150
+    }
+
+    OnDestroy {
+      self.engine?.stop()
+      self.engine = nil
+    }
+
+    AsyncFunction("startRecording") { (id: String, promise: Promise) in
+      do {
+        try self.ensureEngine().start(sessionId: id, baselineDb: self.lastBaselineDb)
+        promise.resolve(nil)
+      } catch {
+        promise.reject("AUDIO_BUSY", error.localizedDescription)
+      }
+    }
+
+    AsyncFunction("stopRecording") { (promise: Promise) in
+      self.engine?.stop()
+      promise.resolve(nil)
+    }
+
+    AsyncFunction("pauseRecording") { (promise: Promise) in
+      guard let capture = self.engine, capture.running() else {
+        promise.reject("AUDIO_ENGINE", "Not recording")
+        return
+      }
+      capture.pause()
+      promise.resolve(nil)
+    }
+
+    AsyncFunction("resumeRecording") { (promise: Promise) in
+      guard let capture = self.engine, capture.running() else {
+        promise.reject("AUDIO_ENGINE", "Not paused")
+        return
+      }
+      capture.resume()
+      promise.resolve(nil)
+    }
+
+    AsyncFunction("calibrate") { (promise: Promise) in
+      do {
+        let result = try self.ensureEngine().calibrate()
+        self.lastBaselineDb = result["baselineDb"] as? Double
+        promise.resolve(result)
+      } catch {
+        promise.reject("CALIBRATION", error.localizedDescription)
+      }
+    }
+  }
+}

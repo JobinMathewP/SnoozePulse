@@ -48,12 +48,12 @@ that orchestration and business rules have exactly one home.
 
 Responsibilities per layer:
 
-| Layer        | Owns                                              | Must never                     |
-| ------------ | ------------------------------------------------- | ------------------------------ |
-| UI           | Rendering, user intent                            | SQL, native calls, business logic |
+| Layer        | Owns                                              | Must never                                     |
+| ------------ | ------------------------------------------------- | ---------------------------------------------- |
+| UI           | Rendering, user intent                            | SQL, native calls, business logic              |
 | Store        | Application state, state machine transitions      | SQL, business rules, `new` on a concrete class |
-| Services     | Business logic, orchestration, scoring, retention | SQL                            |
-| Repositories | SQL, mapping rows to domain models                | Business rules                 |
+| Services     | Business logic, orchestration, scoring, retention | SQL                                            |
+| Repositories | SQL, mapping rows to domain models                | Business rules                                 |
 
 `services/` and `repositories/` are separate directories and separate concerns:
 
@@ -162,3 +162,16 @@ Primary References
 Secondary Reference
 
 - docs/mockup.jpg
+
+## Cross-Platform Architecture
+
+SnoozePulse is a cross-platform React Native application.
+
+Shared application layers (UI, state management, repositories, analytics, SQLite access) are platform-independent.
+
+Only the native audio engine is platform-specific and consists of:
+
+- Android implementation (Kotlin)
+- iOS implementation (Swift)
+
+Both implementations expose the same TypeScript interface (`IAudioEngine`).

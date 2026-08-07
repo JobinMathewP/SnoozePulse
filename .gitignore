@@ -38,6 +38,12 @@ yarn-error.*
 
 example
 
-# generated native folders
+# generated native folders (CNG / prebuild — regenerated locally)
 /ios
 /android
+
+# Local Expo module Gradle / Xcode build outputs (never commit)
+modules/**/android/build/
+modules/**/android/.cxx/
+modules/**/android/.gradle/
+modules/**/ios/build/

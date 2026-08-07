@@ -22,8 +22,9 @@ import {
   summaryCopy,
   toSnippetRows,
 } from './format';
+import { AiInsightsCard } from './AiInsightsCard';
+import { deriveAiInsights } from './aiInsights';
 import { LoudestEpisodeCard } from './LoudestEpisodeCard';
-import { ScoreBreakdownCard } from './ScoreBreakdownCard';
 import { deriveScoreBreakdown } from './scoreBreakdown';
 import { SummaryMetricsStrip } from './SummaryMetricsStrip';
 import { SnippetRow } from './SnippetRow';
@@ -217,6 +218,7 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
   const loudestEpisode = summary.loudestEpisode;
   const dateAnchor = summary.range.endedAt;
   const scoreBreakdown = deriveScoreBreakdown(events, summary);
+  const aiInsights = deriveAiInsights(scoreBreakdown);
   const progress =
     playback.durationMs > 0 ? playback.positionMs / playback.durationMs : 0;
 
@@ -295,10 +297,7 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
         ) : null}
 
         {events.length > 0 ? (
-          <ScoreBreakdownCard
-            breakdown={scoreBreakdown}
-            testID="summary-score-breakdown"
-          />
+          <AiInsightsCard view={aiInsights} testID="summary-ai-insights" />
         ) : null}
 
         {timeline.bars.length > 0 ? (

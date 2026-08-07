@@ -124,6 +124,29 @@ export const colors = {
   tabActive: '#4843FC',
   /** home-screen.jpg — unselected "History" icon, (302,1685)-(342,1728). */
   tabInactive: '#858CA4',
+
+  // ---------------------------------------------------------------------------
+  // AI Insights card — sampled from the "AI Insights" mockup the user provided on
+  // 2026-08-08 while iterating on Task 6.8. Each insight owns a distinct accent so a
+  // reader can identify the five metrics at a glance without reading labels.
+  // ---------------------------------------------------------------------------
+  /** Insights outer card fill, mockup neutral near-black behind the header row. */
+  insightSurface: '#111116',
+  /** Inner tile fill (featured + 3-col grid + Sound Mix), one step lighter than surface. */
+  insightTile: '#17171D',
+  /** Icon glow halo behind circular icons — very-low-opacity backdrop hint. */
+  insightHalo: '#242430',
+
+  /** AI Accuracy accent — target/bullseye tile ("Excellent"). */
+  insightAiAccuracy: '#5B9DFF',
+  /** Snoring Level accent — lungs tile ("Low" ↔ "Heavy"). */
+  insightSnoringLevel: '#3EE580',
+  /** Pattern accent — waveform tile ("Consistent"). */
+  insightPattern: '#2FD9C5',
+  /** Rhythm accent — heartbeat tile ("Stable"). */
+  insightRhythm: '#E93D7B',
+  /** Sound Mix accent — bar chart tile (numeric counts). */
+  insightSoundMix: '#F3A620',
 } as const;
 
 export type ColorToken = keyof typeof colors;

@@ -229,3 +229,236 @@ ADR-06 and the "Tailwind config is generated from `src/theme/`" rule are unchang
 principle — `src/theme/` remains the single source of truth — but the mechanism changes:
 Task 1.4 generates CSS custom properties into an `@theme` block instead of a JavaScript
 config object. There is no `tailwind.config.js` in this project.
+
+---
+
+## ADR-21 — V2 detector is an on-device YAMNet classifier
+
+Ratified at the start of Milestone 6.
+
+The M5 detector (`AudioDsp.rms` → `db >= ambientBaselineDb + SNORE_MARGIN_DB`) is a loudness
+threshold, not a snore recogniser. It cannot separate snores from coughs, speech, fans,
+blanket rustling, or rain. Because every downstream metric (snore count, duration, peak,
+sleep score, snore score) depends on that decision, the entire analytics stack inherits its
+error.
+
+**V2 replaces the detector with the pretrained YAMNet classifier** running on the device
+through TFLite. YAMNet was trained on the Google AudioSet ontology and its 521-class output
+includes `Snoring` (index 38) and `Snort` (index 39). We ship it **as-is** with no fine
+tuning; only the two snore-related probability outputs are consumed by the episode builder.
+
+Rationale:
+
+- Ship-ready. No training corpus needed.
+- Public, well-understood, and license-clean (Apache-2.0 model weights).
+- The 0.975 s window and 16 kHz mono input already match our capture format.
+- Fine tuning is a V3 possibility once an evaluation corpus exists (ADR-27).
+
+Consequence: `snoreDetected` on `AudioLevelEvent` is now driven by classifier probability
+plus hysteresis, not by dB. dB is retained on the event **only** as a UI display value for
+the waveform.
+
+---
+
+## ADR-22 — TFLite runs inside the native module, not via JSI in JavaScript
+
+Ratified at the start of Milestone 6.
+
+The obvious alternative — `react-native-fast-tflite` — puts the tensor and the inference
+call on the JavaScript side. That directly contradicts the rules in `docs/native-audio.md`
+("Never send raw PCM to JavaScript. Perform … filtering natively") and ADR-16 (native module
+owns the DSP boundary).
+
+**TFLite runtime lives inside `modules/snoozepulse-audio`** on both platforms:
+
+| Platform | Runtime                                                 | Hardware delegate |
+| -------- | ------------------------------------------------------- | ----------------- |
+| Android  | `org.tensorflow:tensorflow-lite` + support library      | NNAPI (falls back to CPU) |
+| iOS      | `TensorFlowLiteSwift` + `TensorFlowLiteCCoreML`         | Core ML (falls back to CPU) |
+
+The model file is bundled as a native asset (see ADR-28 for the exact layout). No PCM, no
+tensors, no feature vectors ever cross the React Native bridge. JS still sees only
+`AudioLevelEvent`, `SnoreEvent`, and `AudioInterruptionEvent`, exactly as ADR-16 requires.
+
+`react-native-fast-tflite` is explicitly rejected for this project. Revisiting it would
+require a new ADR and a rewrite of `docs/native-audio.md`.
+
+---
+
+## ADR-23 — The loudness detector is deleted, not kept as a fallback
+
+Ratified at the start of Milestone 6.
+
+Task 6.3 deletes the M5 detection path from both `CaptureEngine.kt` and `CaptureEngine.swift`.
+No dual code path is kept. There is no build flag that flips between "ML" and "loudness".
+
+Kept from `AudioDsp`:
+
+- `rms(samples, count)` — feeds the display dB on the waveform.
+- `rmsToDb(rms)` — feeds the display dB on the waveform.
+- `peak(samples, count)` — used only for the noise-floor bookkeeping in ADR-25.
+
+Deleted from `CaptureEngine`:
+
+- `SNORE_MARGIN_DB` constant.
+- Any code path where `db >= ambientBaselineDb + SNORE_MARGIN_DB` produces a `snoreDetected`
+  or affects `snoreActive`.
+- The one-shot `ambientBaselineDb` field (replaced by the adaptive noise floor in ADR-25).
+
+Rationale: keeping a fallback would double the surface area to test, invite silent
+regressions when the model is unavailable, and preserve the exact behaviour we know is
+wrong. The model asset is bundled with the app; if it fails to load, the app surfaces an
+`AUDIO_ENGINE` error and refuses to start capture, rather than silently degrading to the
+broken behaviour.
+
+---
+
+## ADR-24 — Event payloads gain `confidence`, `classLabel`, and `noiseFloorDb`
+
+Ratified at the start of Milestone 6.
+
+The wire types in `modules/snoozepulse-audio/src/SnoozePulseAudio.types.ts` and the domain
+types in `src/types/` grow the following fields:
+
+`AudioLevelEvent`
+
+- `confidence: number` — classifier probability for the snore class union
+  (`P(Snoring) + P(Snort)`), clamped to `[0, 1]`. Updated at the emit cadence.
+- `noiseFloorDb: number` — rolling 60 s median of the display dB, as defined in ADR-25.
+
+`SnoreEvent`
+
+- `confidence: number` — the mean probability across the frames that made up the episode.
+- `classLabel: 'snoring' | 'snort'` — the class with the higher summed probability across
+  the episode.
+- `spectralPeakHz: number | null` — dominant frequency of the log-mel patch at the loudest
+  frame, or `null` when the pipeline could not determine one.
+
+Unchanged: `sessionId`, `timestamp`, `decibel`, `rms`, `snoreDetected` on level events;
+`id`, `sessionId`, `timestamp`, `durationMs`, `peakDb`, `audioPath` on snore events.
+`audioPath` remains nullable per ADR-15.
+
+Old sessions never observed these fields; the wipe migration in ADR-26 means no persisted
+row will be missing them.
+
+---
+
+## ADR-25 — AGC-safe capture and adaptive noise floor
+
+Ratified at the start of Milestone 6.
+
+The M5 detector opened the microphone with `MediaRecorder.AudioSource.MIC` on Android, which
+keeps automatic gain control (AGC) enabled on most OEMs. On iOS it used
+`AVAudioSession.mode = .measurement`, which does disable AGC. This asymmetry alone made
+peak-dB numbers non-comparable across the two platforms.
+
+**Android capture source order:**
+
+1. `MediaRecorder.AudioSource.UNPROCESSED` when the device advertises
+   `PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED == "true"` (API ≥ 24).
+2. `MediaRecorder.AudioSource.VOICE_RECOGNITION` otherwise.
+3. `MediaRecorder.AudioSource.MIC` **is never chosen**.
+
+The engine logs the source actually granted so we can spot OEMs that silently fall back.
+
+**iOS capture:** `.measurement` mode is retained. No behaviour change on iOS.
+
+**Adaptive noise floor:**
+
+- The one-shot 3 s `calibrate()` call is retained on the native surface for backward
+  compatibility with the existing store call chain but returns immediately with the current
+  rolling noise-floor estimate. The Home-screen "calibrating…" affordance stays; it is
+  cosmetic feedback while the first 60 s of the rolling window fills.
+- During capture the engine maintains a rolling 60 s median of the display dB and exposes
+  it as `AudioLevelEvent.noiseFloorDb` (ADR-24). No level threshold participates in
+  detection any more; the classifier owns that decision.
+
+---
+
+## ADR-26 — V2 scoring and destructive migration
+
+Ratified at the start of Milestone 6.
+
+V1 scoring (`computeSleepScoreV1`, `computeSnoreScoreV1`) is retained as the source-of-truth
+for any pre-V2 row that survives. V2 introduces two new pure functions in new files
+alongside the V1 files (which become read-only):
+
+- `src/services/analytics/sleepScoreV2.ts` → `computeSleepScoreV2`
+- `src/services/analytics/snoreScoreV2.ts` → `computeSnoreScoreV2`
+- `src/services/analytics/scoringConstantsV2.ts` → `SLEEP_SCORE_V2`, `SNORE_SCORE_V2`,
+  `SNORE_SCORE_SCALE_V2`
+
+V2 score inputs extend `ScoreInputs` (existing fields kept as-is) with:
+
+- `avgConfidence: number` — mean classifier probability across all snore episodes in the
+  session.
+- `snoringShareByConfidence: number` — Σ (episode duration × episode confidence) / session
+  duration.
+- `spectralConsistency: number` — 1 minus the coefficient of variation of `spectralPeakHz`
+  across the session's episodes; `0` when fewer than two episodes exist.
+- `episodeRegularity: number` — a measure of how evenly episodes are spaced in the night,
+  defined in `scoringConstantsV2.ts`.
+
+**Schema migration:** the SQLite migration file adds a
+`sleep_sessions.score_version INTEGER NOT NULL DEFAULT 2` column. **In the same migration,
+every row of `sleep_sessions`, `snore_events`, and `session_buckets` is deleted, and all
+snippet files under the documents directory are reclaimed.** Rationale:
+
+- The app is pre-launch. Every existing session on a device was recorded by the shipped-M5
+  detector and is either a false positive or has fictitious peak numbers.
+- We cannot back-fill V2 scores because we do not have the original PCM.
+- Preserving the rows would mean shipping a UI that renders two incompatible score
+  histories side by side, which is worse than the wipe.
+
+M5's ADR-10 ("scoring is deferred to V2") is now satisfied by this ADR. V1 scoring stays in
+the codebase but is unreachable from the write path after Task 6.5.
+
+---
+
+## ADR-27 — Public evaluation corpus, no in-app data collection
+
+Ratified at the start of Milestone 6.
+
+M6 ships YAMNet as-is (ADR-21). The app collects no training data, no telemetry, and no
+audio ever leaves the device. Retention rules from ADR-15 are unchanged.
+
+The regression corpus is built exclusively from public, redistributable sources:
+
+- Google AudioSet snoring clips (labels 38 and 39), sourced through the published label
+  file; only clips whose underlying video licenses permit redistribution are used.
+- Freesound.org clips under CC0 or CC-BY-4.0 for snoring, coughing, speech, fans, rain,
+  music, and blanket / cloth rustle. CC-BY clips require attribution in `NOTICES.md`.
+- Public-domain sleep-lab excerpts where the source explicitly grants redistribution.
+
+The corpus lives under `modules/snoozepulse-audio/__fixtures__/audio/` alongside a
+`LICENSES.md` file that names each clip's origin, license, and attribution requirement.
+
+A future ADR (V3) may introduce opt-in user data collection with an explicit consent flow;
+that is out of scope for M6.
+
+---
+
+## ADR-28 — Documentation restructure for M6
+
+Ratified at the start of Milestone 6.
+
+M5 shipped. The Phase 0–25 roadmap and the Task 1.1–5.6 implementation plan are moved,
+verbatim, into `docs/archive/`. The active `docs/roadmap.md` and `docs/implementation-plan.md`
+are rewritten around a single active milestone, **M6 — Acoustic Recognition**, spanning
+Phases 26–31 and Tasks 6.1–6.6.
+
+**Bundled model asset layout:**
+
+```text
+modules/snoozepulse-audio/
+  android/src/main/assets/yamnet.tflite     # bundled AAR asset
+  ios/Resources/yamnet.tflite               # copied into the framework bundle
+  __fixtures__/
+    audio/                                  # regression corpus (ADR-27)
+    mel/                                    # log-mel parity fixtures (Task 6.2)
+    LICENSES.md
+```
+
+Documentation Priority (from `docs/roadmap.md`) is unchanged: `docs/decisions.md` still
+wins over every other doc. This ADR is the tie-breaker for any lingering M1–M5 language
+that contradicts M6.

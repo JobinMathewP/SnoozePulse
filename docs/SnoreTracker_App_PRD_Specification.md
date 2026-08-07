@@ -141,22 +141,37 @@ Display:
 
 ## Detection
 
-Native audio engine should:
+Native audio engine performs on-device acoustic classification (ADR-21). The pipeline is:
 
-- Calculate RMS
-- Estimate dB
-- Detect snore events
-- Ignore noise below threshold
-- Save only significant snippets
+1. Capture 16 kHz mono PCM (AGC-safe source per ADR-25).
+2. Slice into 0.975 s windows with 50% overlap.
+3. Compute a 96 × 64 log-mel spectrogram on the native thread.
+4. Run inference on the bundled YAMNet TFLite model via NNAPI (Android) or Core ML (iOS).
+5. Sum the `Snoring` and `Snort` class probabilities to obtain a confidence score.
+6. Apply hysteresis (enter ≥ 0.55, exit < 0.35, min 300 ms, hang 700 ms) to build episodes.
+7. Write a 5-second WAV snippet on episode close.
+8. Emit `AudioLevelEvent` (with `confidence`) and `SnoreEvent` (with `confidence`,
+   `classLabel`, and `spectralPeakHz`) to JavaScript.
+
+dB is retained only as a UI display value for the waveform and as the input to the rolling
+noise-floor estimate. dB does not participate in detection (ADR-23).
 
 ## Scoring
 
-Sleep score and snore score ship in V1 as **simple weighted metrics over recorded
-statistics** — snore count, total snoring time, peak loudness, and session duration.
+Sleep score and snore score are V2 (ADR-26). Each is one pure function whose weighting
+constants live in a single named block (`scoringConstantsV2.ts`), so a future V3 can
+replace them wholesale without touching callers.
 
-This is an explicit placeholder. The agent must not invent medical or clinical scoring.
-Each score is one pure function with its weighting constants in a single named block so it
-can be replaced wholesale in V2 without touching callers (ADR-10).
+V2 inputs extend the M5 statistics (snore count, total snoring time, peak dB, session
+duration) with classifier-derived signals:
+
+- `avgConfidence` — mean classifier probability across episodes.
+- `snoringShareByConfidence` — Σ(episode duration × confidence) / session duration.
+- `spectralConsistency` — 1 minus the coefficient of variation of `spectralPeakHz` across
+  episodes.
+- `episodeRegularity` — a 0–1 measure of how evenly episodes are spaced.
+
+The agent must not invent medical or clinical scoring.
 
 ## Storage
 
@@ -264,8 +279,13 @@ See `docs/architecture.md` and `docs/decisions.md`.
 
 # 10. Future Enhancements
 
+Shipped in V2 (M6): on-device acoustic classification via YAMNet. See ADR-21.
+
+Future work:
+
 - Cloud backup
-- AI snore classification
+- Custom-trained snore classifier (fine-tuned head over YAMNet embeddings) with an
+  opt-in on-device training corpus (ADR-27 leaves this door open)
 - Wearable integration
 - Smart alarm
 - Sleep apnea risk estimation

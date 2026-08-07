@@ -28,14 +28,19 @@ Emitted continuously at a native-throttled 100–200 ms interval.
 interface AudioLevelEvent {
   sessionId: string;
   timestamp: number;
-  decibel: number;
-  rms: number;
-  snoreDetected: boolean;
+  decibel: number;          // display-only; produced by AudioDsp.rmsToDb (ADR-23)
+  rms: number;              // display-only; not used for detection
+  noiseFloorDb: number;     // rolling 60 s median of display dB (ADR-25)
+  confidence: number;       // P(Snoring) + P(Snort), clamped [0, 1] (ADR-21)
+  snoreDetected: boolean;   // driven by classifier hysteresis (ADR-24)
 }
 ```
 
 `sessionId` is required so that a late event arriving after a session ends can be discarded
 rather than misattributed.
+
+`snoreDetected` reflects the classifier's current hysteretic state (enter ≥ 0.55,
+exit < 0.35). It does **not** compare `decibel` or `rms` against any threshold (ADR-23).
 
 This event drives a Reanimated shared value directly and reaches the store only in throttled
 form (ADR-13).
@@ -50,13 +55,19 @@ interface SnoreEvent {
   sessionId: string;
   timestamp: number;
   durationMs: number;
-  peakDb: number;
+  peakDb: number;                        // display-only; no longer feeds detection
+  confidence: number;                    // mean classifier probability across the episode
+  classLabel: 'snoring' | 'snort';       // class with the higher summed probability
+  spectralPeakHz: number | null;         // dominant frequency at the loudest frame
   audioPath: string | null;
 }
 ```
 
 `audioPath` is nullable: detection must still report the episode when snippet writing fails
 because storage is full or the retention cap was hit.
+
+`peakDb` is retained for legacy Summary metric cards but does not affect scoring after M6
+(ADR-26); V2 scores weight episodes by `confidence` and duration, not peak dB.
 
 ---
 
@@ -100,9 +111,30 @@ Session creation and completion, readiness checks, and snippet retention enforce
 ## IAnalyticsService
 Sleep score, snore score, timeline bucket aggregation, and weekly/monthly comparisons.
 
-Scoring is a documented V1 heuristic using simple weighted metrics and is scheduled for
-replacement in V2 (ADR-10). Each score is a single pure function with its weighting
-constants in one named block. The agent must not invent medical or clinical scoring.
+From Milestone 6 onward, scoring is V2 (ADR-26). Each score is a single pure function
+with its weighting constants in one named block. The V1 pure functions
+(`computeSleepScoreV1`, `computeSnoreScoreV1`) remain in the codebase for archival reads
+only; the write path calls V2 exclusively.
+
+V2 score inputs (`ScoreInputs`) grow the following fields:
+
+```ts
+interface ScoreInputs {
+  // Pre-existing fields, unchanged.
+  sessionDurationMs: number;
+  snoreCount: number;
+  totalSnoringMs: number;
+  peakDb: number;
+
+  // Added in M6 (ADR-26).
+  avgConfidence: number;               // mean classifier probability across episodes
+  snoringShareByConfidence: number;    // Σ(duration × confidence) / sessionDurationMs
+  spectralConsistency: number;         // 1 − CV(spectralPeakHz); 0 when < 2 episodes
+  episodeRegularity: number;           // 0–1, evenness of episode spacing
+}
+```
+
+The agent must not invent medical or clinical scoring.
 
 ---
 

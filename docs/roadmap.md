@@ -8,6 +8,18 @@
 
 ---
 
+# Status
+
+M1–M5 shipped as debug builds on Android and iOS in August 2026. The M5 detector was a
+loudness-over-baseline threshold and could not distinguish snores from other sounds. It is
+superseded by **Milestone 6 — Acoustic Recognition** (Phases 26–31, Tasks 6.1–6.6).
+
+The archived M1–M5 roadmap lives at `docs/archive/roadmap-m1-m5.md`. Do not follow it as an
+active plan. See ADR-28 for the restructure and ADR-21 for why the detector is being
+rewritten.
+
+---
+
 # Documentation Priority
 
 When multiple references overlap, follow this order:
@@ -29,9 +41,10 @@ When multiple references overlap, follow this order:
 15. docs/implementation-plan.md
 16. docs/roadmap.md
 
-Where a reference image conflicts with `decisions.md`, `decisions.md` wins. There are
-currently two such conflicts, both ratified: SnoozePulse branding (ADR-08) and the removal
-of the Insights and Profile tabs (ADR-09).
+Where any reference conflicts with `decisions.md`, `decisions.md` wins. Ratified deviations
+carried forward from M1–M5: SnoozePulse branding (ADR-08) and the removal of Insights and
+Profile tabs (ADR-09). M6 adds ADR-21 (YAMNet detector), ADR-23 (loudness detector deleted),
+and ADR-26 (V2 scoring with a destructive migration).
 
 `roadmap.md` defines the phases. `implementation-plan.md` breaks each phase into executable
 tasks with allowed paths, acceptance criteria, and validation commands. On task scope, the
@@ -64,509 +77,215 @@ Before every phase:
 - Construct a concrete implementation inside a store, hook, or component.
 - Modify unrelated files.
 - Continue to another phase automatically.
+- Send raw PCM, log-mel patches, or tensors across the React Native bridge (ADR-22).
+- Add a loudness-threshold branch in `CaptureEngine` (ADR-23 forbids the fallback).
 
 ---
 
 # Milestones and Dependency Gates
 
-No dependency is installed before the phase that needs it. Installing a dependency is part
-of the phase named below and requires no separate approval.
+M1–M5 are archived. M6 is the only active milestone.
 
-| Milestone | Phases | Install at | Packages |
-| --- | --- | --- | --- |
-| **M1** Foundation | 1–4 | Phase 1 | `zustand`, `react-native-svg`, `expo-font`, `@expo-google-fonts/inter`, `@expo/vector-icons`, `eslint`, `eslint-config-expo`, then `nativewind@preview`, `react-native-css`, `tailwindcss`, `@tailwindcss/postcss`, `postcss` (ADR-20) |
-| **M2** Navigation & UI primitives | 5–6 | — | — |
-| **M3** Screens (mock data) | 7–14 | Phase 7 | `expo-battery`, `expo-keep-awake` |
-| **M4** Data, state & analytics | 15–17 | Phase 15 | `expo-sqlite` |
-| **M5** Native audio, integration & release | 18–25 | Phase 18 | `expo-audio`, `expo-file-system` |
-| | | Phase 25 | `jest`, `jest-expo`, `@testing-library/react-native` |
+| Milestone | Status   | Phases  | Install at | Packages |
+| --------- | -------- | ------- | ---------- | -------- |
+| M1–M5     | archived | 1–25    | —          | see `docs/archive/roadmap-m1-m5.md` |
+| **M6** Acoustic Recognition | active | 26–31 | Task 6.1 | Android (Gradle): `org.tensorflow:tensorflow-lite:2.16.1`, `org.tensorflow:tensorflow-lite-support:0.4.4`. iOS (CocoaPods): `TensorFlowLiteSwift ~> 2.14`, `TensorFlowLiteCCoreML ~> 2.14`. JS: none. |
 
-Phase 0 (Architecture Review) is complete and precedes M1.
-
-`react-native-reanimated` (4.5.1) and `react-native-worklets` are already installed.
+No JavaScript-side ML library is installed. Inference is native (ADR-22).
 
 Anything not on this list still requires approval before it is added.
-
-Each milestone is broken into 4–6 executable tasks in `docs/implementation-plan.md`, which
-specifies per-task allowed paths, acceptance criteria, and validation commands.
 
 ---
 
 # Known Starting Condition
 
-`npm run typecheck` passes with zero errors. Every phase must keep it that way.
-
-It briefly failed on two CSS-module imports in starter-template files. Running the app
-generated `expo-env.d.ts` and `.expo/types/`, which supply those ambient declarations. Both
-files are build artifacts: if typecheck fails on `*.module.css` or `@/global.css` after a
-clean checkout, run the app once to regenerate them rather than editing the affected files —
-they are on the Phase 1 deletion list anyway.
-
-`npm run lint` is not available until Phase 1 installs ESLint.
+- `npm run typecheck` passes.
+- `npm run lint` passes.
+- `npm test` passes (M5 test suite is green).
+- Android and iOS debug builds run on device.
+- The M5 detector is the current production path and is what M6 replaces.
 
 ---
 
-# Phase 0 — Architecture Review
+# Milestone 6 — Acoustic Recognition
 
-**Status: complete.** Outcome recorded in `docs/decisions.md`.
+Goal: replace the loudness-threshold detector with an on-device YAMNet classifier so that
+snores are separated from coughs, speech, fans, blanket rustle, and rain.
 
-Allowed files:
-- None
-
-Deliverable:
-- Review report only
-
----
-
-# Phase 1 — Project Structure (M1)
-
-Allowed:
-- package.json (dependency install only)
-- babel.config.js, metro.config.js, postcss.config.mjs, global.css (NativeWind setup)
-- eslint config
-- app.json
-- README.md
-- src/** (creation and the deletion list below)
-- scripts/**
-
-Tasks:
-- Install the M1 dependencies.
-- Delete the starter template (list below).
-- Create the folder structure from `coding-standards.md`.
-- Configure NativeWind.
-- Confirm path aliases.
-- Rewrite README.md for SnoozePulse.
-- Remove the `web` block from app.json; web is not a target (ADR-02).
-
-Deletion list:
-
-```text
-src/app/explore.tsx
-src/components/animated-icon.tsx
-src/components/animated-icon.web.tsx
-src/components/animated-icon.module.css
-src/components/app-tabs.tsx
-src/components/app-tabs.web.tsx
-src/components/external-link.tsx
-src/components/hint-row.tsx
-src/components/themed-text.tsx
-src/components/themed-view.tsx
-src/components/web-badge.tsx
-src/components/ui/collapsible.tsx
-src/constants/                     (entire folder, including theme.ts)
-src/global.css                     (replaced by the NativeWind entry stylesheet)
-src/hooks/use-color-scheme.ts
-src/hooks/use-color-scheme.web.ts
-src/hooks/use-theme.ts
-scripts/reset-project.js
-```
-
-`src/app/_layout.tsx` and `src/app/index.tsx` import deleted files, so Phase 1 reduces them
-to a minimal bootable shell. They are rebuilt properly in Phase 5.
-
-Forbidden:
-- UI implementation
-- Business logic
-
-Exit criteria:
-- `npm run typecheck` passes with zero errors.
-- `npm run lint` passes with zero errors and warnings.
-- The app boots to a blank screen.
+Exit condition for M6: a recorded session detects snores via the classifier only, `AudioDsp`
+no longer contributes to detection, `AudioLevelEvent` and `SnoreEvent` carry `confidence`,
+V2 scores compute from confidence-weighted inputs, and the regression suite meets its
+precision / recall gates on the public corpus.
 
 ---
 
-# Phase 2 — Theme System (M1)
-
-Allowed:
-- src/theme/**
-- global.css (`@theme` block only)
-
-Tasks:
-- colors.ts
-- spacing.ts
-- typography.ts
-- radius.ts
-- shadows.ts
-- Load Inter via `expo-font` (ADR-07).
-- Generate the `@theme` block from these tokens so tokens remain the single source of truth.
-  Tailwind 4 defines theme in CSS, so this emits custom properties rather than a JavaScript
-  config object (ADR-20).
-
-**Color sampling (ADR-06).** Before writing `colors.ts`, sample every additional token
-directly from the reference images. Do not guess a value. Record token name, hex, source
-image, and the element sampled. The required sampling list is in `ui-guidelines.md`.
+## Phase 26 — TFLite runtime scaffold and model asset
 
 Reference:
-- docs/ui-guidelines.md
 
-Deliverable alongside the code:
-- A table of every sampled token with its provenance.
-
----
-
-# Phase 3 — Shared Types (M1)
-
-Allowed:
-- src/types/**
-
-Tasks:
-- SessionState
-- SleepSession
-- SnoreEvent
-- AudioLevelEvent
-- SessionBucket
-- Analytics models
-
-Reference:
-- docs/api-contracts.md
-
-Note the ratified payload changes: `AudioLevelEvent` carries `sessionId`, and
-`SnoreEvent.audioPath` is nullable.
-
----
-
-# Phase 4 — Service and Repository Interfaces (M1)
-
-Allowed:
-- src/services/**
-- src/repositories/**
-- src/native/**
-
-Tasks:
-- IAudioEngine
-- ISleepRepository
-- ISnoreRepository
-- IAudioService
-- ISleepService
-- IAnalyticsService
-- Define the composition root's shape (ADR-18).
-
-No implementations.
-
-Services hold business logic; repositories hold SQL. They never merge (ADR-19).
-
----
-
-# Phase 5 — Navigation Shell (M2)
-
-Allowed:
-- src/app/**
-
-Navigation is Expo Router (ADR-01). Routes live in `src/app/`, not a top-level `app/`.
-
-Tasks:
-- Tab layout: Home, History
-- Active Session route outside the tab bar
-- Summary route, pushed, with back and share
-- Settings route, pushed from the Home header
-- Route types
-- Blank screens
-- Safe area
-
-Do not create Insights or Profile routes (ADR-09).
-
-No UI implementation.
-
----
-
-# Phase 6 — UI Primitives (M2)
-
-Reference:
-- docs/design-spec.md
-- docs/ui-guidelines.md
-
-Allowed:
-- src/components/ui/**
-
-Create:
-- Screen
-- Button
-- Card
-- StatusCard
-- MetricCard
-- SectionHeader
-- TimelineCard
-- Waveform
-
----
-
-# Phase 7 — Home Screen (M3)
-
-Reference:
-- docs/home-screen.jpg
-
-Allowed:
-- src/features/home/**
-- src/components/ui/**
-- src/app/(tabs)/index.tsx
-- package.json
-
-Tasks:
-- Install `expo-battery` and `expo-keep-awake`.
-- Match layout
-- Theme tokens only
-- Mock data only
-- Header renders "SnoozePulse" (ADR-08)
-
-Stop after completion.
-
----
-
-# Phase 8 — Home Review (M3)
-
-No code changes.
-
-Compare implementation with:
-- docs/home-screen.jpg
-
-Produce:
-- Visual review
-- Missing items
-- Suggested refinements
-
----
-
-# Phase 9 — Active Session Screen (M3)
-
-Reference:
-- docs/active-session.jpg
-
-Allowed:
-- src/features/session/**
-- src/components/ui/**
-
-Mock data only.
-
-The only control is "slide to end session". No pause control (ADR-14).
-
-The waveform reads a Reanimated shared value, not store state (ADR-13). In this phase the
-shared value is driven by mock data.
-
----
-
-# Phase 10 — Active Screen Review (M3)
-
-Review only.
-
----
-
-# Phase 11 — Summary Screen (M3)
-
-Reference:
-- docs/summary-screen.jpg
-
-Allowed:
-- src/features/summary/**
-- src/components/ui/**
-
-Mock data only.
-
----
-
-# Phase 12 — Summary Review (M3)
-
-Review only.
-
----
-
-# Phase 13 — History Screen (M3)
-
-Reference:
-- docs/history-screen.jpg
-
-Allowed:
-- src/features/history/**
-- src/components/ui/**
-
-Mock data only.
-
----
-
-# Phase 14 — History Review (M3)
-
-Review only.
-
----
-
-# Phase 15 — SQLite and Repository Layer (M4)
-
-Reference:
-- docs/api-contracts.md
-- PRD §5 Storage
-
-Allowed:
-- src/repositories/**
-- src/services/** (database client only)
-- package.json
-
-Tasks:
-- Install `expo-sqlite`.
-- Schema: `sleep_sessions`, `snore_events`, `session_buckets` (ADR-11).
-- WAL journaling, `PRAGMA foreign_keys = ON`, `PRAGMA user_version` migrations.
-- Async singleton database client, injected into repositories.
-- Repository implementations with batched writes.
-
-Do not use `SQLiteProvider` / `useSQLiteContext` as the primary access path — it would make
-the database reachable from any component and break the layering rule.
-
-No UI modifications.
-
----
-
-# Phase 16 — Zustand Store (M4)
-
-Allowed:
-- src/store/**
-- src/hooks/**
-
-Tasks:
-- Session slice with guarded state machine transitions
-- Audio slice
-- Settings slice
-- Composition root wiring (ADR-18)
-
-The store calls services only, never repositories (ADR-12).
-
-Do not connect native audio.
-
----
-
-# Phase 17 — Analytics Engine (M4)
-
-Allowed:
-- src/services/**
-- src/utils/**
-
-Tasks:
-- Sleep score — V1 weighted heuristic (ADR-10)
-- Snore score — V1 weighted heuristic (ADR-10)
-- Statistics
-- Timeline bucket aggregation
-- Weekly and monthly comparisons
-
-Each score is one pure function with its weighting constants in a single named block, and a
-doc comment marking it as a V1 heuristic scheduled for V2 replacement. Do not invent medical
-or clinical scoring. Do not leave a `TODO`.
-
-No UI redesign.
-
----
-
-# Phase 18 — Native Audio Bridge (M5)
-
-Reference:
 - docs/native-audio.md
+- ADR-21, ADR-22, ADR-28
 
 Allowed:
-- src/native/**
-- modules/snoozepulse-audio/** (scaffold and TypeScript binding)
-- app.json
-- package.json
+
+- modules/snoozepulse-audio/android/build.gradle
+- modules/snoozepulse-audio/android/src/main/assets/yamnet.tflite
+- modules/snoozepulse-audio/ios/SnoozePulseAudio.podspec
+- modules/snoozepulse-audio/ios/Resources/yamnet.tflite
+- modules/snoozepulse-audio/ios/**  (loader class only, no capture wiring)
+- modules/snoozepulse-audio/android/src/main/java/**  (loader class only, no capture wiring)
+- modules/snoozepulse-audio/__fixtures__/LICENSES.md
 
 Tasks:
-- Install `expo-audio` and `expo-file-system`.
-- Scaffold the Expo local module at `modules/snoozepulse-audio/` (ADR-16).
-- Configure the Android foreground service and iOS background audio mode via the
-  `expo-audio` plugin.
-- Bridge interface and event subscription.
 
-No DSP in JavaScript.
+- Add the TFLite dependencies from the M6 install row.
+- Bundle the YAMNet classifier `.tflite` as a native asset.
+- Load the model on both platforms behind a private `SnoreClassifier` interface.
+- Warm inference on start and log the resolved delegate (NNAPI / Core ML / CPU).
+
+**No capture wiring. No feature extraction. No changes to detection.**
 
 ---
 
-# Phase 19 — Native Audio Engine (M5)
+## Phase 27 — Log-mel feature front-end
+
+Reference:
+
+- docs/native-audio.md — Model asset layout
+- ADR-22
 
 Allowed:
-- modules/snoozepulse-audio/ios/**
+
+- modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/MelSpectrogram.kt
+- modules/snoozepulse-audio/ios/MelSpectrogram.swift
+- modules/snoozepulse-audio/__fixtures__/mel/**
+
+Tasks:
+
+- Implement YAMNet's front-end natively: 25 ms window, 10 ms hop, 64 mel bins covering
+  125 Hz – 7500 Hz, log with a 1e-3 offset.
+- Produce a 96 × 64 `float[]` patch for each 0.975 s window.
+- Zero allocations after warmup on both platforms.
+- Ship a Python-generated fixture per platform under `__fixtures__/mel/` for parity tests.
+
+**No classifier calls yet. No capture wiring.**
+
+---
+
+## Phase 28 — Classifier interface + episode builder; delete loudness detector
+
+Reference:
+
+- docs/native-audio.md
+- docs/api-contracts.md — updated event payloads
+- ADR-21, ADR-23, ADR-24
+
+Allowed:
+
 - modules/snoozepulse-audio/android/**
-
-Platform:
-- Swift (AVAudioEngine)
-- Kotlin (AudioRecord)
+- modules/snoozepulse-audio/ios/**
+- modules/snoozepulse-audio/src/SnoozePulseAudio.types.ts
+- src/native/AudioEngine.ts
+- src/types/**  (level + snore event fields only)
 
 Tasks:
-- RMS
-- Peak detection
-- Snore detection against the calibrated ambient baseline
-- Snippet generation to the document directory
-- Throttled event emission (100–200 ms)
-- Audio session arbitration
-- System pause and resume on interruption
+
+- Introduce a `SnoreClassifier` interface (Kotlin + Swift) with a `YamnetClassifier`
+  implementation that consumes the log-mel patch and returns `P(Snoring) + P(Snort)`.
+- Rewrite `CaptureEngine.emitMeterAndDetect` around classifier probability with hysteresis:
+  enter ≥ 0.55, exit < 0.35, min 300 ms, hang 700 ms.
+- Delete `SNORE_MARGIN_DB` and the `db >= ambientBaselineDb + SNORE_MARGIN_DB` branch.
+  `ambientBaselineDb` as a single stored value is deleted with it (ADR-25 replaces it).
+- Add `confidence` and `noiseFloorDb` to `AudioLevelEvent`; add `confidence`, `classLabel`,
+  and `spectralPeakHz` to `SnoreEvent`.
+- Adapter (`AudioEngine.ts`) forwards the new fields; store selectors continue to work.
+
+Retained from `AudioDsp`: `rms`, `rmsToDb`, `peak` — all only feed the display dB / rolling
+noise floor. None participates in detection (ADR-23).
 
 ---
 
-# Phase 20 — Integration (M5)
+## Phase 29 — AGC-safe capture and adaptive noise floor
 
-Connect:
-UI → Store → Services → Repositories → SQLite → Native Audio
+Reference:
 
-Replace all mock data.
-
----
-
-# Phase 21 — Charts and Audio Playback (M5)
-
-Implement:
-- Timeline chart backed by `session_buckets`
-- Audio snippets
-- Playback via `expo-audio`, arbitrated against capture
-
-The Summary timeline's "tap any bar to hear audio" maps a bucket to the loudest snore event
-within that bucket's time range.
-
----
-
-# Phase 22 — Error Handling, Retention and Cleanup (M5)
-
-Handle:
-- Permission denial
-- Database failure
-- Storage full
-- Native failures
-- `SnoreEvent.audioPath === null` when a snippet could not be written
-
-Implement retention (ADR-15):
-- 30 days or 500 MB, whichever comes first
-- Automatic cleanup
-- Session deletion removes its snippets
-- Orphaned files reclaimed at app start
-
----
-
-# Phase 23 — Accessibility (M5)
-
-Verify:
-- accessibilityLabel
-- Dynamic type
-- Safe areas
-- 44x44 touch targets
-
----
-
-# Phase 24 — Performance (M5)
-
-Review:
-- Memory stability over an 8-hour session
-- Re-render count — the audio level stream must not trigger React renders
-- Animation smoothness
-- Battery impact
-
----
-
-# Phase 25 — Release Candidate (M5)
+- ADR-25
 
 Allowed:
-- Test files across the codebase
-- package.json
 
-Checklist:
-- Install the M5 test tooling and write the test pyramid from `testing-strategy.md`
-- TypeScript clean
-- ESLint clean
-- No runtime warnings
-- No TODOs
-- Documentation updated
-- Commit to Git
+- modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/CaptureEngine.kt
+- modules/snoozepulse-audio/ios/CaptureEngine.swift
+- modules/snoozepulse-audio/src/SnoozePulseAudio.types.ts (only if a new debug field is
+  proven necessary)
+- src/features/home/**  (calibration copy only, no functional change)
+
+Tasks:
+
+- Android capture source order: `UNPROCESSED` (when supported) → `VOICE_RECOGNITION`. Never
+  `MIC`.
+- Log the source the OS actually granted.
+- Maintain a rolling 60 s median of the display dB and expose it as
+  `AudioLevelEvent.noiseFloorDb`.
+- Keep the JS-facing `calibrate()` promise; it returns the current noise-floor estimate
+  immediately instead of running a 3 s blocking pass.
+- Home-screen calibration affordance stays; label copy may be softened to "measuring
+  environment".
+
+---
+
+## Phase 30 — V2 analytics and destructive schema migration
+
+Reference:
+
+- docs/api-contracts.md — analytics inputs
+- ADR-10, ADR-26
+
+Allowed:
+
+- src/services/analytics/**
+- src/services/database/migrations.ts
+- src/repositories/**
+- src/types/**  (analytics model fields only)
+- src/services/**  (composition-root wiring only)
+
+Tasks:
+
+- Create `sleepScoreV2.ts`, `snoreScoreV2.ts`, `scoringConstantsV2.ts`.
+- Extend `ScoreInputs` with `avgConfidence`, `snoringShareByConfidence`,
+  `spectralConsistency`, and `episodeRegularity`.
+- Add a `score_version` column to `sleep_sessions` (default 2).
+- In the same migration, delete every row from `sleep_sessions`, `snore_events`,
+  `session_buckets` and reclaim all snippet files (ADR-26).
+- Route write paths through V2 functions. V1 functions remain in source but are unreachable
+  after this phase.
+
+---
+
+## Phase 31 — Regression corpus, precision / recall gates, RC-2
+
+Reference:
+
+- docs/testing-strategy.md — Classifier Regression
+- ADR-27
+
+Allowed:
+
+- modules/snoozepulse-audio/__fixtures__/audio/**
+- modules/snoozepulse-audio/__fixtures__/LICENSES.md
+- src/services/analytics/__tests__/**
+- src/**/__tests__/**
+- docs/testing-strategy.md  (documentation-updated requirement only)
+- NOTICES.md  (create if it doesn't exist)
+- README.md
+
+Tasks:
+
+- Assemble ≥ 50 labelled snore clips and ≥ 100 non-snore clips from public sources listed
+  in ADR-27.
+- Golden-audio Jest suite runs each clip through the log-mel + YAMNet pipeline and asserts
+  the episode builder's output.
+- Precision ≥ 0.85 and recall ≥ 0.90 on the labelled dev set.
+- Confusion matrix printed as part of the RC-2 report.
 
 ---
 
@@ -576,10 +295,12 @@ A phase is complete only if:
 
 - `npm run typecheck` passes
 - `npm run lint` passes
+- `npm test` passes
 - No runtime warnings
 - No placeholder implementations
 - Uses theme tokens
 - Uses reusable UI primitives
 - Follows strict layering: UI → Store → Services → Repositories → SQLite / Native
 - Depends on interfaces, not concrete implementations
+- No PCM, tensors, or log-mel patches cross the bridge
 - Stops after completion

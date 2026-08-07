@@ -4,15 +4,20 @@
 
 ## 1. System Topology Overview
 
-SnoozePulse follows a unidirectional data flow (UDF) architecture with a native audio processing pipeline.
+SnoozePulse follows a unidirectional data flow (UDF) architecture with a native audio
+processing pipeline. From Milestone 6 onward the native layer runs an on-device TFLite
+classifier (YAMNet); loudness thresholds no longer participate in detection (ADR-21,
+ADR-23).
 
 ```text
 +-----------------------------------------------------------------------------------+
 |                                   NATIVE LAYER                                    |
-|      Swift (iOS) / Kotlin (Android) performs microphone capture and DSP           |
+|  Swift (iOS) / Kotlin (Android) — capture · log-mel front-end · TFLite (YAMNet)   |
+|  Delegates: NNAPI (Android) · Core ML (iOS) · CPU fallback                        |
 +-----------------------------------------------------------------------------------+
                  │
-                 │ Throttled events (100–200 ms)
+                 │ Throttled events (100–200 ms) — level + snore + interruption
+                 │ Never PCM, tensors, or log-mel patches (ADR-16, ADR-22)
                  ▼
 +-----------------------------------------------------------------------------------+
 |                                    CORE JS                                        |
@@ -163,6 +168,64 @@ Secondary Reference
 
 - docs/mockup.jpg
 
+## 4. V2 Detection Pipeline
+
+Ratified in ADR-21 through ADR-25. This section is the tie-breaker for anything the
+older reference images or PRD wording implies about the detector.
+
+```text
+Microphone
+   │  Android: MediaRecorder.AudioSource.UNPROCESSED → VOICE_RECOGNITION (ADR-25)
+   │  iOS:     AVAudioSession .measurement (AGC disabled)
+   ▼
+16 kHz mono Int16 ring buffer  (unchanged from M5)
+   │
+   ▼
+Sliding 0.975 s window @ 50% overlap  (15,600 samples, matches YAMNet)
+   │
+   ▼
+Log-mel front-end on native thread
+   • 25 ms window, 10 ms hop
+   • 64 mel bins, 125 Hz – 7500 Hz
+   • log(x + 1e-3)
+   • output: 96 × 64 float32 patch, allocation-free after warmup
+   │
+   ▼
+TFLite runtime  (bundled yamnet.tflite)
+   ├── Android: NNAPI delegate  (org.tensorflow:tensorflow-lite)
+   └── iOS:     Core ML delegate (TensorFlowLiteSwift + TensorFlowLiteCCoreML)
+   │
+   ▼
+P(Snoring) + P(Snort)   → confidence ∈ [0, 1]
+   │
+   ▼
+Rolling 60 s noise-floor median (display-only dB)
+   │
+   ▼
+Episode builder with hysteresis
+   • enter ≥ 0.55, exit < 0.35
+   • min episode 300 ms, hang 700 ms
+   │
+   ▼
+SnoreEvent   { confidence, classLabel, spectralPeakHz, … }
+AudioLevelEvent { confidence, noiseFloorDb, decibel (display-only), … }
+```
+
+Rules in force:
+
+- No PCM, tensors, or log-mel patches cross the bridge (ADR-16, ADR-22).
+- `AudioDsp.rmsToDb` produces only the display dB and the input to the noise-floor
+  median. It does not participate in detection (ADR-23).
+- The TFLite runtime lives inside `modules/snoozepulse-audio`. `react-native-fast-tflite`
+  is explicitly rejected (ADR-22).
+- Model asset location is fixed by ADR-28:
+  - Android: `modules/snoozepulse-audio/android/src/main/assets/yamnet.tflite`
+  - iOS: `modules/snoozepulse-audio/ios/Resources/yamnet.tflite`
+
+The V2 pipeline changes nothing above the native layer. `IAudioEngine`, `AudioLevelEvent`,
+and `SnoreEvent` remain the only crossing points; the events grow new fields (ADR-24) but
+their shapes stay assignable to any existing consumer.
+
 ## Cross-Platform Architecture
 
 SnoozePulse is a cross-platform React Native application.
@@ -171,7 +234,8 @@ Shared application layers (UI, state management, repositories, analytics, SQLite
 
 Only the native audio engine is platform-specific and consists of:
 
-- Android implementation (Kotlin)
-- iOS implementation (Swift)
+- Android implementation (Kotlin) — capture, log-mel, TFLite + NNAPI delegate
+- iOS implementation (Swift) — capture, log-mel, TFLite + Core ML delegate
 
-Both implementations expose the same TypeScript interface (`IAudioEngine`).
+Both implementations expose the same TypeScript interface (`IAudioEngine`) and emit
+identically-shaped events.

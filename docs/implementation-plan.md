@@ -1407,7 +1407,7 @@ harness that bypasses the product path.
 **Plan amendment:** soak deferred again to **Task 5.6** (performance / RC) so Task 5.4 can
 proceed after short E2E proof. Not a Task 5.2 or 5.3 failure.
 
-**STOP.** Task 5.2 is complete pending review for the items that *can* be validated now.
+**STOP.** Task 5.2 is complete pending review for the items that _can_ be validated now.
 The soak remains open and owned by Task 5.3 — not a Task 5.2 failure. iOS remains
 unvalidated locally (Windows host); note it explicitly. Wait for review.
 
@@ -1651,33 +1651,5 @@ npx expo run:android --variant release
 
 # Progress Tracker
 
-| Task | Title                                     | Status      |
-| ---- | ----------------------------------------- | ----------- |
-| 1.1  | Toolchain and M1 dependencies             | Complete    |
-| 1.2  | Remove starter template, create folders   | Complete    |
-| 1.3  | NativeWind installation and configuration | Not started |
-| 1.4  | Theme system with sampled tokens          | Not started |
-| 1.5  | Shared types                              | Not started |
-| 1.6  | Interfaces and composition root contract  | Not started |
-| 2.1  | Navigation shell                          | Not started |
-| 2.2  | Layout primitives                         | Not started |
-| 2.3  | Content primitives                        | Not started |
-| 2.4  | Data visualisation primitives             | Not started |
-| 2.5  | Primitive audit                           | Not started |
-| 3.1  | Home screen                               | Not started |
-| 3.2  | Home visual review                        | Not started |
-| 3.3  | Active Session screen                     | Not started |
-| 3.4  | Summary screen                            | Not started |
-| 3.5  | History screen                            | Not started |
-| 3.6  | Consolidated visual review                | Not started |
-| 4.1  | Database client, schema, migrations       | Not started |
-| 4.2  | Repository implementations                | Not started |
-| 4.3  | Sleep and audio services                  | Not started |
-| 4.4  | Zustand store and composition root        | Not started |
-| 4.5  | Analytics service                         | Not started |
-| 5.1  | Native module scaffold and config         | Complete    |
-| 5.2  | Native audio engine                       | Complete (soak → 5.6) |
-| 5.3  | End-to-end integration                    | Complete (soak → 5.6) |
-| 5.4  | Charts and audio playback                 | Complete    |
-| 5.5  | Error handling, retention, accessibility  | Complete    |
-| 5.6  | Tests, performance, release candidate     | In review   |
+| Task | Title | Status |
+| ---- | ----- | ------ |

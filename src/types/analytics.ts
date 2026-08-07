@@ -42,12 +42,38 @@ export interface SleepScore {
   readonly value: number;
 }
 
-/** The statistics both scores are computed from. Nothing else may feed a score. */
+/**
+ * The statistics both scores are computed from. Nothing else may feed a score.
+ *
+ * V2 (M6.5, ADR-26) adds four classifier-driven fields alongside the M5 duration / count
+ * / peak-dB signals. `peakDb` is retained for backward compatibility with the archived V1
+ * functions and for any Summary UI still surfacing raw loudness; V2 scoring does not
+ * weight it.
+ */
 export interface ScoreInputs {
   readonly sessionDurationMs: number;
   readonly snoreCount: number;
   readonly totalSnoringMs: number;
   readonly peakDb: number;
+  /** Mean classifier probability across the session's snore episodes; 0 when none. */
+  readonly avgConfidence: number;
+  /**
+   * `Σ (episode.durationMs · episode.confidence) / sessionDurationMs`, clamped to [0, 1].
+   * Confidence-weighted replacement for `totalSnoringMs / sessionDurationMs` (ADR-26).
+   */
+  readonly snoringShareByConfidence: number;
+  /**
+   * 0–1. Currently a neutral 0.5 until spectral analysis is wired (Task 6.3 comment on
+   * `SnoreEvent.spectralPeakHz`). Higher = tighter clustering of spectral peaks across
+   * an episode set (i.e. plausibly one snorer / one physiology).
+   */
+  readonly spectralConsistency: number;
+  /**
+   * 0–1. Higher = more evenly spaced episodes. Computed from the coefficient of variation
+   * of episode inter-arrival gaps. `1` when there are fewer than two episodes (nothing to
+   * disagree with itself).
+   */
+  readonly episodeRegularity: number;
 }
 
 /** Everything the Summary screen renders for a single night. */

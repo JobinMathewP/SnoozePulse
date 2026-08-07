@@ -1,14 +1,19 @@
 /**
  * Forward-only schema migrations driven by `PRAGMA user_version` (PRD §5 Storage).
  *
- * Version 1 creates the three-table schema. Later versions append `if (from === n)` blocks
- * only — never edit a prior migration body after it has shipped.
+ * Version 1 creates the three-table schema. Version 2 (Task 6.5 / ADR-26) adds the
+ * classifier-driven columns to `snore_events`, adds `score_version` to `sleep_sessions`,
+ * and destructively wipes every V1 row — pre-M6 sessions cannot be re-scored with the V2
+ * signals, so keeping them would silently mix incompatible scores.
+ *
+ * Later versions append `if (current === n)` blocks only — never edit a prior migration
+ * body after it has shipped.
  */
 
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 /** Latest schema version applied by this app build. */
-export const DATABASE_VERSION = 1;
+export const DATABASE_VERSION = 2;
 
 const MIGRATION_V1 = `
 CREATE TABLE IF NOT EXISTS sleep_sessions (
@@ -50,8 +55,34 @@ CREATE TABLE IF NOT EXISTS session_buckets (
 `;
 
 /**
+ * V2 migration — classifier-driven schema and destructive wipe (ADR-26).
+ *
+ * SQLite does not allow multiple ADD COLUMNs in one ALTER TABLE, so each column ships as
+ * its own statement. The DELETE order respects foreign keys even though ON DELETE CASCADE
+ * would collapse dependents automatically — explicit deletes keep the migration diffable.
+ *
+ * Snippet files under the documents directory are reclaimed by the boot-time
+ * `SleepService.reclaimOrphanedSnippets()` sweep immediately after this migration runs
+ * (see `createContainer`): every event row is gone, so every snippet becomes an orphan
+ * and gets deleted on the first launch after upgrade.
+ */
+const MIGRATION_V2 = `
+ALTER TABLE snore_events ADD COLUMN confidence REAL NOT NULL DEFAULT 0;
+ALTER TABLE snore_events ADD COLUMN class_label TEXT NOT NULL DEFAULT 'snoring';
+ALTER TABLE snore_events ADD COLUMN spectral_peak_hz REAL;
+ALTER TABLE sleep_sessions ADD COLUMN score_version INTEGER NOT NULL DEFAULT 2;
+
+DELETE FROM session_buckets;
+DELETE FROM snore_events;
+DELETE FROM sleep_sessions;
+`;
+
+/**
  * Apply any pending migrations. Safe to call on every open: already-applied versions are
  * skipped via `user_version`, so opening twice does not re-run DDL.
+ *
+ * Each version's DDL is wrapped in `withTransactionAsync` so a partial upgrade cannot
+ * leave the database with new columns but unmoved data.
  */
 export async function migrateDatabase(db: SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -62,11 +93,18 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<number> {
   }
 
   if (current === 0) {
-    await db.execAsync(MIGRATION_V1);
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(MIGRATION_V1);
+    });
     current = 1;
   }
 
-  // Future: if (current === 1) { ...; current = 2; }
+  if (current === 1) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(MIGRATION_V2);
+    });
+    current = 2;
+  }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
   return DATABASE_VERSION;

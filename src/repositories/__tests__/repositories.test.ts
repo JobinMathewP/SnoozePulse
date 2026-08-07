@@ -64,6 +64,9 @@ describe('FakeSnoreRepository (repository contract)', () => {
         durationMs: 1000,
         peakDb: 60,
         audioPath: null,
+        confidence: 0.82,
+        classLabel: 'snoring',
+        spectralPeakHz: null,
       },
       {
         id: 'e1',
@@ -72,6 +75,9 @@ describe('FakeSnoreRepository (repository contract)', () => {
         durationMs: 500,
         peakDb: 50,
         audioPath: '/a.wav',
+        confidence: 0.71,
+        classLabel: 'snort',
+        spectralPeakHz: null,
       },
     ]);
     const events = await repo.getEvents('s1');

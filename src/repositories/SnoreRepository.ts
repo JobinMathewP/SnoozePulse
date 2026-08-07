@@ -28,14 +28,18 @@ export class SnoreRepository implements ISnoreRepository {
         for (const event of events) {
           await this.db.runAsync(
             `INSERT INTO snore_events (
-              id, session_id, timestamp, duration_ms, peak_db, audio_path
-            ) VALUES (?, ?, ?, ?, ?, ?)`,
+              id, session_id, timestamp, duration_ms, peak_db, audio_path,
+              confidence, class_label, spectral_peak_hz
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             event.id,
             event.sessionId,
             event.timestamp,
             event.durationMs,
             event.peakDb,
             event.audioPath,
+            event.confidence,
+            event.classLabel,
+            event.spectralPeakHz,
           );
         }
       });

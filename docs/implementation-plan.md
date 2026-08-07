@@ -692,8 +692,8 @@ and the list of new primitives added under `src/components/ui`.
 | 6.1  | TFLite runtime scaffold and model asset                   | complete  |
 | 6.2  | Waveform-window front-end and byte-parity harness         | complete  |
 | 6.3  | Classifier-driven episode builder; delete loudness path   | complete  |
-| 6.4  | AGC-safe capture and rolling noise floor                  | active    |
-| 6.5  | V2 analytics and destructive schema migration             | pending   |
+| 6.4  | AGC-safe capture and rolling noise floor                  | complete  |
+| 6.5  | V2 analytics and destructive schema migration             | active    |
 | 6.6  | Regression corpus, precision / recall gates, RC-2         | pending   |
 | 6.7  | UI wiring for the ML detector                             | pending   |
 | 6.8  | Mockup-aligned visual polish                              | pending   |

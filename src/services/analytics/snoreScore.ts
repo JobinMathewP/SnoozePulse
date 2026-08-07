@@ -1,14 +1,19 @@
+/**
+ * @deprecated V1 heuristic. Kept for archival reads only; no write path calls this after
+ * M6 (Task 6.5 / ADR-26). Do not extend or rewire — use `snoreScoreV2.ts` instead.
+ */
+
 import type { ScoreInputs, SnoreScore, SnoreScoreBand } from '@/types';
 
 import { SNORE_SCORE_SCALE_V1, SNORE_SCORE_V1 } from './scoringConstants';
 
 /**
- * V1 snore score heuristic — scheduled for wholesale replacement in V2 (ADR-10).
+ * V1 snore score heuristic — replaced wholesale by {@link computeSnoreScoreV2} in M6.5
+ * (ADR-10, ADR-26). This function and its constants remain compiled for archival reads
+ * only; every write path now targets V2. Kept as-is per the Task 6.5 guardrail.
  *
- * Pure: returns `{ value, band, filledDots }`. Band and dots both come from
- * {@link SNORE_SCORE_SCALE_V1} via {@link lookupSnoreScale} so Mild / Moderate / Heavy
- * and the five-dot indicator share one source of truth. Higher value = more snoring
- * burden (worse). Not a clinical AHI or diagnosis.
+ * Pure: returns `{ value, band, filledDots }`. Higher value = more snoring burden
+ * (worse). Not a clinical AHI or diagnosis.
  */
 export function computeSnoreScoreV1(inputs: ScoreInputs): SnoreScore {
   const durationHours = Math.max(inputs.sessionDurationMs, 1) / (60 * 60 * 1000);

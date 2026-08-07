@@ -1,10 +1,9 @@
 /**
- * V1 scoring constants — the only place weightings and band thresholds live (ADR-10).
+ * @deprecated V1 constants. Kept for archival reads only; no write path calls this after
+ * M6 (Task 6.5 / ADR-26). Do not extend or rewire — use `scoringConstantsV2.ts` instead.
  *
- * These are **not** clinical or medical measures. They are a documented placeholder so
- * Summary / History can render real numbers until V2 replaces this module wholesale.
- * Callers must import the pure functions in `sleepScore.ts` / `snoreScore.ts` rather than
- * reading these constants directly, so a V2 swap stays a one-folder change.
+ * V1 scoring constants — replaced wholesale by the V2 constants in M6.5 (ADR-10).
+ * These are **not** clinical or medical measures.
  */
 
 /**

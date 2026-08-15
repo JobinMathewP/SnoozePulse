@@ -15,6 +15,13 @@ export type SettingsSlice = {
   calibrateAmbient: () => Promise<Result<CalibrationResult>>;
   /** Prompt for mic access, then refresh readiness cards. */
   requestMicrophonePermission: () => Promise<Result<MicrophonePermissionStatus>>;
+  /** Delete every saved session, its events, buckets, and snippet files (ADR-30). */
+  deleteAllSleepData: () => Promise<Result<void>>;
+  /**
+   * Development-only: populate the database with synthetic nights so the calendar and history
+   * can be exercised without recording. Only invoked from a `__DEV__`-guarded Settings row.
+   */
+  seedDemoData: () => Promise<Result<number>>;
 };
 
 type SetState = (partial: Partial<SettingsSlice>) => void;
@@ -52,6 +59,14 @@ export function createSettingsSlice(
         set({ readiness: readiness.value });
       }
       return result;
+    },
+
+    async deleteAllSleepData() {
+      return deps.sleepService.deleteAllSessions();
+    },
+
+    async seedDemoData() {
+      return deps.sleepService.seedDemoNights(45);
     },
   };
 }

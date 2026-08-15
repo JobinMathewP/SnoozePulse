@@ -49,6 +49,13 @@ export interface IAudioService {
   stopSession(): Promise<Result<SleepSession>>;
 
   /**
+   * Stop the engine and delete the in-progress session (row, events, buckets, snippets)
+   * without scoring it. Used when a session is ended before the minimum length, so a
+   * throwaway night never lands in History (ADR-30). Resets to IDLE.
+   */
+  discardSession(): Promise<Result<void>>;
+
+  /**
    * Tear down capture after JS state was reset (Fast Refresh / remount) while the native
    * engine or an in-memory session may still be live. Always stops the engine.
    * Returns the completed session when one could be finalised; otherwise `null`.

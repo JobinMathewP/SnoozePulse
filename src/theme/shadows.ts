@@ -5,9 +5,8 @@
  * 1 px border (see `colors.borderCard`), not a drop shadow, which is what keeps an AMOLED
  * layout from looking muddy. So the scale is short on purpose.
  *
- * `heroGlow` is the exception. The start button on home-screen.jpg is lit by a coloured
- * halo around its ring, and that glow is reproduced with a shadow rather than an image.
- * Its colour is the sampled `colors.heroGlow`.
+ * `heroGlow` is the exception. The circular start art on home-screen-moke.png is lit by a
+ * violet halo; that bloom is reproduced with a shadow. Colour is sampled `colors.heroGlow`.
  *
  * Each token carries both a React Native style object and the equivalent CSS string. Only
  * the style objects are consumed today: elevation is applied natively rather than through a
@@ -60,6 +59,15 @@ export const shadows = {
     shadowRadius: 28,
     elevation: 12,
     css: `0 0 28px ${colors.heroGlow}`,
+  },
+  /** Settings icon-tile bloom. Colour is sampled `settingsAccent`; spread is modest so cards stay readable. */
+  settingsGlow: {
+    shadowColor: colors.settingsAccent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 10,
+    elevation: 6,
+    css: `0 0 10px ${colors.settingsAccent}`,
   },
 } as const satisfies Record<string, Shadow>;
 

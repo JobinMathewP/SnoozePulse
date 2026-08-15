@@ -9,8 +9,10 @@
 
 import { AudioEngine, type IAudioEngine } from '@/native';
 import {
+  SettingsRepository,
   SleepRepository,
   SnoreRepository,
+  type ISettingsRepository,
   type ISleepRepository,
   type ISnoreRepository,
 } from '@/repositories';
@@ -18,20 +20,31 @@ import {
   AnalyticsService,
   AudioService,
   ExpoSnippetStorage,
+  ProfileService,
+  ReviewService,
   SleepService,
   ensureDatabase,
   type IAnalyticsService,
   type IAudioService,
+  type IProfileService,
+  type IReviewService,
   type ISleepService,
   type ISnippetStorage,
 } from '@/services';
 import type { StoreDependencies } from '@/store';
+import type { UserProfile } from '@/types';
 
 export interface Container extends StoreDependencies {
   readonly audioEngine: IAudioEngine;
   readonly sleepRepository: ISleepRepository;
   readonly snoreRepository: ISnoreRepository;
+  readonly settingsRepository: ISettingsRepository;
   readonly snippetStorage: ISnippetStorage;
+  /**
+   * Profile read once at boot so `createAppStore` can seed the onboarding gate
+   * synchronously and avoid a tabs-then-onboarding flash (ADR-30).
+   */
+  readonly bootProfile: UserProfile;
 }
 
 export async function createContainer(): Promise<Container> {
@@ -39,6 +52,7 @@ export async function createContainer(): Promise<Container> {
   const db = await ensureDatabase();
   const sleepRepository = new SleepRepository(db);
   const snoreRepository = new SnoreRepository(db);
+  const settingsRepository = new SettingsRepository(db);
 
   // 2) Filesystem + native engine (Task 5.1 heartbeat stub; DSP in Task 5.2).
   const snippetStorage = new ExpoSnippetStorage();
@@ -64,6 +78,10 @@ export async function createContainer(): Promise<Container> {
     analyticsService,
   );
 
+  // Preferences + rating prompt (ADR-30) — both ride on the KV settings repository.
+  const profileService: IProfileService = new ProfileService(settingsRepository);
+  const reviewService: IReviewService = new ReviewService(settingsRepository);
+
   // 4) Boot recovery — clear any leftover native capture / sticky mic FGS, close DB
   //    sessions left open after a force-kill, then ADR-15 retention.
   await audioEngine.stopRecording();
@@ -84,13 +102,26 @@ export async function createContainer(): Promise<Container> {
     console.warn('[retention] enforce failed', enforced.error);
   }
 
+  // 5) Boot read of the profile so the onboarding gate is correct on the first frame.
+  const profileResult = await profileService.getProfile();
+  const bootProfile: UserProfile = profileResult.ok
+    ? profileResult.value
+    : { displayName: null, onboarded: false };
+  if (!profileResult.ok) {
+    console.warn('[boot] profile read failed; treating as un-onboarded', profileResult.error);
+  }
+
   return {
     audioEngine,
     sleepRepository,
     snoreRepository,
+    settingsRepository,
     snippetStorage,
     analyticsService,
     sleepService,
     audioService,
+    profileService,
+    reviewService,
+    bootProfile,
   };
 }

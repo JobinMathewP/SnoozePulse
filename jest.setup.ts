@@ -35,6 +35,13 @@ jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn(async () => undefined),
 }));
 
+jest.mock('expo-store-review', () => ({
+  isAvailableAsync: jest.fn(async () => false),
+  requestReview: jest.fn(async () => undefined),
+  hasAction: jest.fn(async () => false),
+  storeUrl: jest.fn(() => null),
+}));
+
 jest.mock('expo-file-system', () => ({
   Paths: {
     document: 'file:///document/',

@@ -1,5 +1,42 @@
-# Design references and human docs — never used by any build step
+# If this file exists, EAS ignores .gitignore. Keep both in sync.
+
+# Design references and human docs
 docs/
 
-# Public legal site — GitHub Pages only, not part of the app binary
+# Public legal site — GitHub Pages only
 website/
+
+# Dependencies and local tooling
+node_modules/
+.expo/
+.kotlin/
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo
+expo-env.d.ts
+
+# Local JS/native build outputs (not needed; EAS prebuilds on the worker)
+dist/
+web-build/
+/ios
+/android
+modules/**/android/build/
+modules/**/android/.cxx/
+modules/**/android/.gradle/
+modules/**/ios/build/
+
+# Secrets and signing material
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+.env*.local
+*.orig.*
+
+# Misc
+.DS_Store
+example

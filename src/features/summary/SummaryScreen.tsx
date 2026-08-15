@@ -1,13 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
-import { CardRow, MetricCard, Screen, SectionHeader, TimelineCard, Button } from '@/components/ui';
+import {
+  Button,
+  Card,
+  CardRow,
+  InfoDialog,
+  MetricCard,
+  Screen,
+  SectionHeader,
+  TimelineCard,
+} from '@/components/ui';
+import { TOUCH_TARGET } from '@/components/ui/touchTarget';
+import { CalendarSheet } from '@/features/calendar';
 import { useInsights, useSnippetPlayback } from '@/hooks';
 import type { SessionDetail } from '@/store';
-import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
+import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/theme';
 import type { SleepSession, SnoreEvent } from '@/types';
 
 import { DateNavigator } from './DateNavigator';
@@ -19,6 +29,8 @@ import {
   formatPercentOfSleep,
   formatSummaryDateLabel,
   loudestDisplay,
+  playableSnippetCount,
+  SNIPPET_LIST_LIMIT,
   summaryCopy,
   toSnippetRows,
 } from './format';
@@ -27,10 +39,49 @@ import { deriveAiInsights } from './aiInsights';
 import { LoudestEpisodeCard } from './LoudestEpisodeCard';
 import { deriveScoreBreakdown } from './scoreBreakdown';
 import { SummaryMetricsStrip } from './SummaryMetricsStrip';
+import { summaryCardStyle, SummaryIconTile } from './SummaryIconTile';
 import { SnippetRow } from './SnippetRow';
-import { barIndexFromBarId, deriveTimelineFromSession, loudestEventInBar } from './timeline';
+import { deriveTimelineFromSession } from './timeline';
 
-const noop = (): void => undefined;
+function SummaryHeader() {
+  const router = useRouter();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={summaryCopy.backAccessibilityLabel}
+        onPress={() => {
+          router.back();
+        }}
+        style={{
+          width: TOUCH_TARGET,
+          height: TOUCH_TARGET,
+          borderRadius: radius.full,
+          backgroundColor: colors.settingsCard,
+          borderWidth: 1,
+          borderColor: colors.settingsCardBorder,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        testID="summary-back"
+      >
+        <Ionicons name="chevron-back" size={fontSize.title} color={colors.fg} />
+      </Pressable>
+      <Text
+        accessibilityRole="header"
+        style={{
+          flex: 1,
+          color: colors.fg,
+          fontFamily: fontFamily.bold,
+          fontSize: fontSize.heading,
+          lineHeight: lineHeight.heading,
+        }}
+      >
+        {summaryCopy.title}
+      </Text>
+    </View>
+  );
+}
 
 const snoreBandLabel = (band: string): string => {
   switch (band) {
@@ -44,49 +95,20 @@ const snoreBandLabel = (band: string): string => {
   }
 };
 
-function ClockGlyph() {
-  return (
-    <Ionicons
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-      name="time-outline"
-      size={fontSize.body}
-      color={colors.fgCaption}
-    />
-  );
-}
-
-function PeakWaveGlyph() {
-  return (
-    <Svg
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-      width={fontSize.body}
-      height={fontSize.body}
-      viewBox="0 0 24 24"
-    >
-      <Path
-        d="M3 12h2l2-4 3 8 3-6 2 2h4"
-        stroke={colors.alertText}
-        strokeWidth="1.5"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 type SummaryScreenProps = {
   readonly sessionId: string;
+  /** True when this night was opened from the calendar — Back reopens the sheet first. */
+  readonly fromCalendar?: boolean;
 };
 
 /**
  * Morning Summary — live session detail via store → analytics (ADR-12).
- * Timeline taps and snippet rows play through AudioService (Task 5.4).
+ * Snippet rows and the loudest episode play through AudioService (Task 5.4).
+ * The night's calendar day is bedtime (`startedAt`), never wake time.
  */
-export function SummaryScreen({ sessionId }: SummaryScreenProps) {
+export function SummaryScreen({ sessionId, fromCalendar = false }: SummaryScreenProps) {
   const router = useRouter();
+  const navigation = useNavigation();
   const { loadSessionDetail, listRecentSessions } = useInsights();
   const { playback, playSnippet, pauseSnippet, stopSnippet } = useSnippetPlayback();
   const [detail, setDetail] = useState<SessionDetail | null>(null);
@@ -94,6 +116,10 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarNowMs, setCalendarNowMs] = useState<number | null>(null);
+  const [calendarReturnDone, setCalendarReturnDone] = useState(false);
+  const [timelineInfoOpen, setTimelineInfoOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +156,39 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
     };
   }, [sessionId, stopSnippet]);
 
+  // First Back after a calendar-opened night reopens the sheet; closing it (X or Back)
+  // then lets the next Back pop to History.
+  useEffect(() => {
+    if (!fromCalendar || calendarReturnDone) {
+      return;
+    }
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      e.preventDefault();
+      if (calendarOpen) {
+        setCalendarOpen(false);
+        setCalendarReturnDone(true);
+        return;
+      }
+      setCalendarNowMs(Date.now());
+      setCalendarOpen(true);
+    });
+    return unsubscribe;
+  }, [fromCalendar, calendarReturnDone, calendarOpen, navigation]);
+
+  const closeCalendar = () => {
+    setCalendarOpen(false);
+    if (fromCalendar) {
+      setCalendarReturnDone(true);
+    }
+  };
+
+  const openCalendar = () => {
+    setCalendarNowMs(Date.now());
+    setCalendarOpen(true);
+  };
+
+  const calendarParams = fromCalendar ? { fromCalendar: '1' } : {};
+
   const toggleEventPlayback = (event: SnoreEvent): void => {
     if (event.audioPath === null) {
       return;
@@ -153,18 +212,21 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
     }
     router.replace({
       pathname: '/session/[id]/summary',
-      params: { id: next.id },
+      params: { id: next.id, ...calendarParams },
     });
   };
 
   if (loading) {
     return (
-      <Screen variant="fixed" background="app" edges={['left', 'right', 'bottom']} testID="summary-screen">
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={{ color: colors.fgCaption, fontFamily: fontFamily.regular, fontSize: fontSize.body }}>
-            {summaryCopy.loadingLabel}
-          </Text>
+      <Screen variant="fixed" background="app" edges={['top', 'left', 'right', 'bottom']} testID="summary-screen">
+        <View style={{ flex: 1, gap: spacing.md, paddingTop: spacing.sm }}>
+          <SummaryHeader />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={{ color: colors.fgCaption, fontFamily: fontFamily.regular, fontSize: fontSize.body }}>
+              {summaryCopy.loadingLabel}
+            </Text>
+          </View>
         </View>
       </Screen>
     );
@@ -172,8 +234,10 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
 
   if (!detail) {
     return (
-      <Screen variant="fixed" background="app" edges={['left', 'right', 'bottom']} testID="summary-screen">
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, gap: spacing.sm }}>
+      <Screen variant="fixed" background="app" edges={['top', 'left', 'right', 'bottom']} testID="summary-screen">
+        <View style={{ flex: 1, gap: spacing.md, paddingTop: spacing.sm }}>
+          <SummaryHeader />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, gap: spacing.sm }}>
           <Text
             style={{
               color: colors.fg,
@@ -206,6 +270,7 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
               testID="summary-retry"
             />
           ) : null}
+          </View>
         </View>
       </Screen>
     );
@@ -214,9 +279,10 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
   const { summary, events } = detail;
   const timeline = deriveTimelineFromSession(events, summary);
   const snippets = toSnippetRows(events);
+  const clipped = playableSnippetCount(events) > SNIPPET_LIST_LIMIT;
   const loudest = loudestDisplay(summary);
   const loudestEpisode = summary.loudestEpisode;
-  const dateAnchor = summary.range.endedAt;
+  const dateAnchor = summary.range.startedAt;
   const scoreBreakdown = deriveScoreBreakdown(events, summary);
   const aiInsights = deriveAiInsights(scoreBreakdown);
   const progress =
@@ -226,9 +292,11 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
     <Screen
       variant="scroll"
       background="app"
-      edges={['left', 'right', 'bottom']}
+      edges={['top', 'left', 'right', 'bottom']}
+      contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.sm }}
       testID="summary-screen"
     >
+      <SummaryHeader />
       <DateNavigator
         label={formatSummaryDateLabel(dateAnchor)}
         onPrev={() => {
@@ -237,8 +305,40 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
         onNext={() => {
           goNeighbor(-1);
         }}
-        onCalendar={noop}
+        onCalendar={openCalendar}
         testID="summary-date-navigator"
+      />
+
+      {calendarOpen && calendarNowMs !== null ? (
+        <CalendarSheet
+          visible
+          onClose={closeCalendar}
+          initialDateMs={calendarNowMs}
+          sessions={sessions}
+          onSelectSession={(id) => {
+            if (id !== sessionId) {
+              router.replace({
+                pathname: '/session/[id]/summary',
+                params: { id, fromCalendar: '1' },
+              });
+              return;
+            }
+            closeCalendar();
+          }}
+          testID="summary-calendar-sheet"
+        />
+      ) : null}
+
+      <InfoDialog
+        visible={timelineInfoOpen}
+        title={summaryCopy.timelineInfoTitle}
+        message={summaryCopy.timelineInfoBody}
+        dismissLabel={summaryCopy.infoDismissLabel}
+        dismissAccessibilityLabel={summaryCopy.infoDismissAccessibilityLabel}
+        onDismiss={() => {
+          setTimelineInfoOpen(false);
+        }}
+        testID="summary-timeline-info"
       />
 
       <View style={{ gap: spacing.sm }}>
@@ -255,21 +355,23 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
           <MetricCard
             width="half"
             tone="elevated"
-            corner="md"
+            corner="lg"
             border="subtle"
             inset="compact"
+            style={summaryCardStyle}
             label={summaryCopy.snoringTimeLabel}
             value={formatMinutesLabel(summary.totalSnoringMs)}
             caption={formatPercentOfSleep(summary.snoringShare)}
-            trailingIcon={<ClockGlyph />}
+            trailingIcon={<SummaryIconTile name="time-outline" />}
             testID="summary-metric-snoring-time"
           />
           <MetricCard
             width="half"
             tone="elevated"
-            corner="md"
+            corner="lg"
             border="subtle"
             inset="compact"
+            style={summaryCardStyle}
             label={summaryCopy.peakLoudnessLabel}
             value={String(Math.round(summary.peakDb))}
             unit={summaryCopy.peakLoudnessUnit}
@@ -278,7 +380,7 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
                 ? `at ${formatClock(summary.peakAt)}`
                 : formatDurationShort(summary.durationMs)
             }
-            trailingIcon={<PeakWaveGlyph />}
+            trailingIcon={<SummaryIconTile name="pulse-outline" color={colors.alertText} />}
             testID="summary-metric-peak"
           />
         </CardRow>
@@ -304,48 +406,60 @@ export function SummaryScreen({ sessionId }: SummaryScreenProps) {
           <TimelineCard
             bars={timeline.bars}
             peakCallout={timeline.peakCallout}
-            onBarPress={(bar) => {
-              const index = barIndexFromBarId(bar.id);
-              if (index === null) {
-                return;
-              }
-              const event = loudestEventInBar(
-                events,
-                timeline.firstBucketStart,
-                timeline.bucketDurationMs,
-                index,
-              );
-              if (!event) {
-                return;
-              }
-              toggleEventPlayback(event);
+            onInfoPress={() => {
+              setTimelineInfoOpen(true);
             }}
-            onInfoPress={noop}
             testID="summary-timeline"
           />
         ) : null}
 
         {snippets.length > 0 ? (
-          <View style={{ gap: spacing.xs }}>
-            <SectionHeader title={summaryCopy.snippetsTitle} />
-            {snippets.map((snippet) => {
-              const active = playback.eventId === snippet.event.id;
-              const isLoudest =
-                loudestEpisode !== null && snippet.event.id === loudestEpisode.id;
-              return (
-                <SnippetRow
-                  key={snippet.event.id}
-                  snippet={snippet}
-                  playing={active && playback.playing}
-                  progress={active ? progress : 0}
-                  onPlay={() => {
-                    toggleEventPlayback(snippet.event);
-                  }}
-                  emphasizeTime={isLoudest}
-                  testID={`summary-snippet-${snippet.event.id}`}
-                />
-              );
-            })}
+          <View style={{ gap: spacing.sm }}>
+            <SectionHeader title={summaryCopy.snippetsTitle} tone="premium" />
+            <Card
+              width="full"
+              tone="elevated"
+              corner="lg"
+              border="subtle"
+              inset="compact"
+              style={summaryCardStyle}
+            >
+              {snippets.map((snippet, index) => {
+                const active = playback.eventId === snippet.event.id;
+                const isLoudest =
+                  loudestEpisode !== null && snippet.event.id === loudestEpisode.id;
+                return (
+                  <View key={snippet.event.id}>
+                    {index > 0 ? (
+                      <View style={{ height: 1, backgroundColor: colors.settingsCardBorder }} />
+                    ) : null}
+                    <SnippetRow
+                      snippet={snippet}
+                      playing={active && playback.playing}
+                      progress={active ? progress : 0}
+                      onPlay={() => {
+                        toggleEventPlayback(snippet.event);
+                      }}
+                      emphasizeTime={isLoudest}
+                      testID={`summary-snippet-${snippet.event.id}`}
+                    />
+                  </View>
+                );
+              })}
+            </Card>
+            {clipped ? (
+              <Text
+                style={{
+                  color: colors.fgCaption,
+                  fontFamily: fontFamily.regular,
+                  fontSize: fontSize.caption,
+                  lineHeight: lineHeight.caption,
+                  paddingHorizontal: spacing.xs,
+                }}
+              >
+                {summaryCopy.snippetsCaption}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 

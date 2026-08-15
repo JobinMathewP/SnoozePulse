@@ -15,8 +15,7 @@ import type { SessionSummary, SnoreEvent } from '@/types';
  *
  * A snore event is credited to every bar whose window it overlaps, so a 10 s snore that
  * spans two 5 s buckets contributes to both bars. Bar height uses the peak dB of the
- * loudest overlapping event; empty windows render as zero-height bars whose taps become
- * no-ops (`SnoreEvent` lookup returns null).
+ * loudest overlapping event; empty windows render as the minimum bar height.
  */
 
 /** ~60 bars from summary-screen.jpg. */
@@ -30,7 +29,7 @@ export const TIMELINE_MIN_BUCKET_MS = 1_000;
 
 export type TimelineDerivation = {
   readonly bars: readonly TimelineBarModel[];
-  /** Width of a single bar's time window; needed by tap-to-play lookups. */
+  /** Width of a single bar's time window. */
   readonly bucketDurationMs: number;
   /**
    * Absolute epoch of the first bar. `bars[i]` covers

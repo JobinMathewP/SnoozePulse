@@ -22,6 +22,7 @@
  *   analytics.ts  — session_buckets, scores, Summary / History models
  *   errors.ts     — discriminated AppError union
  *   sqlite.ts     — SQLite row shapes (repository boundary only)
+ *   profile.ts    — optional user preferences (display name, onboarding flag)
  */
 
 export type {
@@ -79,3 +80,5 @@ export type {
 } from './errors';
 
 export type { SessionBucketRow, SleepSessionRow, SnoreEventRow } from './sqlite';
+
+export type { UserProfile } from './profile';

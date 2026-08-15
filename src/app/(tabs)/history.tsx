@@ -5,15 +5,14 @@ import { HistoryScreen } from '@/features/history';
 import { colors, fontFamily, fontSize } from '@/theme';
 
 /**
- * History tab route — Your Progress (Task 3.5).
- * Title matches history-screen.jpg; no back chevron (tab root, ADR-09).
+ * History tab route. Title matches the tab label (ADR-09).
  */
 export default function HistoryRoute() {
   const navigation = useNavigation();
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: 'Your Progress',
+      title: 'History',
       headerTitleAlign: 'center',
       headerTitleStyle: {
         fontFamily: fontFamily.medium,

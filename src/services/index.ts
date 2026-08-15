@@ -11,12 +11,16 @@ export type { IAudioService, SnippetPlaybackStatus } from './IAudioService';
 export type { ISleepService, RetentionCleanup, SessionReadiness } from './ISleepService';
 export type { IAnalyticsService } from './IAnalyticsService';
 export type { ISnippetStorage } from './ISnippetStorage';
+export type { IProfileService } from './IProfileService';
+export type { IReviewService } from './IReviewService';
 
 export { AudioService } from './AudioService';
 export { SleepService } from './SleepService';
 export { ExpoSnippetStorage } from './ExpoSnippetStorage';
 export { FakeAudioEngine } from './fakes/FakeAudioEngine';
 export { AnalyticsService } from './analytics';
+export { ProfileService } from './ProfileService';
+export { ReviewService, type ReviewPrompter } from './ReviewService';
 
 export {
   DATABASE_VERSION,

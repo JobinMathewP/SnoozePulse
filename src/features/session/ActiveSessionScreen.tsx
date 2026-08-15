@@ -18,6 +18,11 @@ import { useLiveAudioLevel } from './useLiveAudioLevel';
 
 type ActiveSessionScreenProps = {
   readonly onEndSession: () => void;
+  /**
+   * Bump to remount the slider so its thumb resets to the start — used after a cancelled
+   * too-short discard dialog, where the completed slide left the thumb pinned right.
+   */
+  readonly slideResetToken?: number;
 };
 
 type ClockParts = {
@@ -81,7 +86,10 @@ const WavePanel = memo(function WavePanel({ level, width }: WavePanelProps) {
  *
  * No pause control (ADR-14). Waveform level is the live shared value (ADR-13).
  */
-export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) {
+export function ActiveSessionScreen({
+  onEndSession,
+  slideResetToken = 0,
+}: ActiveSessionScreenProps) {
   // Screen is intentionally allowed to sleep. iOS UIBackgroundModes: audio and Android's
   // FOREGROUND_SERVICE_MICROPHONE keep capture alive while the phone is locked; a nightlong
   // KeepAwake would burn OLED for no functional gain.
@@ -276,7 +284,12 @@ export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) 
           </View>
 
           <View style={{ paddingBottom: spacing.lg }}>
-            <SlideToEnd onEnd={onEndSession} testID="active-session-slide-to-end" />
+            {/* Remounting on token change resets the thumb to the start (ADR-30). */}
+            <SlideToEnd
+              key={slideResetToken}
+              onEnd={onEndSession}
+              testID="active-session-slide-to-end"
+            />
           </View>
         </View>
       </Screen>

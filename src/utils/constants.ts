@@ -20,3 +20,15 @@ export const TIMELINE_BUCKET_DURATION_MS = 5 * 60 * 1000;
 
 /** Document-directory subfolder where the native engine writes snippets. */
 export const SNIPPET_DIRECTORY_NAME = 'snippets';
+
+/**
+ * Minimum wall-clock length for a session to be worth keeping (ADR-30). Shorter recordings
+ * carry no useful scoring signal, so slide-to-end warns and discards them.
+ */
+export const MIN_SESSION_DURATION_MS = 5 * 60 * 1000;
+
+/**
+ * Surface the one-time native rating prompt on this many saved sessions (ADR-30). Chosen so
+ * we only ask after the user has seen real value across a few nights.
+ */
+export const REVIEW_PROMPT_AFTER_SESSIONS = 3;

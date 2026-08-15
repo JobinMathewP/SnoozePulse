@@ -21,6 +21,8 @@ async function configureConnection(db: DatabaseClient): Promise<void> {
   // WAL and foreign_keys are per-connection; set them on every open.
   await db.execAsync('PRAGMA journal_mode = WAL');
   await db.execAsync('PRAGMA foreign_keys = ON');
+  // Overlapping snore flushes (timer vs slide-to-end) used to throw SQLITE_BUSY.
+  await db.execAsync('PRAGMA busy_timeout = 5000');
 }
 
 async function openAndMigrate(): Promise<DatabaseClient> {

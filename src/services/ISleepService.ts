@@ -1,5 +1,6 @@
 import type {
   CalibrationResult,
+  EpochMs,
   MicrophonePermissionStatus,
   Page,
   PageRequest,
@@ -65,6 +66,15 @@ export interface ISleepService {
   /** Paginated history, newest first. */
   listSessions(request: PageRequest): Promise<Result<Page<SleepSession>>>;
 
+  /**
+   * Sessions started within `[fromMs, toMs)`, newest first — backs the calendar month
+   * view (ADR-30).
+   */
+  listSessionsInRange(
+    fromMs: EpochMs,
+    toMs: EpochMs,
+  ): Promise<Result<readonly SleepSession[]>>;
+
   /** Timeline buckets for one session (ADR-11). Empty when none were saved. */
   getBuckets(sessionId: string): Promise<Result<readonly SessionBucket[]>>;
 
@@ -79,6 +89,12 @@ export interface ISleepService {
    * Cascades through the repository; this method unlinks orphaned snippet files.
    */
   deleteSession(id: string): Promise<Result<void>>;
+
+  /**
+   * Delete every session plus their events, buckets, and snippet files. Backs the Settings
+   * "Delete all sleep data" action (ADR-30).
+   */
+  deleteAllSessions(): Promise<Result<void>>;
 
   /**
    * Enforce snippet retention: 30 days or 500 MB, whichever limit is hit first (ADR-15).
@@ -103,4 +119,12 @@ export interface ISleepService {
    * Returns how many rows were closed. Safe at boot before a new Start.
    */
   recoverInterruptedSessions(): Promise<Result<number>>;
+
+  /**
+   * Development-only: insert synthetic completed nights spread across recent weeks so the
+   * calendar and history can be exercised without recording. Returns how many rows were
+   * written. The only caller is a `__DEV__`-guarded Settings action, so this never runs in a
+   * release build.
+   */
+  seedDemoNights(count: number): Promise<Result<number>>;
 }

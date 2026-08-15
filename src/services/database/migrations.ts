@@ -4,7 +4,9 @@
  * Version 1 creates the three-table schema. Version 2 (Task 6.5 / ADR-26) adds the
  * classifier-driven columns to `snore_events`, adds `score_version` to `sleep_sessions`,
  * and destructively wipes every V1 row — pre-M6 sessions cannot be re-scored with the V2
- * signals, so keeping them would silently mix incompatible scores.
+ * signals, so keeping them would silently mix incompatible scores. Version 3 (ADR-30) adds
+ * a key-value `app_settings` table for the display name, onboarding flag, and rating-prompt
+ * bookkeeping — additive only, so it never disturbs recorded nights.
  *
  * Later versions append `if (current === n)` blocks only — never edit a prior migration
  * body after it has shipped.
@@ -13,7 +15,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 /** Latest schema version applied by this app build. */
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 
 const MIGRATION_V1 = `
 CREATE TABLE IF NOT EXISTS sleep_sessions (
@@ -78,6 +80,20 @@ DELETE FROM sleep_sessions;
 `;
 
 /**
+ * V3 migration — key-value app settings (ADR-30).
+ *
+ * Additive: a single new table for small scalar preferences (display name, onboarding
+ * flag, rating-prompt bookkeeping). Unlike V2 this migration is non-destructive — recorded
+ * sessions are preserved across the public-release upgrade so a user's history survives.
+ */
+const MIGRATION_V3 = `
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY NOT NULL,
+  value TEXT
+);
+`;
+
+/**
  * Apply any pending migrations. Safe to call on every open: already-applied versions are
  * skipped via `user_version`, so opening twice does not re-run DDL.
  *
@@ -104,6 +120,13 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<number> {
       await db.execAsync(MIGRATION_V2);
     });
     current = 2;
+  }
+
+  if (current === 2) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(MIGRATION_V3);
+    });
+    current = 3;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

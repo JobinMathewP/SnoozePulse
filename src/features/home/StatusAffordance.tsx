@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
+
+import { HOME_WAVEFORM_MARK } from './BrandMark';
 
 type StatusIconProps = {
   readonly color: string;
@@ -69,7 +72,7 @@ type StatusCheckProps = {
 };
 
 /** Filled success disc with white check — mic / calibration trailing affordance. */
-export function StatusCheck({ color = colors.successText }: StatusCheckProps) {
+export function StatusCheck({ color = colors.homeReady }: StatusCheckProps) {
   const size = spacing.xl;
   return (
     <View
@@ -110,5 +113,19 @@ export function BatteryPercent({ percent, color }: BatteryPercentProps) {
     >
       {percent === null ? '—' : `${percent}%`}
     </Text>
+  );
+}
+
+/** Mini waveform trailing the Environment row (home-screen-moke.png). */
+export function WaveformTrail() {
+  const width = spacing.xl + spacing.md;
+  const height = spacing.md + spacing.xs;
+  return (
+    <Image
+      source={HOME_WAVEFORM_MARK}
+      contentFit="contain"
+      accessibilityElementsHidden
+      style={{ width, height }}
+    />
   );
 }

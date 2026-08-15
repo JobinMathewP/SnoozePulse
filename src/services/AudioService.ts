@@ -42,6 +42,8 @@ export class AudioService implements IAudioService {
   private activeSession: SleepSession | null = null;
   private snoreBuffer: SnoreEvent[] = [];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Serializes timer flushes vs slide-to-end so SQLite never sees overlapping writes. */
+  private flushChain: Promise<void> = Promise.resolve();
   private engineSnoreUnsubscribe: (() => void) | null = null;
 
   private readonly levelListeners = new Set<Listener<AudioLevelEvent>>();
@@ -176,6 +178,24 @@ export class AudioService implements IAudioService {
   }
 
   /**
+   * Stop capture and throw the in-progress session away (ADR-30). Deletes the row and any
+   * snippets that were written before the user bailed out, then resets to IDLE. Unlike
+   * {@link stopSession} it never scores or completes the session.
+   */
+  async discardSession(): Promise<Result<void>> {
+    const session = this.activeSession;
+    await this.audioEngine.stopRecording();
+    this.clearFlushTimer();
+    this.snoreBuffer = [];
+    this.activeSession = null;
+    this.forceState('IDLE');
+    if (session) {
+      return this.sleepService.deleteSession(session.id);
+    }
+    return ok(undefined);
+  }
+
+  /**
    * Always stops the native engine. Completes `activeSession` when present.
    * Used when the Zustand machine was reset out from under a live capture.
    */
@@ -219,6 +239,8 @@ export class AudioService implements IAudioService {
       return stopped;
     }
 
+    // Drain any in-flight timer flush, then persist whatever the native stop just emitted.
+    await this.flushChain;
     const flushed = await this.flushSnoreBuffer();
     if (!flushed.ok) {
       this.forceState('ERROR');
@@ -521,7 +543,16 @@ export class AudioService implements IAudioService {
     }
   }
 
-  private async flushSnoreBuffer(): Promise<Result<void>> {
+  private flushSnoreBuffer(): Promise<Result<void>> {
+    const queued = this.flushChain.then(() => this.flushSnoreBufferNow());
+    this.flushChain = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queued;
+  }
+
+  private async flushSnoreBufferNow(): Promise<Result<void>> {
     this.clearFlushTimer();
     if (this.snoreBuffer.length === 0) {
       return ok(undefined);

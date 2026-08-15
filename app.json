@@ -83,7 +83,8 @@
           "enableBackgroundRecording": true
         }
       ],
-      "./plugins/withSwiftUICoreFix"
+      "./plugins/withSwiftUICoreFix",
+      "./plugins/withStoreReviewSceneFix"
     ],
     "experiments": {
       "typedRoutes": true,

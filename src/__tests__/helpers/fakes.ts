@@ -7,7 +7,12 @@ import type {
   SleepSessionCompletion,
   SnoreEvent,
 } from '@/types';
-import type { ISleepRepository, ISnoreRepository, Result } from '@/repositories';
+import type {
+  ISleepRepository,
+  ISnoreRepository,
+  ISettingsRepository,
+  Result,
+} from '@/repositories';
 import { err, ok } from '@/repositories';
 import type { ISnippetStorage } from '@/services';
 import type { SnippetFileInfo } from '@/utils';
@@ -87,6 +92,16 @@ export class FakeSleepRepository implements ISleepRepository {
     });
   }
 
+  async listSessionsInRange(
+    fromMs: number,
+    toMs: number,
+  ): Promise<Result<readonly SleepSession[]>> {
+    const items = [...this.sessions.values()]
+      .filter((s) => s.startedAt >= fromMs && s.startedAt < toMs)
+      .sort((a, b) => b.startedAt - a.startedAt);
+    return ok(items);
+  }
+
   async deleteSession(id: string): Promise<Result<readonly string[]>> {
     if (!this.sessions.has(id)) {
       return err({
@@ -98,6 +113,12 @@ export class FakeSleepRepository implements ISleepRepository {
     }
     this.sessions.delete(id);
     this.buckets.delete(id);
+    return ok([]);
+  }
+
+  async deleteAllSessions(): Promise<Result<readonly string[]>> {
+    this.sessions.clear();
+    this.buckets.clear();
     return ok([]);
   }
 
@@ -128,7 +149,12 @@ export class FakeSnoreRepository implements ISnoreRepository {
   async saveSnoreEvents(events: readonly SnoreEvent[]): Promise<Result<void>> {
     for (const event of events) {
       const list = this.events.get(event.sessionId) ?? [];
-      list.push(event);
+      const existing = list.findIndex((row) => row.id === event.id);
+      if (existing >= 0) {
+        list[existing] = event;
+      } else {
+        list.push(event);
+      }
       list.sort((a, b) => a.timestamp - b.timestamp);
       this.events.set(event.sessionId, list);
     }
@@ -141,6 +167,25 @@ export class FakeSnoreRepository implements ISnoreRepository {
 
   async deleteEvents(sessionId: string): Promise<Result<void>> {
     this.events.delete(sessionId);
+    return ok(undefined);
+  }
+}
+
+/** In-memory key-value settings repository for profile / review tests. */
+export class FakeSettingsRepository implements ISettingsRepository {
+  readonly store = new Map<string, string>();
+
+  async get(key: string): Promise<Result<string | null>> {
+    return ok(this.store.get(key) ?? null);
+  }
+
+  async set(key: string, value: string): Promise<Result<void>> {
+    this.store.set(key, value);
+    return ok(undefined);
+  }
+
+  async remove(key: string): Promise<Result<void>> {
+    this.store.delete(key);
     return ok(undefined);
   }
 }

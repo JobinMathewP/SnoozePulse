@@ -49,6 +49,31 @@ export const colors = {
   tabbar: '#051027',
   /** active-session.jpg — "Slide to end session" track, (620,1660)-(760,1710). */
   pill: '#1E1E1E',
+  /**
+   * Modal scrim behind bottom sheets (calendar picker, confirmations). Not sampled — there
+   * is no reference image for a modal; a 60%-black veil is the platform-neutral default that
+   * dims the page without tinting it (ADR-30).
+   */
+  scrim: 'rgba(0, 0, 0, 0.6)',
+
+  // ---------------------------------------------------------------------------
+  // Calendar history view (ADR-30). These are from the user's explicit redesign
+  // spec, not sampled from a docs/ mockup — the history calendar is a new design
+  // direction. The palette deliberately diverges from Apple Fitness's neon rings
+  // (cyan → blue instead of pink/red) to avoid a copycat rejection (Guideline 4.1).
+  // ---------------------------------------------------------------------------
+  /** Deep midnight page fill for the floating calendar sheet. */
+  calBg: '#0B0D17',
+  /** Inactive ring track — a shade above the background, not a tint of the active ring. */
+  calRingTrack: '#1A1D2D',
+  /** Quiet-sleep ring gradient start (cyan). */
+  calRingStart: '#00F2FE',
+  /** Quiet-sleep ring gradient end (blue). */
+  calRingEnd: '#4FACFE',
+  /** Faded weekday labels / secondary text on the calendar. */
+  calWeekday: '#7A819C',
+  /** Translucent circular control background (close button). */
+  calControl: 'rgba(255, 255, 255, 0.10)',
 
   // ---------------------------------------------------------------------------
   // Borders
@@ -104,8 +129,11 @@ export const colors = {
   heroEdge: '#3532E3',
   /** home-screen.jpg — the white ring itself, stroke-core median over (160,815)-(180,860). */
   heroRing: '#E5E7FE',
-  /** home-screen.jpg — glow immediately outside the ring, (640,827)-(660,847). */
-  heroGlow: '#4B48DC',
+  /**
+   * assets/new_images/home-screen-moke.png — bloom on the circular start art,
+   * saturated pixels (180,720)–(250,900) → #8A4FF6.
+   */
+  heroGlow: '#8A4FF6',
 
   // ---------------------------------------------------------------------------
   // Snoring timeline bars. Each bar runs low to peak bottom-to-top.
@@ -120,10 +148,16 @@ export const colors = {
   // ---------------------------------------------------------------------------
   // Tab bar icons
   // ---------------------------------------------------------------------------
-  /** home-screen.jpg — selected "Home" icon, (104,1685)-(148,1728). */
-  tabActive: '#4843FC',
-  /** home-screen.jpg — unselected "History" icon, (302,1685)-(342,1728). */
-  tabInactive: '#858CA4',
+  /**
+   * assets/new_images/home-screen-moke.png — selected Home house, saturated pixels
+   * (40,1680)–(250,1800) → #723EFB.
+   */
+  tabActive: '#723EFB',
+  /**
+   * assets/new_images/home-screen-moke.png — inactive History bars, (480,1690)–(720,1780)
+   * mid-luminance glyphs → #636885.
+   */
+  tabInactive: '#636885',
 
   // ---------------------------------------------------------------------------
   // AI Insights card — sampled from the "AI Insights" mockup the user provided on
@@ -147,6 +181,106 @@ export const colors = {
   insightRhythm: '#E93D7B',
   /** Sound Mix accent — bar chart tile (numeric counts). */
   insightSoundMix: '#F3A620',
+
+  // ---------------------------------------------------------------------------
+  // Onboarding (first-run). Sampled from assets/new_images/allscreen.png (1536×1024,
+  // four phones). Do not reuse these on Home/History — the rest of the product stays on
+  // the indigo `primary` / `tabActive` family (ADR-06).
+  // ---------------------------------------------------------------------------
+  /**
+   * CTA fill. Phone 1 button core, vertical sample at (188, 748)–(188, 756) → #4D36BA.
+   * Phone 2 button core (576, 780)–(576, 792) corroborates #4C38B9.
+   */
+  onboardAccent: '#4D36BA',
+  /**
+   * Heading highlight (“while you sleep”, “privacy”). Saturated glyphs on phones 2–3
+   * (cols 2–3, y≈90–180) mean #694ADE.
+   */
+  onboardAccentMuted: '#694ADE',
+  /**
+   * Idle progress dots. Neutral mid-gray cluster in phone 1 header band (80–300, 50–110)
+   * where max-min < 20 → #242630.
+   */
+  onboardDotIdle: '#242630',
+  /**
+   * Name-field fill. Phone 4 input band, dark pixels (max < 60) over (1198, 540)–(1490, 640)
+   * → #0B1321.
+   */
+  onboardInputFill: '#0B1321',
+
+  // ---------------------------------------------------------------------------
+  // Settings (ADR-30 chrome). Sampled from assets/new_images/settings-screen.png
+  // (853×1844). Do not reuse these on Home/History/onboarding.
+  // ---------------------------------------------------------------------------
+  /**
+   * Uppercase section labels (“PROFILE”). Left band (40,248)–(160,272); chroma-filtered
+   * core of the lavender glyphs → #8B72EC.
+   */
+  settingsSection: '#8B72EC',
+  /**
+   * Card surface. Profile card interior mean over (50,300)–(400,400) → #1B1B41.
+   * Data/About/Legal cards corroborate #1C1F3E–#1D2040.
+   */
+  settingsCard: '#1B1B41',
+  /**
+   * Card hairline. Legal-card saturated edge (80,1300)–(400,1360) sat12 → #2A285A.
+   */
+  settingsCardBorder: '#2A285A',
+  /**
+   * Edit outline / avatar / icon glow. PROFILE glyph core #8B72EC; Edit-pill saturated
+   * pixels (600,300)–(830,400) top → #9774F2. Use the glyph core so labels and chrome match.
+   */
+  settingsAccent: '#8B72EC',
+  /**
+   * Rounded-square behind Ionicons. Legal first-row tile mean (48,1280)–(110,1340) → #21214C.
+   */
+  settingsIconTile: '#21214C',
+  /**
+   * Delete-row glyph. Red pixels (40,825)–(820,895), chroma ≥ 40, core → #F75166.
+   */
+  settingsDestructive: '#F75166',
+
+  // ---------------------------------------------------------------------------
+  // Home (premium mock). Sampled from assets/new_images/home-screen-moke.png
+  // (853×1844). Do not reuse onboard / settings tokens here.
+  // ---------------------------------------------------------------------------
+  /**
+   * Greeting (“Good morning, …”). Saturated glyphs (200,220)–(650,265) core → #A883FE.
+   */
+  homeGreeting: '#A883FE',
+  /**
+   * Status / Last-night card fill. Dark pixels (80,1040)–(400,1120) → #06081F.
+   */
+  homeCard: '#06081F',
+  /**
+   * Status-card left hairline. Mid-luminance edge (40,1040)–(70,1180) → #121135.
+   */
+  homeCardBorder: '#121135',
+  /**
+   * Environment waveform / snore-ring stroke. Saturated ring pixels (60,1500)–(280,1640)
+   * → #743EFB.
+   */
+  homeAccent: '#743EFB',
+  /**
+   * Snore-score ring highlight. Last-night label core (50,1420)–(250,1470) → #AA81FF.
+   */
+  homeRingStart: '#AA81FF',
+  /**
+   * Snore-score ring deep stop. Same family as `tabActive` (#723EFB).
+   */
+  homeRingEnd: '#723EFB',
+  /**
+   * Soft disc behind the active Home tab icon. (180,1688)–(280,1788) purple wash → #2D1D6C.
+   */
+  homeTabPill: '#2D1D6C',
+  /**
+   * Vertical divider in Last night. (380,1500)–(460,1620) mean → #100F33.
+   */
+  homeDivider: '#100F33',
+  /**
+   * Ready battery / mic glyphs. Microphone check core (600,1140)–(830,1220) → #22E37C.
+   */
+  homeReady: '#22E37C',
 } as const;
 
 export type ColorToken = keyof typeof colors;

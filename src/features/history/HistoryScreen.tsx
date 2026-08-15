@@ -1,12 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { Button, Screen, SectionHeader, SegmentedControl } from '@/components/ui';
+import { TOUCH_TARGET } from '@/components/ui/touchTarget';
+import { CalendarSheet } from '@/features/calendar';
 import { useInsights } from '@/hooks';
 import type { HistoryTrends } from '@/store';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
-import type { TrendPeriod } from '@/types';
+import type { SleepSession, TrendPeriod } from '@/types';
 
 import { DayScoreStrip } from './DayScoreStrip';
 import { ImprovementCard } from './ImprovementCard';
@@ -22,20 +25,34 @@ import {
 } from './models';
 import { WeeklyComparisonCard } from './WeeklyComparisonCard';
 
-const noop = (): void => undefined;
-
 /**
- * History / Your Progress — live analytics via store (ADR-12).
+ * History — live analytics via store (ADR-12).
  */
 export function HistoryScreen() {
   const router = useRouter();
-  const { loadHistoryTrends } = useInsights();
+  const { loadHistoryTrends, listRecentSessions } = useInsights();
   const [period, setPeriod] = useState<TrendPeriod>('7d');
   const [trends, setTrends] = useState<HistoryTrends | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarNowMs, setCalendarNowMs] = useState<number | null>(null);
+  const [sessions, setSessions] = useState<readonly SleepSession[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listRecentSessions(2000).then((result) => {
+      if (cancelled) {
+        return;
+      }
+      setSessions(result.ok ? result.value.filter((s) => s.endedAt !== null) : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [listRecentSessions, reloadToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,7 +120,63 @@ export function HistoryScreen() {
 
   return (
     <Screen variant="scroll" background="app" edges={['left', 'right', 'bottom']} testID="history-screen">
+      {calendarOpen && calendarNowMs !== null ? (
+        <CalendarSheet
+          visible
+          onClose={() => {
+            setCalendarOpen(false);
+          }}
+          initialDateMs={calendarNowMs}
+          sessions={sessions}
+          onSelectSession={(id) => {
+            router.push({
+              pathname: '/session/[id]/summary',
+              params: { id, fromCalendar: '1' },
+            });
+          }}
+          testID="history-calendar-sheet"
+        />
+      ) : null}
+
       <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Text
+            accessibilityRole="header"
+            style={{
+              color: colors.fg,
+              fontFamily: fontFamily.bold,
+              fontSize: fontSize.title,
+              lineHeight: lineHeight.title,
+            }}
+          >
+            {historyCopy.screenTitle}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={historyCopy.calendarAccessibilityLabel}
+            onPress={() => {
+              setCalendarNowMs(Date.now());
+              setCalendarOpen(true);
+            }}
+            hitSlop={spacing.sm}
+            style={{
+              minWidth: TOUCH_TARGET,
+              minHeight: TOUCH_TARGET,
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+            }}
+            testID="history-calendar-button"
+          >
+            <Ionicons name="calendar-outline" size={fontSize.title} color={colors.fgBody} />
+          </Pressable>
+        </View>
+
         <SegmentedControl
           options={[...segmentOptions]}
           value={period}
@@ -182,7 +255,7 @@ export function HistoryScreen() {
               />
             ) : null}
 
-            <InsightsCard onPress={noop} testID="history-insights" />
+            <InsightsCard testID="history-insights" />
           </>
         )}
       </View>

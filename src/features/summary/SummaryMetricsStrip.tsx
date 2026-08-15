@@ -6,6 +6,7 @@ import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
 import { summaryCopy } from './format';
 import { SnoreScoreDots } from './SnoreScoreDots';
+import { summaryCardStyle, SummaryIconTile } from './SummaryIconTile';
 
 type SummaryMetricsStripProps = {
   readonly sleepDurationValue: string;
@@ -22,6 +23,7 @@ type ColumnProps = {
   readonly caption?: string;
   readonly valueColor?: string;
   readonly belowValue?: ReactNode;
+  readonly icon?: ReactNode;
   readonly showDivider?: boolean;
 };
 
@@ -31,6 +33,7 @@ function Column({
   caption,
   valueColor = colors.fg,
   belowValue,
+  icon,
   showDivider,
 }: ColumnProps) {
   return (
@@ -41,9 +44,10 @@ function Column({
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: spacing.xs / 2,
-          paddingVertical: spacing.xs,
+          paddingVertical: spacing.sm,
         }}
       >
+        {icon ? <View style={{ marginBottom: spacing.xs }}>{icon}</View> : null}
         <Text
           numberOfLines={1}
           style={{
@@ -118,15 +122,25 @@ export function SummaryMetricsStrip({
   testID,
 }: SummaryMetricsStripProps) {
   return (
-    <Card width="full" tone="elevated" corner="md" border="subtle" inset="compact" testID={testID}>
+    <Card
+      width="full"
+      tone="elevated"
+      corner="lg"
+      border="subtle"
+      inset="compact"
+      style={summaryCardStyle}
+      testID={testID}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
         <Column
+          icon={<SummaryIconTile name="moon-outline" />}
           label={summaryCopy.sleepDurationLabel}
           value={sleepDurationValue}
           caption={sleepDurationCaption}
           showDivider
         />
         <Column
+          icon={<SummaryIconTile name="pulse-outline" />}
           label={summaryCopy.snoreCountLabel}
           value={String(snoreCount)}
           caption={summaryCopy.snoreCountCaption}
@@ -134,11 +148,12 @@ export function SummaryMetricsStrip({
           showDivider
         />
         <Column
+          icon={<SummaryIconTile name="speedometer-outline" />}
           label={summaryCopy.snoreScoreLabel}
           value={snoreScoreLabel}
           valueColor={colors.warning}
           belowValue={
-            <View style={{ marginTop: spacing.xs / 2, alignItems: 'center' }}>
+            <View style={{ marginTop: spacing.xs, alignItems: 'center' }}>
               <SnoreScoreDots filled={filledDots} />
             </View>
           }

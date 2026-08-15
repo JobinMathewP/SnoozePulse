@@ -34,6 +34,14 @@ export type InsightsSlice = {
   loadHistoryTrends: (period: TrendPeriod) => Promise<Result<HistoryTrends>>;
   /** Newest-first page for Summary date navigation. */
   listRecentSessions: (limit?: number) => Promise<Result<readonly SleepSession[]>>;
+  /**
+   * All sessions started in the given local calendar month (`month` is 0-based, like
+   * `Date`), newest first — backs the calendar picker (ADR-30).
+   */
+  loadSessionsForMonth: (
+    year: number,
+    month: number,
+  ) => Promise<Result<readonly SleepSession[]>>;
 };
 
 export function createInsightsSlice(deps: StoreDependencies): InsightsSlice {
@@ -79,6 +87,13 @@ export function createInsightsSlice(deps: StoreDependencies): InsightsSlice {
         return page;
       }
       return ok(page.value.items);
+    },
+
+    async loadSessionsForMonth(year, month) {
+      // Local-time month bounds: [1st 00:00 of month, 1st 00:00 of next month).
+      const fromMs = new Date(year, month, 1).getTime();
+      const toMs = new Date(year, month + 1, 1).getTime();
+      return deps.sleepService.listSessionsInRange(fromMs, toMs);
     },
   };
 }

@@ -18,6 +18,13 @@
   --color-card-elevated: #0D1829;
   --color-tabbar: #051027;
   --color-pill: #1E1E1E;
+  --color-scrim: rgba(0, 0, 0, 0.6);
+  --color-cal-bg: #0B0D17;
+  --color-cal-ring-track: #1A1D2D;
+  --color-cal-ring-start: #00F2FE;
+  --color-cal-ring-end: #4FACFE;
+  --color-cal-weekday: #7A819C;
+  --color-cal-control: rgba(255, 255, 255, 0.10);
   --color-border-card: #1F2940;
   --color-border-card-subtle: #121A2A;
   --color-fg: #FFFFFF;
@@ -32,12 +39,39 @@
   --color-hero-core: #101968;
   --color-hero-edge: #3532E3;
   --color-hero-ring: #E5E7FE;
-  --color-hero-glow: #4B48DC;
+  --color-hero-glow: #8A4FF6;
   --color-timeline-low: #1F1C7B;
   --color-timeline-mid: #6642B9;
   --color-timeline-peak: #FC4144;
-  --color-tab-active: #4843FC;
-  --color-tab-inactive: #858CA4;
+  --color-tab-active: #723EFB;
+  --color-tab-inactive: #636885;
+  --color-insight-surface: #111116;
+  --color-insight-tile: #17171D;
+  --color-insight-halo: #242430;
+  --color-insight-ai-accuracy: #5B9DFF;
+  --color-insight-snoring-level: #3EE580;
+  --color-insight-pattern: #2FD9C5;
+  --color-insight-rhythm: #E93D7B;
+  --color-insight-sound-mix: #F3A620;
+  --color-onboard-accent: #4D36BA;
+  --color-onboard-accent-muted: #694ADE;
+  --color-onboard-dot-idle: #242630;
+  --color-onboard-input-fill: #0B1321;
+  --color-settings-section: #8B72EC;
+  --color-settings-card: #1B1B41;
+  --color-settings-card-border: #2A285A;
+  --color-settings-accent: #8B72EC;
+  --color-settings-icon-tile: #21214C;
+  --color-settings-destructive: #F75166;
+  --color-home-greeting: #A883FE;
+  --color-home-card: #06081F;
+  --color-home-card-border: #121135;
+  --color-home-accent: #743EFB;
+  --color-home-ring-start: #AA81FF;
+  --color-home-ring-end: #723EFB;
+  --color-home-tab-pill: #2D1D6C;
+  --color-home-divider: #100F33;
+  --color-home-ready: #22E37C;
 
   /* spacing */
   --spacing-xs: 4px;
@@ -48,6 +82,7 @@
 
   /* radius */
   --radius-none: 0px;
+  --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;

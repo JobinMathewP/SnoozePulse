@@ -58,7 +58,7 @@ describe('SegmentedControl', () => {
 });
 
 describe('StatusCard', () => {
-  it('uses theme alert color for titles and supports press', async () => {
+  it('uses theme foreground for titles and supports press', async () => {
     const onPress = jest.fn();
     await render(
       <StatusCard
@@ -75,7 +75,7 @@ describe('StatusCard', () => {
     const style = Array.isArray(title.props.style)
       ? Object.assign({}, ...title.props.style)
       : title.props.style;
-    expect(style.color).toBe(colors.alertText);
+    expect(style.color).toBe(colors.fg);
     fireEvent.press(screen.getByLabelText('Open system settings'));
     expect(onPress).toHaveBeenCalled();
   });

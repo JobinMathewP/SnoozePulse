@@ -17,6 +17,11 @@ export type SessionSlice = {
   startSession: () => Promise<Result<SleepSession>>;
   stopSession: () => Promise<Result<SleepSession>>;
   /**
+   * Discard the in-progress session without scoring it and return to IDLE (ADR-30).
+   * Used when the user ends before the minimum session length.
+   */
+  discardSession: () => Promise<Result<void>>;
+  /**
    * Clear `ERROR` → `IDLE`, stop any lingering capture, and drop `lastError`.
    * Safe to call from Home / Active recovery UI.
    */
@@ -143,6 +148,21 @@ export function createSessionSlice(
       set({ activeSession: result.value, lastError: null });
       transition('IDLE');
       set({ activeSession: null });
+      liveAudioLevel.value = 0;
+      // A night was saved — let the review service decide whether to surface the one-time
+      // rating sheet (ADR-30). Fire-and-forget: it must never block or fail the stop flow.
+      void deps.reviewService.recordSavedSessionAndMaybeAsk();
+      return result;
+    },
+
+    async discardSession() {
+      const result = await deps.audioService.discardSession();
+      set({
+        sessionState: 'IDLE',
+        isRecording: false,
+        activeSession: null,
+        lastError: null,
+      });
       liveAudioLevel.value = 0;
       return result;
     },

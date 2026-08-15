@@ -9,6 +9,7 @@ export {
   useAppStore,
   useAudioLevels,
   useInsights,
+  useProfile,
   useSession,
   useSettings,
   useSnippetPlayback,

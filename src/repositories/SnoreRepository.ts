@@ -30,16 +30,25 @@ export class SnoreRepository implements ISnoreRepository {
             `INSERT INTO snore_events (
               id, session_id, timestamp, duration_ms, peak_db, audio_path,
               confidence, class_label, spectral_peak_hz
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              session_id = excluded.session_id,
+              timestamp = excluded.timestamp,
+              duration_ms = excluded.duration_ms,
+              peak_db = excluded.peak_db,
+              audio_path = excluded.audio_path,
+              confidence = excluded.confidence,
+              class_label = excluded.class_label,
+              spectral_peak_hz = excluded.spectral_peak_hz`,
             event.id,
             event.sessionId,
             event.timestamp,
             event.durationMs,
             event.peakDb,
-            event.audioPath,
+            event.audioPath ?? null,
             event.confidence,
             event.classLabel,
-            event.spectralPeakHz,
+            event.spectralPeakHz ?? null,
           );
         }
       });

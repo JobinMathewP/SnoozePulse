@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type {
+  EpochMs,
   NewSleepSession,
   Page,
   PageRequest,
@@ -119,6 +120,22 @@ export class SleepRepository implements ISleepRepository {
     });
   }
 
+  async listSessionsInRange(
+    fromMs: EpochMs,
+    toMs: EpochMs,
+  ): Promise<Result<readonly SleepSession[]>> {
+    return mapPersistence(async () => {
+      const rows = await this.db.getAllAsync<SleepSessionRow>(
+        `SELECT * FROM sleep_sessions
+         WHERE started_at >= ? AND started_at < ?
+         ORDER BY started_at DESC`,
+        fromMs,
+        toMs,
+      );
+      return rows.map(mapSleepSessionRow);
+    });
+  }
+
   async deleteSession(id: string): Promise<Result<readonly string[]>> {
     const existing = await this.getSession(id);
     if (!existing.ok) {
@@ -135,6 +152,21 @@ export class SleepRepository implements ISleepRepository {
         .map((row) => row.audio_path)
         .filter((path): path is string => path !== null && path.length > 0);
       await this.db.runAsync('DELETE FROM sleep_sessions WHERE id = ?', id);
+      return paths;
+    });
+  }
+
+  async deleteAllSessions(): Promise<Result<readonly string[]>> {
+    return mapPersistence(async () => {
+      // Collect every referenced snippet path before the cascade removes the event rows.
+      const pathRows = await this.db.getAllAsync<{ audio_path: string | null }>(
+        `SELECT audio_path FROM snore_events WHERE audio_path IS NOT NULL`,
+      );
+      const paths = pathRows
+        .map((row) => row.audio_path)
+        .filter((path): path is string => path !== null && path.length > 0);
+      // Deleting the parent rows cascades to snore_events and session_buckets via FK.
+      await this.db.runAsync('DELETE FROM sleep_sessions');
       return paths;
     });
   }

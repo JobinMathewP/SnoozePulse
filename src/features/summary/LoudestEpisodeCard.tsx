@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 
@@ -7,6 +6,7 @@ import { hitSlopForVisualSize } from '@/components/ui/touchTarget';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 
 import { summaryCopy } from './format';
+import { summaryCardStyle, SummaryIconTile } from './SummaryIconTile';
 
 type LoudestEpisodeCardProps = {
   readonly timeLabel: string;
@@ -41,16 +41,25 @@ export function LoudestEpisodeCard({
   const barWidth = (waveWidth - gap * (MINI_WEIGHTS.length - 1)) / MINI_WEIGHTS.length;
 
   return (
-    <Card width="full" tone="elevated" corner="md" border="subtle" inset="compact" testID={testID}>
+    <Card
+      width="full"
+      tone="elevated"
+      corner="lg"
+      border="subtle"
+      inset="compact"
+      style={summaryCardStyle}
+      testID={testID}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-        <View style={{ flex: 1, gap: spacing.xs / 2, minWidth: 0 }}>
+        <View style={{ flex: 1, gap: spacing.xs, minWidth: 0 }}>
           <Text
             style={{
-              color: colors.fgCaption,
-              fontFamily: fontFamily.regular,
+              color: colors.settingsSection,
+              fontFamily: fontFamily.semibold,
               fontSize: fontSize.caption,
               lineHeight: lineHeight.caption,
-              opacity: 0.65,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
             }}
           >
             {summaryCopy.loudestTitle}
@@ -108,22 +117,8 @@ export function LoudestEpisodeCard({
           disabled={!playable}
           hitSlop={hitSlopForVisualSize(PLAY)}
           onPress={onPlay}
-          style={{
-            width: PLAY,
-            height: PLAY,
-            borderRadius: PLAY / 2,
-            borderWidth: 1.5,
-            borderColor: playable ? colors.fg : colors.fgCaption,
-            opacity: playable ? 1 : 0.4,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
         >
-          <Ionicons
-            name={playing ? 'pause' : 'play'}
-            size={fontSize.caption}
-            color={colors.fg}
-          />
+          <SummaryIconTile name={playing ? 'pause' : 'play'} color={playable ? colors.fg : colors.fgCaption} />
         </Pressable>
       </View>
     </Card>

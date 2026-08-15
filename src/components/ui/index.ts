@@ -11,6 +11,8 @@ export { SectionHeader } from './SectionHeader';
 export { StatusCard, type StatusCardTone } from './StatusCard';
 export { MetricCard } from './MetricCard';
 export { Button } from './Button';
+export { ConfirmDialog } from './ConfirmDialog';
+export { InfoDialog } from './InfoDialog';
 export { ErrorPanel } from './ErrorPanel';
 export { Waveform, type WaveformProps } from './Waveform';
 export {

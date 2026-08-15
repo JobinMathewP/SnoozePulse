@@ -517,3 +517,70 @@ When either trigger above fires, the reopened task must, at minimum:
   dogfooding.
 
 This ADR does not weaken ADR-27 or ADR-21. It sequences the work, not the standard.
+
+---
+
+## ADR-30 — Public App Store release scope
+
+Ratified when preparing the first public App Store / Play Store submission.
+
+The app was built for a development team and is missing the shell a store reviewer and a
+first-time user expect. This ADR defines the minimal, honest scope that closes those gaps
+without adding a backend, an account, or any medical claim. It supersedes any earlier doc
+that implies a session-overwrite model or a stubbed Settings screen.
+
+**Persistence**
+
+- A new key-value `app_settings` table lands as migration **V3**. Unlike V2 (ADR-26), V3 is
+  **additive and non-destructive** — a user's recorded nights survive the public-release
+  upgrade. V3 stores the optional display name, the onboarding flag, and rating-prompt
+  bookkeeping only.
+- Every session is already an immutable row keyed by id; nothing overwrites the previous
+  night. The gap was navigational, not structural, so the fix is a calendar view over
+  `listSessionsInRange`, not a schema change to sessions.
+
+**Onboarding + greeting**
+
+- A four-slide illustrated first-run flow (welcome, on-device AI, privacy, optional name)
+  gates the tabs via a `Redirect`. The medical disclaimer stays as a caption on the privacy
+  slide (Guideline 1.4.1), not a fifth screen. The onboarding flag is read at boot and
+  seeded synchronously so the gate never flashes the tabs first.
+- The greeting name is **optional and skippable**. When blank, the greeting falls back to a
+  neutral "Good evening". No gender, age, or account is ever collected.
+
+**Sessions**
+
+- **All same-day sessions are preserved and browsable.** The calendar marks any day with
+  recordings and, when a day holds more than one session, lists each so none is hidden.
+- **Minimum session length is 5 minutes** (`MIN_SESSION_DURATION_MS`). Ending earlier warns
+  the user and, on confirmation, **discards** the session entirely (row + snippets) rather
+  than saving a night with no useful signal. Wall-clock based, so paused gaps still count.
+
+**Settings + compliance**
+
+- A real Settings screen carries: the greeting name, on-device retention info (ADR-15),
+  **Delete all sleep data** (destructive, confirmed), the medical disclaimer, external
+  Privacy / Terms / Support links (the GitHub Pages site under `website/`), a rating entry
+  point, and the app version. Chrome is illustrated (moon header, privacy/wellness art,
+  grouped cards) matching `assets/new_images/settings-screen.png`; the compliance rows and
+  store paths are unchanged.
+- No dead affordances (App Store Guideline 2.1): the History "insights" card is now static,
+  honest, general-guidance copy and is non-tappable; the Summary timeline info icon opens a
+  real explanatory dialog.
+- Medical positioning (Guideline 1.4.1): SnoozePulse is a **wellness tool**, never a
+  diagnostic device. Copy avoids apnea/diagnosis/treatment claims throughout.
+- iOS config: `supportsTablet: false` (iPhone-only) and a Privacy Manifest declaring the
+  required-reason APIs the Expo runtime touches (file timestamp `C617.1`, system boot time
+  `35F9.1`, disk space `E174.1`, user defaults `CA92.1`).
+
+**Ratings**
+
+- `expo-store-review` surfaces Apple's / Google's native in-app review sheet **once**, after
+  the **3rd saved session** (`REVIEW_PROMPT_AFTER_SESSIONS`). A once-only flag persists so it
+  never re-asks; Settings offers a manual "Rate" row. The app never shows its own
+  like/dislike gate — the OS throttles and owns the outcome.
+
+This ADR adds one new dependency (`expo-store-review`) and one new colour token (`scrim`,
+for modal veils — the only value not sampled from a reference image, since no modal mock
+exists). Layering is unchanged: UI → Store → Services → Repositories, with `ProfileService`
+and `ReviewService` injected at the composition root (ADR-12, ADR-18).

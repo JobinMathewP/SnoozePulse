@@ -1,4 +1,10 @@
-import type { IAnalyticsService, IAudioService, ISleepService } from '@/services';
+import type {
+  IAnalyticsService,
+  IAudioService,
+  IProfileService,
+  IReviewService,
+  ISleepService,
+} from '@/services';
 
 /**
  * What the store is allowed to receive.
@@ -11,4 +17,6 @@ export interface StoreDependencies {
   readonly audioService: IAudioService;
   readonly sleepService: ISleepService;
   readonly analyticsService: IAnalyticsService;
+  readonly profileService: IProfileService;
+  readonly reviewService: IReviewService;
 }

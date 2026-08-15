@@ -1,5 +1,5 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { type ComponentProps, type ReactNode, useEffect } from 'react';
 import { Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -44,10 +44,10 @@ export function AiInsightsCard({ view, testID }: AiInsightsCardProps) {
     <View testID={testID} style={{ gap: spacing.md }}>
       <View
         style={{
-          backgroundColor: colors.insightSurface,
-          borderRadius: radius.xl,
+          backgroundColor: colors.settingsCard,
+          borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: colors.borderCardSubtle,
+          borderColor: colors.settingsCardBorder,
           padding: spacing.md,
           gap: spacing.md,
         }}
@@ -161,7 +161,7 @@ function FeaturedInsight({ insight }: { readonly insight: AiInsight }) {
       <IconBadge
         color={insight.accent}
         size={FEATURED_ICON}
-        icon={<MaterialCommunityIcons name="bullseye-arrow" size={FEATURED_ICON * 0.55} color={insight.accent} />}
+        icon={<Ionicons name="locate-outline" size={FEATURED_ICON * 0.55} color={insight.accent} />}
       />
       <View style={{ flex: 1, gap: spacing.xs / 2 }}>
         <Text
@@ -213,7 +213,7 @@ function SecondaryTile({
         color={insight.accent}
         size={ICON_CIRCLE}
         icon={
-          <MaterialCommunityIcons
+          <Ionicons
             name={iconName}
             size={ICON_CIRCLE * 0.55}
             color={insight.accent}
@@ -263,7 +263,7 @@ function SoundMixCard({ mix }: { readonly mix: SoundMix }) {
       <IconBadge
         color={accent}
         size={ICON_CIRCLE}
-        icon={<MaterialCommunityIcons name="chart-bar" size={ICON_CIRCLE * 0.55} color={accent} />}
+        icon={<Ionicons name="bar-chart-outline" size={ICON_CIRCLE * 0.55} color={accent} />}
       />
       <View style={{ flex: 1, gap: spacing.xs / 2 }}>
         <Text
@@ -327,7 +327,7 @@ function IconBadge({
 }: {
   readonly color: string;
   readonly size: number;
-  readonly icon: React.ReactNode;
+  readonly icon: ReactNode;
 }) {
   return (
     <View
@@ -428,17 +428,17 @@ function AnimatedDot({
   );
 }
 
-function iconNameFor(id: AiInsight['id']): React.ComponentProps<typeof MaterialCommunityIcons>['name'] {
+function iconNameFor(id: AiInsight['id']): ComponentProps<typeof Ionicons>['name'] {
   switch (id) {
     case 'snoringLevel':
-      return 'lungs';
+      return 'fitness-outline';
     case 'pattern':
-      return 'waveform';
+      return 'analytics-outline';
     case 'rhythm':
-      return 'heart-pulse';
+      return 'heart-outline';
     case 'aiAccuracy':
     default:
-      return 'bullseye-arrow';
+      return 'locate-outline';
   }
 }
 

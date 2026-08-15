@@ -1,11 +1,10 @@
-import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Defs, Line, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/theme';
 
 import { Card } from './Card';
 import { SectionHeader } from './SectionHeader';
-import { hitSlopForVisualSize, TOUCH_TARGET } from './touchTarget';
 
 /** Default Y-axis ceiling matching summary-screen.jpg (0–80 dB). */
 const DEFAULT_MAX_DB = 80;
@@ -28,7 +27,6 @@ type TimelineCardProps = {
   readonly bars: readonly TimelineBarModel[];
   readonly maxDb?: number;
   readonly peakCallout?: TimelinePeakCallout;
-  readonly onBarPress: (bar: TimelineBarModel) => void;
   readonly onInfoPress?: () => void;
   readonly style?: StyleProp<ViewStyle>;
   readonly testID?: string;
@@ -46,7 +44,6 @@ export function TimelineCard({
   bars,
   maxDb = DEFAULT_MAX_DB,
   peakCallout,
-  onBarPress,
   onInfoPress,
   style,
   testID,
@@ -55,9 +52,18 @@ export function TimelineCard({
   const peakIndex = peakCallout ? bars.findIndex((bar) => bar.id === peakCallout.barId) : -1;
 
   return (
-    <Card width="full" tone="elevated" corner="md" border="subtle" inset="compact" style={style} testID={testID}>
+    <Card
+      width="full"
+      tone="elevated"
+      corner="lg"
+      border="subtle"
+      inset="compact"
+      style={[{ backgroundColor: colors.settingsCard, borderColor: colors.settingsCardBorder }, style]}
+      testID={testID}
+    >
       <SectionHeader
         title="Snoring Timeline"
+        tone="premium"
         onInfoPress={onInfoPress}
         infoAccessibilityLabel="About snoring timeline"
       />
@@ -176,26 +182,23 @@ export function TimelineCard({
                 : null}
             </Svg>
 
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end' }}>
+            <View
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="Snoring timeline"
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end' }}
+            >
               {bars.map((bar) => {
                 const intensity = Math.min(1, Math.max(0, bar.peakDb / maxDb));
                 const barHeight = Math.max(spacing.xs, intensity * PLOT_HEIGHT);
 
                 return (
-                  <Pressable
+                  <View
                     key={bar.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Snore level ${Math.round(bar.peakDb)} decibels at ${bar.timeLabel || 'this time'}`}
-                    accessibilityHint="Double tap to play audio for this time range"
-                    hitSlop={hitSlopForVisualSize(TOUCH_TARGET)}
-                    onPress={() => {
-                      onBarPress(bar);
-                    }}
                     style={{
                       flex: 1,
                       minWidth: spacing.sm,
-                      minHeight: TOUCH_TARGET,
-                      height: Math.max(PLOT_HEIGHT, TOUCH_TARGET),
+                      height: PLOT_HEIGHT,
                       justifyContent: 'flex-end',
                       alignItems: 'center',
                     }}
@@ -217,7 +220,7 @@ export function TimelineCard({
                         fill={`url(#timeline-${bar.id})`}
                       />
                     </Svg>
-                  </Pressable>
+                  </View>
                 );
               })}
             </View>
@@ -255,19 +258,6 @@ export function TimelineCard({
           </View>
         </View>
       </View>
-      <Text
-        style={{
-          marginTop: spacing.sm,
-          color: colors.primary,
-          fontFamily: fontFamily.regular,
-          fontSize: fontSize.caption,
-          lineHeight: lineHeight.caption,
-          textAlign: 'center',
-          opacity: 0.9,
-        }}
-      >
-        Tap on any bar to hear audio
-      </Text>
     </Card>
   );
 }

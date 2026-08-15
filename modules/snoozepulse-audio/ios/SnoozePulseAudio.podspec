@@ -24,5 +24,8 @@ Pod::Spec.new do |s|
   }
 
   s.source_files = "**/*.{h,m,mm,swift,hpp,cpp}"
+  # Tests target XCTest, which auto-links XCUIAutomation on Xcode 16.3+. XCUIAutomation
+  # is Simulator-only, so shipping test code in the pod breaks iphoneos device builds.
+  s.exclude_files = "Tests/**/*"
   s.resources    = "Resources/**/*"
 end

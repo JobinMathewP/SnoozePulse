@@ -74,7 +74,7 @@ events into domain events. Nothing else in the app imports the module directly.
 ## Model Asset Layout
 
 The bundled classifier is `yamnet.tflite` from the pretrained YAMNet release (521 AudioSet
-classes). Only outputs `Snoring` (index 38) and `Snort` (index 39) are consumed by the
+classes). Only outputs `Snoring` (index 38) and `Snort` (index 41) are consumed by the
 episode builder.
 
 ```text

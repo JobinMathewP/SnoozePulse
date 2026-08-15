@@ -5,6 +5,8 @@
 export const activeSessionCopy = {
   status: 'SLEEP SESSION ACTIVE',
   monitoring: 'Monitoring your sleep and snoring...',
+  backgroundHint: 'Safe to lock your phone. Recording continues in the background.',
+  lowPowerWaveformLabel: 'Low-power mode — waveform paused',
   /**
    * Task 6.7: retained for callers that still want a room-noise band label. The record
    * screen replaces its loudness-detector readout with a classifier-driven pill and

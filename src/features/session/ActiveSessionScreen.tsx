@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 import { Text, useWindowDimensions, View } from 'react-native';
-import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { useLowPowerMode } from 'expo-battery';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { type SharedValue } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -82,18 +82,15 @@ const WavePanel = memo(function WavePanel({ level, width }: WavePanelProps) {
  * No pause control (ADR-14). Waveform level is the live shared value (ADR-13).
  */
 export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) {
-  // Avoid uncaught ExpoKeepAwake.deactivate when the activity is already gone (force-kill).
-  useEffect(() => {
-    const tag = 'snoozepulse-active-session';
-    void activateKeepAwakeAsync(tag).catch(() => undefined);
-    return () => {
-      void deactivateKeepAwake(tag).catch(() => undefined);
-    };
-  }, []);
-
+  // Screen is intentionally allowed to sleep. iOS UIBackgroundModes: audio and Android's
+  // FOREGROUND_SERVICE_MICROPHONE keep capture alive while the phone is locked; a nightlong
+  // KeepAwake would burn OLED for no functional gain.
   const { level, confidence, snoreDetected, noiseFloorDb } = useLiveAudioLevel();
   const { width: windowWidth } = useWindowDimensions();
   const waveWidth = Math.max(spacing.xl * 8, windowWidth - spacing.md * 2);
+  // Suppress the Reanimated waveform when the OS reports low-power mode. Native capture and
+  // detection continue unchanged; only the animation stops.
+  const lowPowerMode = useLowPowerMode();
   const confidenceLabel = formatConfidencePercent(confidence);
   const noiseFloorLabel = formatNoiseFloor(noiseFloorDb);
   const detectionLabel = snoreDetected
@@ -190,10 +187,50 @@ export function ActiveSessionScreen({ onEndSession }: ActiveSessionScreenProps) 
             >
               {activeSessionCopy.monitoring}
             </Text>
+            <Text
+              style={{
+                color: colors.fgOled,
+                fontFamily: fontFamily.regular,
+                fontSize: fontSize.caption,
+                lineHeight: lineHeight.caption,
+                textAlign: 'center',
+                marginTop: spacing.xs,
+                opacity: 0.6,
+              }}
+            >
+              {activeSessionCopy.backgroundHint}
+            </Text>
           </View>
 
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md }}>
-            <WavePanel level={level} width={waveWidth} />
+            {lowPowerMode ? (
+              <View
+                accessible
+                accessibilityRole="text"
+                accessibilityLabel={activeSessionCopy.lowPowerWaveformLabel}
+                style={{
+                  height: spacing.xl * 3 + spacing.lg,
+                  width: waveWidth,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.fgOled,
+                    fontFamily: fontFamily.regular,
+                    fontSize: fontSize.caption,
+                    lineHeight: lineHeight.caption,
+                    textAlign: 'center',
+                    opacity: 0.6,
+                  }}
+                >
+                  {activeSessionCopy.lowPowerWaveformLabel}
+                </Text>
+              </View>
+            ) : (
+              <WavePanel level={level} width={waveWidth} />
+            )}
             <View
               accessible
               accessibilityRole="text"

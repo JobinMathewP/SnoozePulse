@@ -43,7 +43,7 @@ final class YamnetClassifier: SnoreClassifier {
     else {
       throw ClassifierError.modelNotFound
     }
-    let options = Interpreter.Options()
+    var options = Interpreter.Options()
     options.threadCount = 2
 
     // Prefer Core ML on capable hardware; fall through to CPU on any failure.

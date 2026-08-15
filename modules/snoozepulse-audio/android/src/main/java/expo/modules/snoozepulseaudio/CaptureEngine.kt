@@ -63,6 +63,14 @@ internal class CaptureEngine(
     private const val QUIET_UPPER_DB = 35.0
     private const val MODERATE_UPPER_DB = 48.0
 
+    // Silence gate (Task battery-hardening §4). Skip YAMNet when the room is quiet.
+    // Configurable in-place: change the constant, recompile, rerun the regression corpus.
+    private const val SILENCE_GATE_MARGIN_DB = 6.0
+    private const val SILENCE_GATE_MIN_INTERVAL_MS = 2_000L
+
+    // Debug telemetry cadence.
+    private const val FILTER_LOG_INTERVAL_MS = 60_000L
+
     // Android SDK constant string — kept as a literal to avoid depending on hidden fields.
     private const val PROPERTY_SUPPORT_UNPROCESSED =
       "android.media.property.SUPPORT_AUDIO_SOURCE_UNPROCESSED"
@@ -102,7 +110,12 @@ internal class CaptureEngine(
   private var snoreLastAboveAt = 0L
   private var snoreEpisodeId: String? = null
 
-  private var audioFocusChangeListener: AudioManager.OnAudioFocusChangeListener? = null
+  // Silence-gate + quality-filter state. Reset in `resetSnoreState`.
+  private var lastInferenceMonotonicMs = 0L
+  private var totalWindows = 0
+  private var skippedByGate = 0
+  private var totalInferences = 0
+  private var lastFilterLogMs = 0L
 
   init {
     val minBuf =
@@ -152,7 +165,9 @@ internal class CaptureEngine(
     resetSnoreState()
 
     startForegroundService()
-    requestAudioFocus()
+    // No AudioManager.requestAudioFocus() here: a mic-only foreground service must not steal
+    // STREAM_MUSIC focus, otherwise sleep music apps (YouTube Music, Spotify, podcasts) get
+    // paused for the entire night. AudioRecord capture is unaffected by focus.
 
     val record = buildRecorder()
     audioRecord = record
@@ -185,7 +200,6 @@ internal class CaptureEngine(
     captureThread?.quitSafely()
     captureThread = null
     captureHandler = null
-    abandonAudioFocus()
     stopForegroundService()
     sessionId = null
   }
@@ -277,13 +291,16 @@ internal class CaptureEngine(
     noiseFloor.push(db)
     val noiseFloorDb = noiseFloor.current()
 
-    val classification = classifyIfReady()
-    val confidence = classification?.combined ?: 0f
     val now = System.currentTimeMillis()
+    totalWindows += 1
+    val classification = classifyIfReady(now, db, noiseFloorDb)
+    val confidence = classification?.combined ?: 0f
 
     // Detection is entirely classifier-driven now (ADR-23). Hysteresis state advances
     // regardless of dB; dB is kept only for display and for SnoreEvent.peakDb.
     updateSnoreState(now, peakDb, classification)
+
+    maybeLogFilterStats(now)
 
     emitLevel(
       mapOf(
@@ -299,27 +316,71 @@ internal class CaptureEngine(
   }
 
   /**
-   * Run YAMNet on the newest 15,600 ring samples if we have that many yet. Returns null
-   * during the first ~1 s of a session (ring not full enough) or when the classifier is
-   * unavailable (warmup failed at module init).
+   * Run YAMNet on the newest 15,600 ring samples if we have that many yet.
+   *
+   * Silence gate (Task battery-hardening §4): once the rolling noise-floor window has warmed
+   * up, skip inference entirely when the current dB is below `noiseFloor + margin`, unless
+   * `SILENCE_GATE_MIN_INTERVAL_MS` has elapsed since the last inference (keep-alive so we
+   * never miss the leading edge of a soft snore that begins below floor + margin).
+   *
+   * Returns null during the first ~1 s of a session (ring not full enough), when the
+   * classifier is unavailable (warmup failed at module init), or when the silence gate
+   * suppresses this window.
    */
-  private fun classifyIfReady(): SnoreClassifier.Classification? {
+  private fun classifyIfReady(
+    nowMs: Long,
+    db: Double,
+    noiseFloorDb: Double,
+  ): SnoreClassifier.Classification? {
     val cls = classifier ?: return null
     if (ring.length < waveform.patchSamples) {
       return null
     }
+
+    // Silence gate: only engage after the noise-floor rolling window is warm. On cold start
+    // `noiseFloorDb == 0.0` — do not compare a real dB against 0 or every window would run.
+    val noiseFloorWarm = noiseFloorDb > 0.0
+    if (noiseFloorWarm) {
+      val elevated = db >= noiseFloorDb + SILENCE_GATE_MARGIN_DB
+      val keepAlive = nowMs - lastInferenceMonotonicMs >= SILENCE_GATE_MIN_INTERVAL_MS
+      if (!elevated && !keepAlive) {
+        skippedByGate += 1
+        return null
+      }
+    }
+
     val read = ring.copyLatest(waveform.patchSamples, patchScratch)
     if (read != waveform.patchSamples) {
       return null
     }
     val patch = waveform.fill(patchScratch, waveform.patchSamples)
     return try {
-      cls.classify(patch)
+      val classification = cls.classify(patch)
+      lastInferenceMonotonicMs = nowMs
+      totalInferences += 1
+      classification
     } catch (error: Exception) {
       // Never let a classifier crash kill the capture loop.
       Log.w("CaptureEngine", "Classifier failure on capture path: ${error.message}")
       null
     }
+  }
+
+  private fun maybeLogFilterStats(now: Long) {
+    if (lastFilterLogMs == 0L) {
+      lastFilterLogMs = now
+      return
+    }
+    if (now - lastFilterLogMs < FILTER_LOG_INTERVAL_MS) return
+    Log.i(
+      TAG,
+      "SnoozePulse gate: windows=$totalWindows skipped=$skippedByGate " +
+        "inferences=$totalInferences",
+    )
+    lastFilterLogMs = now
+    totalWindows = 0
+    skippedByGate = 0
+    totalInferences = 0
   }
 
   private fun updateSnoreState(
@@ -418,6 +479,11 @@ internal class CaptureEngine(
     snoreClassifiedFrames = 0
     snoreLastAboveAt = 0L
     snoreEpisodeId = null
+    lastInferenceMonotonicMs = 0L
+    totalWindows = 0
+    skippedByGate = 0
+    totalInferences = 0
+    lastFilterLogMs = 0L
   }
 
   private fun buildRecorder(): AudioRecord {
@@ -467,45 +533,6 @@ internal class CaptureEngine(
 
   private fun stopForegroundService() {
     context.stopService(Intent(context, MicrophoneForegroundService::class.java))
-  }
-
-  private fun requestAudioFocus() {
-    val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    val listener =
-      AudioManager.OnAudioFocusChangeListener { change ->
-        when (change) {
-          AudioManager.AUDIOFOCUS_LOSS,
-          AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
-          AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK,
-          -> {
-            if (running.get() && !paused.get()) {
-              pause()
-            }
-          }
-          AudioManager.AUDIOFOCUS_GAIN -> {
-            if (running.get() && paused.get()) {
-              resume()
-            }
-          }
-        }
-      }
-    audioFocusChangeListener = listener
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      // Legacy request keeps API simple across OEM versions for V1.
-      @Suppress("DEPRECATION")
-      am.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
-    } else {
-      @Suppress("DEPRECATION")
-      am.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
-    }
-  }
-
-  private fun abandonAudioFocus() {
-    val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    val listener = audioFocusChangeListener ?: return
-    @Suppress("DEPRECATION")
-    am.abandonAudioFocus(listener)
-    audioFocusChangeListener = null
   }
 
   /**

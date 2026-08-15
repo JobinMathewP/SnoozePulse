@@ -96,7 +96,7 @@ export class AudioEngine implements IAudioEngine {
         allowsRecording: true,
         playsInSilentMode: true,
         shouldPlayInBackground: true,
-        interruptionMode: 'doNotMix',
+        interruptionMode: 'mixWithOthers',
       });
     }
     return { ok: true, value: mapped };

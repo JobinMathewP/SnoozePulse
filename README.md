@@ -86,6 +86,18 @@ tie-breaker whenever any other document disagrees.
 | `docs/testing-strategy.md` | Test pyramid and QA checklist |
 | `docs/SnoreTracker_App_PRD_Specification.md` | Product requirements |
 
+## Public site
+
+Legal and support pages live in `website/` and publish to GitHub Pages. Setup:
+`website/README.md`.
+
+| Page | URL |
+| --- | --- |
+| Home | https://jobinmathewp.github.io/SnoozePulse/ |
+| Privacy Policy | https://jobinmathewp.github.io/SnoozePulse/privacy/ |
+| Support | https://jobinmathewp.github.io/SnoozePulse/support/ |
+| Terms of Use | https://jobinmathewp.github.io/SnoozePulse/terms/ |
+
 ## License
 
 See `LICENSE`.

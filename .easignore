@@ -1,0 +1,5 @@
+# Design references and human docs — never used by any build step
+docs/
+
+# Public legal site — GitHub Pages only, not part of the app binary
+website/

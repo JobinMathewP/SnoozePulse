@@ -41,6 +41,14 @@ final class CaptureEngine {
   private static let quietUpperDb: Double = 35
   private static let moderateUpperDb: Double = 48
 
+  // Silence gate (Task battery-hardening §4). Skip YAMNet when the room is quiet.
+  // Configurable in-place: change the constant, recompile, rerun the regression corpus.
+  private static let silenceGateMarginDb: Double = 6.0
+  private static let silenceGateMinIntervalMs: Int64 = 2_000
+
+  // Debug telemetry cadence.
+  private static let filterLogIntervalMs: Int64 = 60_000
+
   private let classifier: SnoreClassifier?
 
   private let ring: PcmRingBuffer
@@ -66,6 +74,13 @@ final class CaptureEngine {
   private var snoreClassifiedFrames: Int = 0
   private var snoreLastAboveAt: Int64 = 0
   private var snoreEpisodeId: String?
+
+  // Silence-gate + quality-filter state. Reset in `resetSnoreState`.
+  private var lastInferenceMonotonicMs: Int64 = 0
+  private var totalWindows: Int = 0
+  private var skippedByGate: Int = 0
+  private var totalInferences: Int = 0
+  private var lastFilterLogMs: Int64 = 0
 
   private var emitTimer: Timer?
   private var interruptionObserver: NSObjectProtocol?
@@ -194,7 +209,11 @@ final class CaptureEngine {
 
   private func configureSession() throws {
     let session = AVAudioSession.sharedInstance()
-    try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .allowBluetooth])
+    try session.setCategory(
+      .playAndRecord,
+      mode: .measurement,
+      options: [.mixWithOthers, .allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker]
+    )
     // Prefer 16 kHz to match Android AudioRecord; hardware may still deliver 44.1/48 kHz.
     try? session.setPreferredSampleRate(Double(Self.sampleRate))
     try session.setActive(true, options: .notifyOthersOnDeactivation)
@@ -292,13 +311,16 @@ final class CaptureEngine {
     noiseFloor.push(db)
     let noiseFloorDb = noiseFloor.current()
 
-    let classification = classifyIfReady()
-    let confidence = classification?.combined ?? 0
     let now = Int64(Date().timeIntervalSince1970 * 1000)
+    totalWindows += 1
+    let classification = classifyIfReady(nowMs: now, db: db, noiseFloorDb: noiseFloorDb)
+    let confidence = classification?.combined ?? 0
 
     // Detection is entirely classifier-driven now (ADR-23). Hysteresis state advances
     // regardless of dB; dB is kept only for display and for SnoreEvent.peakDb.
     updateSnoreState(now: now, peakDb: peakDb, classification: classification)
+
+    maybeLogFilterStats(now: now)
 
     onLevel?([
       "sessionId": id,
@@ -311,21 +333,62 @@ final class CaptureEngine {
     ])
   }
 
-  /// Run YAMNet on the newest 15,600 ring samples if we have that many yet. Returns nil
-  /// during the first ~1 s of a session (ring not full enough) or when the classifier is
-  /// unavailable (warmup failed at module init).
-  private func classifyIfReady() -> SnoreClassification? {
+  /// Run YAMNet on the newest 15,600 ring samples if we have that many yet.
+  ///
+  /// Silence gate (Task battery-hardening §4): once the rolling noise-floor window has warmed
+  /// up, skip inference entirely when the current dB is below `noiseFloor + margin`, unless
+  /// `silenceGateMinIntervalMs` has elapsed since the last inference (keep-alive so we never
+  /// miss the leading edge of a soft snore that begins below floor + margin).
+  ///
+  /// Returns nil during the first ~1 s of a session (ring not full enough), when the
+  /// classifier is unavailable (warmup failed at module init), or when the silence gate
+  /// suppresses this window.
+  private func classifyIfReady(nowMs: Int64, db: Double, noiseFloorDb: Double) -> SnoreClassification? {
     guard let cls = classifier else { return nil }
     guard ring.length >= waveform.patchSamples else { return nil }
+
+    // Silence gate: only engage after the noise-floor rolling window is warm. On cold start
+    // `noiseFloorDb == 0` — do not compare a real dB against 0 or every window would run.
+    let noiseFloorWarm = noiseFloorDb > 0
+    if noiseFloorWarm {
+      let elevated = db >= noiseFloorDb + Self.silenceGateMarginDb
+      let keepAlive = nowMs - lastInferenceMonotonicMs >= Self.silenceGateMinIntervalMs
+      if !elevated && !keepAlive {
+        skippedByGate += 1
+        return nil
+      }
+    }
+
     let read = ring.copyLatest(count: waveform.patchSamples, into: &patchScratch)
     guard read == waveform.patchSamples else { return nil }
     let patch = waveform.fill(patchScratch)
     do {
-      return try cls.classify(patch: patch)
+      let classification = try cls.classify(patch: patch)
+      lastInferenceMonotonicMs = nowMs
+      totalInferences += 1
+      return classification
     } catch {
       NSLog("Classifier failure on capture path: %@", String(describing: error))
       return nil
     }
+  }
+
+  private func maybeLogFilterStats(now: Int64) {
+    if lastFilterLogMs == 0 {
+      lastFilterLogMs = now
+      return
+    }
+    if now - lastFilterLogMs < Self.filterLogIntervalMs { return }
+    NSLog(
+      "SnoozePulse gate: windows=%d skipped=%d inferences=%d",
+      totalWindows,
+      skippedByGate,
+      totalInferences
+    )
+    lastFilterLogMs = now
+    totalWindows = 0
+    skippedByGate = 0
+    totalInferences = 0
   }
 
   private func updateSnoreState(now: Int64, peakDb: Double, classification: SnoreClassification?) {
@@ -415,6 +478,11 @@ final class CaptureEngine {
     snoreClassifiedFrames = 0
     snoreLastAboveAt = 0
     snoreEpisodeId = nil
+    lastInferenceMonotonicMs = 0
+    totalWindows = 0
+    skippedByGate = 0
+    totalInferences = 0
+    lastFilterLogMs = 0
   }
 
   /// Rolling median of display dB over the last `capacity` emit ticks (ADR-25). Fixed

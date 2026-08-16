@@ -1,6 +1,8 @@
 export { canTransition, SESSION_TRANSITIONS } from './sessionTransitions';
 export { errorRecoveryHint, errorTitle } from './errorMessages';
 export {
+  MIN_SESSION_DURATION_MS,
+  REVIEW_PROMPT_AFTER_SESSIONS,
   SNIPPET_DIRECTORY_NAME,
   SNIPPET_QUOTA_BYTES,
   SNIPPET_RETENTION_MS,
@@ -8,6 +10,7 @@ export {
   SNORE_BATCH_MAX_WAIT_MS,
   TIMELINE_BUCKET_DURATION_MS,
 } from './constants';
+export { isSessionTooShort, sessionDurationMs } from './sessionLength';
 export {
   planRetentionCleanup,
   type RetentionPlan,

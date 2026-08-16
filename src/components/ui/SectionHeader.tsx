@@ -14,6 +14,8 @@ type SectionHeaderProps = {
   readonly onInfoPress?: () => void;
   /** Required when `onInfoPress` is set. */
   readonly infoAccessibilityLabel?: string;
+  /** `premium` matches Settings section labels (lavender uppercase). */
+  readonly tone?: 'default' | 'premium';
   readonly style?: StyleProp<ViewStyle>;
   readonly testID?: string;
 };
@@ -26,9 +28,11 @@ export function SectionHeader({
   title,
   onInfoPress,
   infoAccessibilityLabel,
+  tone = 'default',
   style,
   testID,
 }: SectionHeaderProps) {
+  const premium = tone === 'premium';
   return (
     <View
       style={[
@@ -44,13 +48,25 @@ export function SectionHeader({
     >
       <Text
         accessibilityRole="header"
-        style={{
-          flexShrink: 1,
-          color: colors.fg,
-          fontFamily: fontFamily.medium,
-          fontSize: fontSize.bodyLg,
-          lineHeight: lineHeight.bodyLg,
-        }}
+        style={
+          premium
+            ? {
+                flexShrink: 1,
+                color: colors.settingsSection,
+                fontFamily: fontFamily.semibold,
+                fontSize: fontSize.caption,
+                lineHeight: lineHeight.caption,
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }
+            : {
+                flexShrink: 1,
+                color: colors.fg,
+                fontFamily: fontFamily.medium,
+                fontSize: fontSize.bodyLg,
+                lineHeight: lineHeight.bodyLg,
+              }
+        }
       >
         {title}
       </Text>

@@ -1,5 +1,7 @@
 import { AnalyticsService } from '@/services/analytics/AnalyticsService';
 import { AudioService } from '@/services/AudioService';
+import { ProfileService } from '@/services/ProfileService';
+import { ReviewService } from '@/services/ReviewService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
 import { createAppStore } from '@/store/createAppStore';
@@ -10,6 +12,7 @@ import { liveAudioLevel } from '@/store/liveAudioLevel';
 import {
   FakeSleepRepository,
   FakeSnoreRepository,
+  FakeSettingsRepository,
   FakeSnippetStorage,
 } from '@/__tests__/helpers/fakes';
 
@@ -18,11 +21,35 @@ function buildGraph() {
   const sleepRepo = new FakeSleepRepository();
   const snoreRepo = new FakeSnoreRepository();
   const snippets = new FakeSnippetStorage();
+  const settingsRepo = new FakeSettingsRepository();
   const analytics = new AnalyticsService(sleepRepo, snoreRepo);
   const sleepService = new SleepService(sleepRepo, snoreRepo, engine, snippets);
   const audioService = new AudioService(engine, sleepService, snoreRepo, analytics);
-  const store = createAppStore({ audioService, sleepService, analyticsService: analytics });
-  return { engine, sleepRepo, snoreRepo, snippets, sleepService, audioService, store };
+  const profileService = new ProfileService(settingsRepo);
+  // Never-available prompter so the review path stays inert in these tests.
+  const reviewService = new ReviewService(settingsRepo, {
+    isAvailableAsync: async () => false,
+    requestReview: async () => undefined,
+  });
+  const store = createAppStore({
+    audioService,
+    sleepService,
+    analyticsService: analytics,
+    profileService,
+    reviewService,
+  });
+  return {
+    engine,
+    sleepRepo,
+    snoreRepo,
+    snippets,
+    settingsRepo,
+    sleepService,
+    audioService,
+    profileService,
+    reviewService,
+    store,
+  };
 }
 
 describe('recording lifecycle integration', () => {

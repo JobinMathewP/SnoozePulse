@@ -44,6 +44,7 @@ export function useSession() {
       lastError: state.lastError,
       startSession: state.startSession,
       stopSession: state.stopSession,
+      discardSession: state.discardSession,
       recoverSession: state.recoverSession,
     })),
   );
@@ -83,7 +84,7 @@ export function useSnippetPlayback() {
   );
 }
 
-/** Readiness / calibration / mic permission for Home. */
+/** Readiness / calibration / mic permission for Home, plus Settings data-wipe. */
 export function useSettings() {
   return useAppStore(
     useShallow((state) => ({
@@ -91,6 +92,8 @@ export function useSettings() {
       refreshReadiness: state.refreshReadiness,
       calibrateAmbient: state.calibrateAmbient,
       requestMicrophonePermission: state.requestMicrophonePermission,
+      deleteAllSleepData: state.deleteAllSleepData,
+      seedDemoData: state.seedDemoData,
     })),
   );
 }
@@ -102,6 +105,21 @@ export function useInsights() {
       loadSessionDetail: state.loadSessionDetail,
       loadHistoryTrends: state.loadHistoryTrends,
       listRecentSessions: state.listRecentSessions,
+      loadSessionsForMonth: state.loadSessionsForMonth,
+    })),
+  );
+}
+
+/** Greeting name, onboarding flag, and profile actions (ADR-30). */
+export function useProfile() {
+  return useAppStore(
+    useShallow((state) => ({
+      displayName: state.displayName,
+      onboarded: state.onboarded,
+      loadProfile: state.loadProfile,
+      setDisplayName: state.setDisplayName,
+      completeOnboarding: state.completeOnboarding,
+      rateApp: state.rateApp,
     })),
   );
 }

@@ -7,14 +7,15 @@ import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 import { historyCopy } from './models';
 
 type InsightsCardProps = {
-  readonly onPress: () => void;
   readonly testID?: string;
 };
 
 /**
- * Tappable Insights row from history-screen.jpg — lightbulb, copy, chevron.
+ * Static snoring-tips card — lightbulb, title, general guidance. Non-tappable on purpose
+ * (ADR-30): SnoozePulse does not generate personalized medical insights, so this must not
+ * look like a link to a deeper analysis that does not exist (App Store Guideline 2.1).
  */
-export function InsightsCard({ onPress, testID }: InsightsCardProps) {
+export function InsightsCard({ testID }: InsightsCardProps) {
   return (
     <Card
       width="full"
@@ -22,8 +23,6 @@ export function InsightsCard({ onPress, testID }: InsightsCardProps) {
       corner="md"
       border="subtle"
       inset="compact"
-      onPress={onPress}
-      accessibilityLabel={historyCopy.insightsAccessibilityLabel}
       testID={testID}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
@@ -56,13 +55,6 @@ export function InsightsCard({ onPress, testID }: InsightsCardProps) {
             {historyCopy.insightsBody}
           </Text>
         </View>
-        <Ionicons
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          name="chevron-forward"
-          size={fontSize.bodyLg}
-          color={colors.fgCaption}
-        />
       </View>
     </Card>
   );

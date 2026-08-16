@@ -7,11 +7,13 @@ import { Card } from './Card';
 import { TOUCH_TARGET } from './touchTarget';
 
 /**
- * The three Home readiness states visible in home-screen.jpg:
+ * Home readiness rows from home-screen-moke.png:
  *
- * - `alert`         — Battery Low (red title)
- * - `success`       — Microphone Access (green title)
- * - `informational` — Environment (indigo title, rolling noise floor per ADR-25)
+ * - `alert`         — Battery Low (red icon / trailing)
+ * - `success`       — Microphone / Battery Ready (green icon / trailing)
+ * - `informational` — Environment (violet waveform)
+ *
+ * Titles stay white; tone is carried by the icon and trailing affordance.
  */
 export type StatusCardTone = 'alert' | 'success' | 'informational';
 
@@ -30,24 +32,11 @@ type StatusCardProps = {
   readonly onPress?: () => void;
 };
 
-const titleColor = (tone: StatusCardTone): string => {
-  switch (tone) {
-    case 'alert':
-      return colors.alertText;
-    case 'success':
-      return colors.successText;
-    case 'informational':
-      return colors.primary;
-  }
-};
-
 /**
  * Home readiness row: leading icon, title + subtitle, optional trailing element.
- *
- * Composes `Card` at full width so spacing and border match the other surfaces.
  */
 export function StatusCard({
-  tone,
+  tone: _tone,
   title,
   subtitle,
   icon,
@@ -58,6 +47,10 @@ export function StatusCard({
   onPress,
 }: StatusCardProps) {
   const label = accessibilityLabel ?? `${title}. ${subtitle}`;
+  const chrome = {
+    backgroundColor: colors.homeCard,
+    borderColor: colors.homeCardBorder,
+  };
   const body = (
     <View
       accessible={onPress === undefined}
@@ -68,7 +61,7 @@ export function StatusCard({
       <View style={{ flex: 1, gap: spacing.xs, minWidth: 0 }}>
         <Text
           style={{
-            color: titleColor(tone),
+            color: colors.fg,
             fontFamily: fontFamily.semibold,
             fontSize: fontSize.body,
             lineHeight: lineHeight.body,
@@ -95,7 +88,7 @@ export function StatusCard({
 
   if (onPress) {
     return (
-      <Card width="full" style={[{ minHeight: TOUCH_TARGET }, style]} testID={testID}>
+      <Card width="full" style={[{ minHeight: TOUCH_TARGET }, chrome, style]} testID={testID}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={label}
@@ -111,7 +104,7 @@ export function StatusCard({
   return (
     <Card
       width="full"
-      style={[{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }, style]}
+      style={[{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }, chrome, style]}
       testID={testID}
     >
       {body}

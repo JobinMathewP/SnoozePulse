@@ -1,4 +1,5 @@
 import type {
+  EpochMs,
   NewSleepSession,
   Page,
   PageRequest,
@@ -36,11 +37,27 @@ export interface ISleepRepository {
   listSessions(request: PageRequest): Promise<Result<Page<SleepSession>>>;
 
   /**
+   * Sessions whose `started_at` falls in the half-open range `[fromMs, toMs)`, newest
+   * first. Backs the calendar month view without paging the whole table (ADR-30).
+   */
+  listSessionsInRange(
+    fromMs: EpochMs,
+    toMs: EpochMs,
+  ): Promise<Result<readonly SleepSession[]>>;
+
+  /**
    * Delete a session (FK cascade removes events and buckets). Returns the non-null
    * `audio_path` values that belonged to the session so a service can unlink files.
    * Returns `NOT_FOUND` when the id does not exist.
    */
   deleteSession(id: string): Promise<Result<readonly string[]>>;
+
+  /**
+   * Delete every session (FK cascade removes all events and buckets). Returns all non-null
+   * `audio_path` values so a service can unlink the snippet files. Backs Settings
+   * "Delete all sleep data" (ADR-30).
+   */
+  deleteAllSessions(): Promise<Result<readonly string[]>>;
 
   /** Upsert pre-aggregated timeline buckets for a session (ADR-11). */
   saveBuckets(buckets: readonly SessionBucket[]): Promise<Result<void>>;

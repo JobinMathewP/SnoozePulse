@@ -7,7 +7,7 @@ export type { StoreDependencies } from './container';
 export type { Result } from './result';
 export { err, ok } from './result';
 
-export type { AppStore } from './createAppStore';
+export type { AppStore, AppStoreBootState } from './createAppStore';
 export { createAppStore } from './createAppStore';
 export { bindAudioSubscriptions } from './bindAudioSubscriptions';
 export { DECIBEL_STORE_THROTTLE_MS } from './throttle';
@@ -17,3 +17,4 @@ export type { SessionSlice } from './sessionSlice';
 export type { AudioSlice } from './audioSlice';
 export type { SettingsSlice } from './settingsSlice';
 export type { InsightsSlice, SessionDetail, HistoryTrends } from './insightsSlice';
+export type { ProfileSlice } from './profileSlice';

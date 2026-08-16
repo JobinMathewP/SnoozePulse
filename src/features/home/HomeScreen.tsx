@@ -1,30 +1,38 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useBatteryLevel } from 'expo-battery';
-import { useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 
-import { Button, ErrorPanel, Screen, StatusCard } from '@/components/ui';
+import { ErrorPanel, Screen, StatusCard } from '@/components/ui';
 import { TOUCH_TARGET } from '@/components/ui/touchTarget';
-import { useSession, useSettings } from '@/hooks';
+import { useInsights, useProfile, useSession, useSettings } from '@/hooks';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
-import type { AmbientEnvironment, MicrophonePermissionStatus } from '@/types';
+import type {
+  AmbientEnvironment,
+  MicrophonePermissionStatus,
+  SleepSession,
+} from '@/types';
 
-import { BrandMark, HeroMoonIcon } from './BrandMark';
+import { BrandMark } from './BrandMark';
+import { StartSessionHero } from './StartSessionHero';
 import {
   BATTERY_LOW_THRESHOLD,
   batteryCopy,
   calibrationCopy,
+  greeting,
   homeCopy,
   homeErrorCopy,
   microphoneCopy,
 } from './copy';
+import { LastNightCard } from './LastNightCard';
 import {
   BatteryPercent,
   BatteryStatusIcon,
   MicStatusIcon,
   PulseStatusIcon,
   StatusCheck,
+  WaveformTrail,
 } from './StatusAffordance';
 
 type StatusTone = 'success' | 'alert' | 'informational';
@@ -85,10 +93,14 @@ export function HomeScreen() {
     calibrateAmbient,
     requestMicrophonePermission,
   } = useSettings();
+  const { displayName } = useProfile();
+  const { listRecentSessions } = useInsights();
 
   const [busy, setBusy] = useState(false);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastNight, setLastNight] = useState<SleepSession | null>(null);
+  const [lastNightLoading, setLastNightLoading] = useState(true);
 
   useEffect(() => {
     void refreshReadiness();
@@ -96,11 +108,37 @@ export function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only readiness probe
   }, []);
 
+  // Refresh the "Last night" card whenever Home regains focus (e.g. returning from a
+  // finished session or after deleting all data in Settings), showing the newest completed
+  // session only.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void (async () => {
+        setLastNightLoading(true);
+        const result = await listRecentSessions(5);
+        if (cancelled) {
+          return;
+        }
+        const newestComplete = result.ok
+          ? (result.value.find((s) => s.endedAt !== null) ?? null)
+          : null;
+        setLastNight(newestComplete);
+        setLastNightLoading(false);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [listRecentSessions]),
+  );
+
+  const greetingText = greeting(displayName, new Date().getHours());
+
   const levelKnown = batteryLevel >= 0;
   const percent = levelKnown ? Math.round(batteryLevel * 100) : null;
   const batteryLow = levelKnown && batteryLevel <= BATTERY_LOW_THRESHOLD;
   const batteryTone = batteryLow ? 'alert' : 'success';
-  const batteryColor = batteryLow ? colors.alertText : colors.successText;
+  const batteryColor = batteryLow ? colors.alertText : colors.homeReady;
 
   const mic = microphoneCard(readiness?.microphone);
   const calibrated = readiness?.calibration !== null && readiness?.calibration !== undefined;
@@ -224,7 +262,11 @@ export function HomeScreen() {
     router,
   ]);
 
-  const cardCompact = { paddingVertical: spacing.sm };
+  const cardChrome = {
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.homeCard,
+    borderColor: colors.homeCardBorder,
+  };
   const starting = busy || sessionState === 'STARTING';
 
   return (
@@ -236,6 +278,18 @@ export function HomeScreen() {
       testID="home-screen"
     >
       <View style={{ alignItems: 'center', paddingTop: spacing.sm, gap: spacing.xs }}>
+        <Text
+          accessibilityRole="text"
+          style={{
+            color: colors.homeGreeting,
+            fontFamily: fontFamily.medium,
+            fontSize: fontSize.body,
+            lineHeight: lineHeight.body,
+            textAlign: 'center',
+          }}
+        >
+          {greetingText}
+        </Text>
         <Text
           accessibilityRole="header"
           style={{
@@ -284,16 +338,13 @@ export function HomeScreen() {
         </View>
       ) : (
         <View style={{ alignItems: 'center', paddingTop: spacing.md, paddingBottom: spacing.md }}>
-          <Button
-            variant="hero"
-            label={starting ? homeCopy.startingLabel : homeCopy.heroLabel}
-            sublabel={homeCopy.heroSublabel}
+          <StartSessionHero
             accessibilityLabel={homeCopy.heroAccessibilityLabel}
-            icon={starting ? <ActivityIndicator color={colors.fg} /> : <HeroMoonIcon />}
             onPress={() => {
               void onStart();
             }}
             disabled={starting}
+            busy={starting}
             testID="home-start-session"
           />
           {busyLabel ? (
@@ -333,7 +384,7 @@ export function HomeScreen() {
           subtitle={batteryLow ? batteryCopy.lowSubtitle : batteryCopy.okSubtitle}
           icon={<BatteryStatusIcon color={batteryColor} />}
           trailing={<BatteryPercent percent={percent} color={batteryColor} />}
-          style={cardCompact}
+          style={cardChrome}
           accessibilityLabel={
             percent === null
               ? `${batteryLow ? batteryCopy.lowTitle : batteryCopy.okTitle}. Battery level unavailable.`
@@ -346,10 +397,10 @@ export function HomeScreen() {
           title={mic.title}
           subtitle={mic.subtitle}
           icon={
-            <MicStatusIcon color={mic.ok ? colors.successText : colors.alertText} />
+            <MicStatusIcon color={mic.ok ? colors.homeReady : colors.alertText} />
           }
           trailing={mic.ok ? <StatusCheck /> : undefined}
-          style={cardCompact}
+          style={cardChrome}
           onPress={
             readiness?.microphone === 'denied'
               ? () => {
@@ -372,10 +423,24 @@ export function HomeScreen() {
               ? calibrationSubtitle(readiness.calibration.environment)
               : calibrationCopy.pendingSubtitle
           }
-          icon={<PulseStatusIcon color={colors.primary} />}
-          trailing={calibrated ? <StatusCheck /> : undefined}
-          style={cardCompact}
+          icon={<PulseStatusIcon color={colors.homeAccent} />}
+          trailing={<WaveformTrail />}
+          style={cardChrome}
           testID="home-status-calibration"
+        />
+
+        <LastNightCard
+          session={lastNight}
+          loading={lastNightLoading}
+          onView={() => {
+            if (lastNight) {
+              router.push({
+                pathname: '/session/[id]/summary',
+                params: { id: lastNight.id },
+              });
+            }
+          }}
+          testID="home-last-night"
         />
       </View>
     </Screen>

@@ -10,7 +10,7 @@ import type {
  */
 
 export const historyCopy = {
-  screenTitle: 'Your Progress',
+  screenTitle: 'History',
   overviewTitle: 'Snore Score Overview',
   improvementTitle: "You're improving!",
   improvementPrefix: 'Snoring reduced by ',
@@ -18,19 +18,19 @@ export const historyCopy = {
   improvementNeutral: 'Keep tracking nights to see your trend.',
   comparisonTitle: 'Weekly Comparison',
   comparisonTitleMonth: 'Monthly Comparison',
-  insightsTitle: 'Insights',
+  insightsTitle: 'Snoring tips',
   insightsBody:
-    'Great job! Keep maintaining your sleep routine. Less caffeine and side sleeping may be helping.',
-  insightsAccessibilityLabel: 'Insights. Great job! Keep maintaining your sleep routine.',
+    'General guidance: keep a consistent sleep schedule, avoid alcohol close to bedtime, and try sleeping on your side — these often reduce snoring.',
   segment7Label: '7 Days',
   segment30Label: '30 Days',
   avgScoreLabel: 'Avg. Snore Score',
   snoringTimeLabel: 'Total Snoring Time',
   snoreCountLabel: 'Snore Count (Avg.)',
   emptyOverview: 'No scored nights in this period yet.',
-  loadingLabel: 'Loading progress…',
+  loadingLabel: 'Loading history…',
   retryLabel: 'Try again',
   retryAccessibilityLabel: 'Retry loading history',
+  calendarAccessibilityLabel: 'Open calendar to browse past nights',
 } as const;
 
 export type DayColumnModel = {
@@ -114,6 +114,7 @@ export function toDayColumns(
     if (!summary.snoreScore) {
       continue;
     }
+    // Noon local avoids the UTC-midnight off-by-one that `new Date('YYYY-MM-DD')` causes.
     const date = new Date(`${summary.date}T12:00:00`);
     columns.push({
       summary,

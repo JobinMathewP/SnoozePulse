@@ -2,13 +2,13 @@ import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { ErrorPanel } from '@/components/ui';
+import { ConfirmDialog, ErrorPanel } from '@/components/ui';
 import { TOUCH_TARGET } from '@/components/ui/touchTarget';
 import { ActiveSessionScreen } from '@/features/session';
 import { activeSessionCopy } from '@/features/session/copy';
 import { useAudioLevels, useSession } from '@/hooks';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
-import { errorRecoveryHint, errorTitle } from '@/utils';
+import { errorRecoveryHint, errorTitle, isSessionTooShort } from '@/utils';
 
 /**
  * Active Session route — live recording surface.
@@ -17,12 +17,22 @@ import { errorRecoveryHint, errorTitle } from '@/utils';
  */
 export default function ActiveSessionRoute() {
   const router = useRouter();
-  const { stopSession, sessionState, lastError, recoverSession } = useSession();
+  const { stopSession, discardSession, activeSession, sessionState, lastError, recoverSession } =
+    useSession();
   const { storageQuotaWarning, clearStorageQuotaWarning } = useAudioLevels();
   const [ending, setEnding] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [slideResetToken, setSlideResetToken] = useState(0);
 
-  const onEndSession = useCallback(async () => {
+  // Dismiss the discard dialog and spring the slider back to the start.
+  const cancelDiscard = useCallback(() => {
+    setConfirmDiscard(false);
+    setSlideResetToken((n) => n + 1);
+  }, []);
+
+  /** Stop, finalize, and open the summary. Assumes the min-length check already passed. */
+  const finalizeSession = useCallback(async () => {
     if (ending) {
       return;
     }
@@ -44,6 +54,29 @@ export default function ActiveSessionRoute() {
       params: { id: result.value.id },
     });
   }, [ending, stopSession, recoverSession, router]);
+
+  const onEndSession = useCallback(() => {
+    if (ending) {
+      return;
+    }
+    // Sessions under the minimum length have no useful signal (ADR-30): warn before ending
+    // so the user can keep recording, or confirm discarding the throwaway night.
+    if (activeSession && isSessionTooShort(activeSession.startedAt, Date.now())) {
+      setConfirmDiscard(true);
+      return;
+    }
+    void finalizeSession();
+  }, [ending, activeSession, finalizeSession]);
+
+  const onConfirmDiscard = useCallback(async () => {
+    setConfirmDiscard(false);
+    if (ending) {
+      return;
+    }
+    setEnding(true);
+    await discardSession();
+    router.replace('/(tabs)');
+  }, [ending, discardSession, router]);
 
   const onRecoverHome = useCallback(async () => {
     await recoverSession();
@@ -77,9 +110,24 @@ export default function ActiveSessionRoute() {
   return (
     <>
       <ActiveSessionScreen
-        onEndSession={() => {
-          void onEndSession();
+        onEndSession={onEndSession}
+        slideResetToken={slideResetToken}
+      />
+
+      <ConfirmDialog
+        visible={confirmDiscard}
+        title={activeSessionCopy.tooShortTitle}
+        message={activeSessionCopy.tooShortBody}
+        confirmLabel={activeSessionCopy.tooShortDiscardLabel}
+        confirmAccessibilityLabel={activeSessionCopy.tooShortDiscardAccessibilityLabel}
+        cancelLabel={activeSessionCopy.tooShortKeepLabel}
+        cancelAccessibilityLabel={activeSessionCopy.tooShortKeepAccessibilityLabel}
+        destructive
+        onConfirm={() => {
+          void onConfirmDiscard();
         }}
+        onCancel={cancelDiscard}
+        testID="active-session-discard-confirm"
       />
       {storageQuotaWarning ? (
         <View

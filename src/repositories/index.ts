@@ -10,6 +10,8 @@ export { err, mapPersistence, notFound, ok, persistenceError } from './resultHel
 
 export type { ISleepRepository } from './ISleepRepository';
 export type { ISnoreRepository } from './ISnoreRepository';
+export type { ISettingsRepository } from './ISettingsRepository';
 
 export { SleepRepository } from './SleepRepository';
 export { SnoreRepository } from './SnoreRepository';
+export { SettingsRepository } from './SettingsRepository';

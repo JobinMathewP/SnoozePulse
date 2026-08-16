@@ -52,7 +52,7 @@ export default function RootLayout() {
     try {
       setBootError(null);
       const container = await createContainer();
-      const appStore = createAppStore(container);
+      const appStore = createAppStore(container, { profile: container.bootProfile });
       const unsubscribe = bindAudioSubscriptions(appStore, container.audioService);
       setStore(appStore);
       return unsubscribe;
@@ -152,6 +152,7 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen
             name="session/active"
             options={{
@@ -160,19 +161,8 @@ export default function RootLayout() {
               animation: 'fade',
             }}
           />
-          <Stack.Screen
-            name="session/[id]/summary"
-            options={{
-              title: 'Sleep Summary',
-              headerBackTitle: 'Back',
-            }}
-          />
-          <Stack.Screen
-            name="settings"
-            options={{
-              title: 'Settings',
-            }}
-          />
+          <Stack.Screen name="session/[id]/summary" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
         </Stack>
       </StoreProvider>
     </GestureHandlerRootView>

@@ -36,7 +36,7 @@ export function errorRecoveryHint(error: AppError): string {
     case 'ILLEGAL_TRANSITION':
       return 'Return home and start a fresh session.';
     case 'PERSISTENCE':
-      return 'Check free storage, then retry.';
+      return 'Retry ending the session. This is a save error, not a full disk.';
     case 'STORAGE_QUOTA':
       return 'Older snore clips will be removed automatically. New clips may be skipped until space frees up.';
     case 'NOT_FOUND':

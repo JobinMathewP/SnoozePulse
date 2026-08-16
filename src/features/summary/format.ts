@@ -15,6 +15,9 @@ export const summaryCopy = {
   peakLoudnessUnit: 'dB',
   loudestTitle: 'Loudest Snore Episode',
   snippetsTitle: 'Snore Audio Snippets',
+  snippetsCaption: 'Loudest 10 from this night',
+  title: 'Sleep Summary',
+  backAccessibilityLabel: 'Go back',
   prevDayAccessibilityLabel: 'Previous session',
   nextDayAccessibilityLabel: 'Next session',
   calendarAccessibilityLabel: 'Open calendar',
@@ -23,6 +26,12 @@ export const summaryCopy = {
   loadingLabel: 'Loading summary…',
   retryLabel: 'Try again',
   retryAccessibilityLabel: 'Retry loading summary',
+  timelineInfoTitle: 'Snoring Timeline',
+  timelineInfoBody:
+    'Each bar is a window of the night. Taller, redder bars were louder.',
+  timelineInfoAccessibilityLabel: 'About the snoring timeline',
+  infoDismissLabel: 'Got it',
+  infoDismissAccessibilityLabel: 'Close explanation',
 } as const;
 
 export type SnippetRowModel = {
@@ -48,6 +57,7 @@ const MONTH_SHORT = [
 ] as const;
 
 export function formatSummaryDateLabel(epochMs: number): string {
+  // Night identity is bedtime (`startedAt` local day), never wake time.
   const d = new Date(epochMs);
   return `${MONTH_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
@@ -102,13 +112,22 @@ export function formatEpisodeDetail(peakDb: number, durationMs: number): string 
   return `${Math.round(peakDb)} dB - ${seconds} sec`;
 }
 
+export const SNIPPET_LIST_LIMIT = 10;
+
 export function toSnippetRows(events: readonly SnoreEvent[]): readonly SnippetRowModel[] {
-  return events.map((event) => ({
+  const playable = events.filter((event) => event.audioPath !== null);
+  const loudest = [...playable].sort((a, b) => b.peakDb - a.peakDb).slice(0, SNIPPET_LIST_LIMIT);
+  const chronological = [...loudest].sort((a, b) => a.timestamp - b.timestamp);
+  return chronological.map((event) => ({
     event,
     timeLabel: formatClock(event.timestamp),
     durationLabel: formatEpisodeDetail(event.peakDb, event.durationMs),
     lengthLabel: formatSnippetLength(event.durationMs),
   }));
+}
+
+export function playableSnippetCount(events: readonly SnoreEvent[]): number {
+  return events.filter((event) => event.audioPath !== null).length;
 }
 
 export function loudestDisplay(summary: SessionSummary): {

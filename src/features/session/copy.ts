@@ -29,6 +29,14 @@ export const activeSessionCopy = {
   recoverHomeAccessibilityLabel: 'End failed session and return home',
   storageWarningDismissLabel: 'Dismiss',
   storageWarningDismissAccessibilityLabel: 'Dismiss storage warning',
+  /** Too-short discard confirmation (ADR-30). */
+  tooShortTitle: 'End session already?',
+  tooShortBody:
+    "Sessions under 5 minutes aren't saved — there isn't enough to analyze yet. End now and discard this recording?",
+  tooShortDiscardLabel: 'Discard',
+  tooShortDiscardAccessibilityLabel: 'Discard this short session and return home',
+  tooShortKeepLabel: 'Keep recording',
+  tooShortKeepAccessibilityLabel: 'Dismiss and keep recording',
 } as const;
 
 export type AudioLevelBand = 'Low' | 'Moderate' | 'High';

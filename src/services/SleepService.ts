@@ -93,6 +93,13 @@ export class SleepService implements ISleepService {
     return this.sleepRepository.listSessions(request);
   }
 
+  listSessionsInRange(
+    fromMs: number,
+    toMs: number,
+  ): Promise<Result<readonly SleepSession[]>> {
+    return this.sleepRepository.listSessionsInRange(fromMs, toMs);
+  }
+
   getBuckets(sessionId: string): Promise<Result<readonly SessionBucket[]>> {
     return this.sleepRepository.getBuckets(sessionId);
   }
@@ -121,6 +128,22 @@ export class SleepService implements ISleepService {
         return removed;
       }
     }
+    return ok(undefined);
+  }
+
+  async deleteAllSessions(): Promise<Result<void>> {
+    const deleted = await this.sleepRepository.deleteAllSessions();
+    if (!deleted.ok) {
+      return deleted;
+    }
+    for (const path of deleted.value) {
+      const removed = await this.snippetStorage.deleteFile(path);
+      if (!removed.ok) {
+        return removed;
+      }
+    }
+    // Sweep any snippet files left without a row (best-effort; failure is non-fatal here).
+    await this.reclaimOrphanedSnippets();
     return ok(undefined);
   }
 
@@ -253,6 +276,77 @@ export class SleepService implements ISleepService {
       closed += 1;
     }
     return ok(closed);
+  }
+
+  async seedDemoNights(count: number): Promise<Result<number>> {
+    let written = 0;
+    try {
+      for (let i = 0; i < count; i += 1) {
+        // Walk further back than `i` so ~1 in 5 days is left empty — the calendar should
+        // show gaps, not a solid block of nights.
+        const dayBack = i + Math.floor(i / 4);
+        const night = await this.insertDemoNight(dayBack, false);
+        if (!night.ok) {
+          return night;
+        }
+        written += 1;
+        // A couple of days also get a daytime nap so the multi-session picker has something
+        // to show.
+        if (i === 2 || i === 9) {
+          const nap = await this.insertDemoNight(dayBack, true);
+          if (!nap.ok) {
+            return nap;
+          }
+          written += 1;
+        }
+      }
+      return ok(written);
+    } catch (cause) {
+      return err(persistenceError('Failed to seed demo nights', cause));
+    }
+  }
+
+  /** Insert one synthetic completed session `dayBack` days ago (dev seeding only). */
+  private async insertDemoNight(
+    dayBack: number,
+    nap: boolean,
+  ): Promise<Result<SleepSession>> {
+    const start = new Date(Date.now() - dayBack * 24 * 60 * 60 * 1000);
+    if (nap) {
+      start.setHours(14, Math.floor(Math.random() * 60), 0, 0);
+    } else {
+      start.setHours(22, 15 + Math.floor(Math.random() * 60), 0, 0);
+    }
+    const startedAt = start.getTime();
+
+    const durationMs = nap
+      ? (30 + Math.floor(Math.random() * 60)) * 60_000
+      : (5 * 60 + Math.floor(Math.random() * 180)) * 60_000;
+    // Quiet share of the night in [0.1, 0.95] drives both the ring and the derived totals.
+    const quiet = 0.1 + Math.random() * 0.85;
+    const totalSnoringMs = Math.round(durationMs * (1 - quiet));
+    const snoreCount = Math.round((1 - quiet) * 400);
+    const peakDb = totalSnoringMs > 0 ? 45 + Math.round(Math.random() * 30) : 0;
+    const peakAt = totalSnoringMs > 0 ? startedAt + Math.floor(durationMs * 0.4) : null;
+
+    const created = await this.sleepRepository.createSession({
+      id: createSessionId(),
+      startedAt,
+      ambientBaselineDb: 30,
+    });
+    if (!created.ok) {
+      return created;
+    }
+    return this.sleepRepository.finishSession(created.value.id, {
+      endedAt: startedAt + durationMs,
+      state: 'COMPLETED',
+      snoreCount,
+      totalSnoringMs,
+      peakDb,
+      peakAt,
+      sleepScore: Math.round(60 + quiet * 35),
+      snoreScore: Math.round(quiet * 100),
+    });
   }
 
   private async collectReferencedSnippetPaths(): Promise<Result<ReadonlySet<string>>> {

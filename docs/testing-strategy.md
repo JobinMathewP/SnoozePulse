@@ -32,7 +32,9 @@ Test:
 - Date utilities
 - Sleep scoring
 - Repository methods
-- State machine transition guards, including rejection of illegal transitions
+- Recording state machine transition guards, including rejection of illegal transitions
+- Sleep Readiness machine (product v2): combined-signal start, stationary-alone must not start, illegal transitions rejected
+- Sleep schedule persistence and default-off automatic tracking
 - Retention policy (30 days / 500 MB)
 
 ### Component Tests
@@ -62,6 +64,11 @@ deferred because the development machine is Windows (ADR-17).
 - System interruption: incoming call pauses and resumes the session
 - Long (8+ hour) recording stability
 - Retention cleanup fires at 30 days / 500 MB
+- Product v2: automatic tracking stays off until opt-in
+- Product v2: session starts in the readiness window only when settled and idle
+- Product v2: stationary phone alone does not start monitoring
+- Product v2: morning notification opens Summary
+- Product v2: denied microphone produces a failed night, not a fake Summary
 - iOS Development Build — deferred
 
 ## Performance
@@ -73,13 +80,12 @@ deferred because the development machine is Windows (ADR-17).
 
 See `docs/performance-rc.md` for the Task 5.6 soak procedure and ADR-13 Jest coverage.
 
-## Classifier Regression (M6)
+## Classifier Regression (M6 / product v1 hardening)
 
-> **Status: deferred (ADR-29).** The corpus and the automated gate described below are
-> postponed to post-M6 hardening. Until ADR-29's trigger fires (app distributed outside
-> the development team, or any change to the detection pipeline), the section stands as
-> the target design, not an active test path. On-device smoke tests are the current
-> substitute.
+> **Status: deferred backlog (ADR-29, ADR-33).** Product v1 shipped to the stores, which
+> fired ADR-29's "distributed outside the development team" trigger. The corpus is still
+> not the product-v2 headline. Re-open the archived Task 6.6 before changing the
+> detection pipeline. On-device smoke tests remain the substitute until then.
 
 The M6 detector is validated against a labelled corpus of public audio clips (ADR-27). The
 Task 6.6 gate fails a release if the classifier falls below its precision or recall bar.

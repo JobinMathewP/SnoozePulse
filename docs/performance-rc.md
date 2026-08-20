@@ -1,4 +1,8 @@
-# Performance & soak notes (Task 5.6 / Phase 24)
+# Performance & soak notes
+
+Shipped with product v1 (Task 5.6 / Phase 24). Still the overnight soak procedure for
+product v2 sessions — automatic start does not change the capture cost once
+`RECORDING` begins.
 
 ## ADR-13 — audio stream must not thrash React
 

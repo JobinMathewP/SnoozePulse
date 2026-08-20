@@ -5,9 +5,10 @@
 ## 1. System Topology Overview
 
 SnoozePulse follows a unidirectional data flow (UDF) architecture with a native audio
-processing pipeline. From Milestone 6 onward the native layer runs an on-device TFLite
-classifier (YAMNet); loudness thresholds no longer participate in detection (ADR-21,
-ADR-23).
+processing pipeline. The native layer runs an on-device TFLite classifier (YAMNet);
+loudness thresholds do not participate in detection (ADR-21, ADR-23). Product v2 adds a
+TypeScript Sleep Readiness layer that starts and stops that pipeline; it does not
+replace it.
 
 ```text
 +-----------------------------------------------------------------------------------+
@@ -66,8 +67,14 @@ Responsibilities per layer:
 services/                    repositories/
   AudioService                 SleepRepository
   SleepService                 SnoreRepository
-  AnalyticsService
+  AnalyticsService             SettingsRepository
+  SleepScheduleService
+  ReadinessService
 ```
+
+Product v2 adds schedule and readiness services. They orchestrate *when* to call
+`IAudioService.startSession()` / `stopSession()`. They do not contain SQL and they
+do not own DSP.
 
 ## 2.2 Dependency Injection
 
@@ -98,6 +105,20 @@ silently applied.
 `PAUSED` is **system-only**. It is entered and left by the audio engine in response to
 interruptions such as an incoming call or another app seizing the audio session. There is
 no user-facing pause control on any screen and none is to be added.
+
+## 3.0 Sleep Readiness State Machine (product v2)
+
+Separate from the recording machine. Specified in `docs/prd-automatic-sleep-tracking.md`
+and ADR-31 / ADR-32.
+
+```text
+SCHEDULED → READINESS_WINDOW → SETTLING → MONITORING → WAKE_WINDOW → COMPLETED
+Any state → ERROR
+```
+
+`MONITORING` means "request `startSession()`". `COMPLETED` means "request `stopSession()`".
+The recording machine still owns capture. Do not merge the two machines. Internally this
+is **Sleep Readiness**, never "user is in bed".
 
 ## 3.1 Live Audio Render Path
 
@@ -168,10 +189,13 @@ Secondary Reference
 
 - docs/mockup.jpg
 
-## 4. V2 Detection Pipeline
+## 4. Detection Pipeline (shipped in product v1)
 
-Ratified in ADR-21 through ADR-25. This section is the tie-breaker for anything the
-older reference images or PRD wording implies about the detector.
+Ratified in ADR-21 through ADR-25. This is the production snore detector. Product v2
+does not replace it. Automatic tracking only starts and stops it.
+
+The heading "V2" here is the **detector / scoring version**, not the App Store version
+(ADR-31).
 
 ```text
 Microphone
@@ -222,9 +246,13 @@ Rules in force:
   - Android: `modules/snoozepulse-audio/android/src/main/assets/yamnet.tflite`
   - iOS: `modules/snoozepulse-audio/ios/Resources/yamnet.tflite`
 
-The V2 pipeline changes nothing above the native layer. `IAudioEngine`, `AudioLevelEvent`,
-and `SnoreEvent` remain the only crossing points; the events grow new fields (ADR-24) but
-their shapes stay assignable to any existing consumer.
+The detector pipeline changes nothing above the native layer. `IAudioEngine`,
+`AudioLevelEvent`, and `SnoreEvent` remain the only crossing points; the events grew
+fields in M6 (ADR-24) but their shapes stay assignable to any existing consumer.
+
+Product v2 must not add a second capture path. Readiness may read throttled events from
+this engine after `START SESSION`, or take a short sample through the same module before
+start. It must not instantiate a parallel `AudioRecord` / `AVAudioEngine` (ADR-32).
 
 ## Cross-Platform Architecture
 
@@ -239,3 +267,6 @@ Only the native audio engine is platform-specific and consists of:
 
 Both implementations expose the same TypeScript interface (`IAudioEngine`) and emit
 identically-shaped events.
+
+Sleep Readiness uses the same rule: one TypeScript contract, Android-first native
+scheduling, iOS best-effort until macOS validation (ADR-17, ADR-32).

@@ -68,7 +68,7 @@ The store never calls a repository directly.
 
 ## Dependency Injection
 
-- Depend on interfaces (`IAudioEngine`, `ISleepRepository`, …), never on concrete classes.
+- Depend on interfaces (`IAudioEngine`, `ISleepRepository`, `ISleepScheduleService`, …), never on concrete classes.
 - Never write `new SomeConcreteClass()` inside a store, hook, or component.
 - A single composition root constructs the object graph at app start and injects it downward.
 - Every service and repository receives its collaborators through its constructor..

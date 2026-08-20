@@ -34,6 +34,10 @@ Only two elements of the reference images are deliberately not reproduced:
 - The product name renders as **SnoozePulse**, not "SnoreCare" (ADR-08).
 - The **Insights** and **Profile** tabs are not part of the product (ADR-09).
 
+Product v2 adds Sleep Schedule to Settings and Home status when automatic tracking is
+on. There is no v2 Home mock yet — reuse existing primitives and tokens; do not invent
+a palette or layout (ADR-06, ADR-31).
+
 ## Design Language
 
 Modern AMOLED-first interface with minimal visual noise.

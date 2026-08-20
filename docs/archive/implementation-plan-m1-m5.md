@@ -1,9 +1,8 @@
-> **Archived — superseded by Milestone 6.**
+> **Archived — M1–M5, superseded by M6, which itself shipped with product v1.**
 >
-> This file is preserved verbatim for provenance. Do not follow it as an active
-> plan. The active implementation plan lives in `docs/implementation-plan.md`
-> and covers Tasks 6.1–6.6. See `docs/archive/README.md` and ADR-28 in
-> `docs/decisions.md` for context.
+> This file is preserved for provenance. Do not follow it as an active plan.
+> The active implementation plan lives in `docs/implementation-plan.md` (M7 —
+> Automatic Sleep Tracking). See `docs/archive/README.md` and ADR-28 / ADR-33.
 
 # Implementation Plan
 

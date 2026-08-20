@@ -2,8 +2,8 @@
 
 This document expands `roadmap.md` into executable tasks.
 
-`roadmap.md` says _what_ each phase covers. This document says _how to execute it, what may
-be touched, and how to prove it is done_.
+`roadmap.md` says *what* each phase covers. This document says *how to execute it,
+what may be touched, and how to prove it is done*.
 
 **Execute exactly one task per prompt. Every task ends in a STOP.**
 
@@ -11,12 +11,15 @@ be touched, and how to prove it is done_.
 
 # Status
 
-Tasks 1.1 through 5.6 are complete and archived at
-`docs/archive/implementation-plan-m1-m5.md`. The M5 detector shipped, and its acoustic
-performance is inadequate. Milestone 6 (Tasks 6.1–6.8) rewrites the detector and the
-scoring stack around an on-device YAMNet classifier and then refreshes the UI on top of
-it. Task 6.6 (regression corpus and RC-2 gate) is deferred to post-M6 hardening per
-ADR-29.
+Tasks 1.1–6.8 are complete or archived. Product v1 shipped. Milestone 7
+(Tasks 7.1–7.8) is the only active plan.
+
+Archived plans:
+
+- `docs/archive/implementation-plan-m1-m5.md`
+- `docs/archive/implementation-plan-m6.md`
+
+Do not follow them as active work.
 
 ---
 
@@ -36,39 +39,30 @@ Where any document disagrees with `docs/decisions.md`, `decisions.md` wins.
 
 ## Milestone Overview
 
-| Milestone | Theme                               | Tasks     | Status   | Phases  |
-| --------- | ----------------------------------- | --------- | -------- | ------- |
-| M1        | Foundation                          | 1.1 – 1.6 | archived | 1 – 4   |
-| M2        | Navigation & UI Primitives          | 2.1 – 2.5 | archived | 5 – 6   |
-| M3        | Screens (mock data)                 | 3.1 – 3.6 | archived | 7 – 14  |
-| M4        | Data, State & Analytics             | 4.1 – 4.5 | archived | 15 – 17 |
-| M5        | Native Audio, Integration & Release | 5.1 – 5.6 | archived | 18 – 25 |
-| **M6**    | Acoustic Recognition                | 6.1 – 6.8 | active   | 26 – 31 |
-
-Task 6.6 (regression corpus + RC-2 gate) is deferred to post-M6 hardening under ADR-29
-and is not required for M6 exit. Tasks 6.7 and 6.8 add the ML-driven UI wiring and the
-mockup-aligned visual polish that were not present in the original phase list.
-
-Archived tasks live in `docs/archive/implementation-plan-m1-m5.md`. They are preserved
-verbatim; do not follow them as active work.
+| Milestone | Theme                        | Tasks     | Status   | Phases  |
+| --------- | ---------------------------- | --------- | -------- | ------- |
+| M1–M5     | Foundation through native audio | 1.1–5.6 | archived | 1–25    |
+| M6        | Acoustic Recognition         | 6.1–6.8   | archived | 26–33   |
+| **M7**    | Automatic Sleep Tracking     | 7.1–7.8   | **active** | 34–41 |
 
 ---
 
 ## Dependency Gates
 
-Install only at the task named. Anything not listed still needs approval.
+Install only at the task named, and only after approval.
 
-| Install at | Packages                                                                                                                                        |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Task 6.1   | Android (Gradle): `org.tensorflow:tensorflow-lite:2.16.1`, `org.tensorflow:tensorflow-lite-support:0.4.4`. iOS (CocoaPods): `TensorFlowLiteSwift ~> 2.14`, `TensorFlowLiteCCoreML ~> 2.14`. |
+| Install at | Packages |
+| ---------- | -------- |
+| Task 7.4   | Motion APIs (`expo-sensors` or native) — **ask first** |
+| Task 7.6   | Local notifications / exact-alarm / background scheduling — **ask first** |
 
-No JavaScript-side ML library is installed. Inference is native (ADR-22).
+Already available: `expo-battery`, existing microphone FGS, `app_settings` KV table.
+
+No JavaScript-side ML library. Do not add a second audio module.
 
 ---
 
 ## Global Guardrails
-
-These apply to every task and are not repeated in each one.
 
 **Never modify, in any task:**
 
@@ -78,7 +72,6 @@ docs/**            (except where a task explicitly says otherwise)
 AGENTS.md
 CLAUDE.md
 LICENSE
-assets/**          (except where a task explicitly says otherwise)
 .git/**
 node_modules/**
 package-lock.json  (except as a side effect of an approved install)
@@ -95,7 +88,10 @@ docs/archive/**    (frozen historical record)
 - Construct a concrete class inside a store, hook, or component.
 - Leave a `TODO`, a stub, or a thrown "not implemented".
 - Continue to the next task automatically.
-- Send raw PCM, log-mel patches, or tensors across the React Native bridge (ADR-22).
+- Duplicate capture inside a new pipeline.
+- Silently default `automaticTrackingEnabled` to true.
+- Claim bed or sleep from motion.
+- Send raw PCM, tensors, or log-mel patches across the bridge (ADR-22).
 - Add a loudness-threshold branch in `CaptureEngine` (ADR-23).
 
 **Baseline validation, run at the end of every task:**
@@ -110,368 +106,62 @@ All three must exit clean.
 
 ---
 
-# Milestone 6 — Acoustic Recognition
+# Milestone 7 — Automatic Sleep Tracking
 
-Goal: replace the loudness-threshold detector with an on-device YAMNet classifier so the
-app separates snores from coughs, speech, fans, blanket rustle, and rain.
+Goal: schedule once, opt in, then SnoozePulse starts and ends overnight
+monitoring via Sleep Readiness and the existing audio engine.
 
-Exit condition for M6: a recorded session detects snores via the classifier only,
-`AudioDsp` no longer contributes to detection, `AudioLevelEvent` and `SnoreEvent` carry
-`confidence`, V2 scores compute from confidence-weighted inputs, the ML-driven fields are
-surfaced in the UI, and the visual polish reconciles with the reference mockups. The
-classifier passes on-device smoke tests; a formal regression gate lands under ADR-29
-before any release outside the development team.
+Exit condition: the acceptance list in `docs/prd-automatic-sleep-tracking.md` §22,
+except playback-dominant episode tightening (§8), which is deferred past M7.
 
 ---
 
-## Task 6.1 — TFLite runtime scaffold and model asset
+## Task 7.1 — Sleep schedule persistence
 
 **Objective**
-Add TFLite to `modules/snoozepulse-audio` on both platforms, bundle the YAMNet classifier
-model, and confirm it loads on device with the expected hardware delegate. **No capture
-wiring, no feature extraction, no detection change.**
+Persist bedtime, wake time, and the automatic-tracking flag locally. No UI.
+Default automatic tracking **off**. Additive, non-destructive migration V4 so
+recorded nights survive (ADR-31).
 
 **Read first**
 
-- `docs/decisions.md` — ADR-16, ADR-21, ADR-22, ADR-28
-- `docs/native-audio.md` — Model asset layout
-- YAMNet documentation (Kaggle Models / TF Hub) — confirm the classifier variant, input
-  shape `[1, 15600]`, output shape `[1, 521]`, and license.
-- Expo Modules API docs for SDK 57
+- `docs/decisions.md` — ADR-12, ADR-18, ADR-30, ADR-31
+- `docs/prd-automatic-sleep-tracking.md` §2, §18
+- `src/repositories/ISettingsRepository.ts`
+- `src/services/ProfileService.ts` (pattern for `app_settings` keys)
+- `src/services/database/migrations.ts`
 
 **May modify**
 
 ```text
-modules/snoozepulse-audio/android/build.gradle
-modules/snoozepulse-audio/android/src/main/assets/yamnet.tflite     (add binary asset)
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/YamnetClassifier.kt
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/SnoreClassifier.kt
-modules/snoozepulse-audio/ios/SnoozePulseAudio.podspec
-modules/snoozepulse-audio/ios/Resources/yamnet.tflite               (add binary asset)
-modules/snoozepulse-audio/ios/YamnetClassifier.swift
-modules/snoozepulse-audio/ios/SnoreClassifier.swift
-modules/snoozepulse-audio/__fixtures__/LICENSES.md                   (create)
-```
-
-**Must not modify**
-
-```text
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/CaptureEngine.kt
-modules/snoozepulse-audio/ios/CaptureEngine.swift
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/AudioDsp.kt
-modules/snoozepulse-audio/ios/AudioDsp.swift
-modules/snoozepulse-audio/src/**
-src/**
-```
-
-**Acceptance criteria**
-
-- Android: `build.gradle` declares the two TFLite dependencies at the versions in the
-  gate table.
-- iOS: the Podspec declares `TensorFlowLiteSwift` and `TensorFlowLiteCCoreML`.
-- `yamnet.tflite` is present at the asset paths in ADR-28 and passes a size sanity check
-  (roughly 3.5–4.5 MB).
-- A private `SnoreClassifier` interface exists on both platforms with one implementation,
-  `YamnetClassifier`. It exposes `load()`, `warm()`, `classify(patch: FloatArray): Float`
-  (returns `P(Snoring) + P(Snort)`), and `close()`.
-- Warm inference is executed once from `SnoozePulseAudioModule` initialisation and the
-  resolved delegate is logged (`NNAPI`, `CoreML`, or `CPU`).
-- `LICENSES.md` records the YAMNet weights license and any Freesound clips referenced by
-  later fixtures.
-- `CaptureEngine` is byte-for-byte unchanged. Detection still uses the M5 loudness path
-  (ADR-23's deletion happens in Task 6.3).
-
-**Validation**
-
-```bash
-npm run typecheck
-npm run lint
-npm test
-npx expo prebuild --clean
-npx expo run:android
-```
-
-On a physical device or emulator, capture the log line naming the delegate. Paste it in
-the STOP report so we can spot silent CPU fallbacks.
-
-**STOP.** Report installed dependency versions, model size, delegate log, and the
-platforms verified. Wait for review.
-
----
-
-## Task 6.2 — Waveform-window front-end and byte-parity harness
-
-**Objective**
-Prepare YAMNet's *native* input — a 15,600-sample Float32 patch normalized to `[-1.0, 1.0]`
-via `sample / 32768.0` — with byte-parity to a Python oracle, allocation-free after
-warmup. **No mel spectrogram is computed** because the shipped YAMNet variant
-(`lite-model/yamnet/classification/tflite/1`) has the log-mel front-end baked into the graph
-(input tensor `[1, 15600]`, ADR-21). This task builds the input-preparation stage and its
-regression fixture; the classifier remains uncalled from `CaptureEngine` until Task 6.3.
-
-**Read first**
-
-- `docs/decisions.md` — ADR-21, ADR-22
-- YAMNet classifier variant page on TF Hub / Kaggle Models — confirm the input tensor
-  is `[1, 15600]` float32 in `[-1.0, 1.0]`.
-
-**May modify**
-
-```text
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/WaveformWindow.kt
-modules/snoozepulse-audio/android/src/test/java/expo/modules/snoozepulseaudio/WaveformWindowTest.kt
-modules/snoozepulse-audio/android/build.gradle       (test dep + test resource srcDir only)
-modules/snoozepulse-audio/ios/WaveformWindow.swift
-modules/snoozepulse-audio/ios/Tests/WaveformWindowTests.swift
-modules/snoozepulse-audio/__fixtures__/audio/reference_tone.wav              (procedurally generated)
-modules/snoozepulse-audio/__fixtures__/waveform/reference_tone_windows.bin   (float32 LE oracle)
-modules/snoozepulse-audio/__fixtures__/waveform/generate_fixtures.py         (reproducible generator)
-modules/snoozepulse-audio/__fixtures__/LICENSES.md
-```
-
-**Must not modify**
-
-```text
-modules/snoozepulse-audio/**/CaptureEngine.*
-modules/snoozepulse-audio/**/AudioDsp.*
-modules/snoozepulse-audio/**/YamnetClassifier.*
-modules/snoozepulse-audio/**/SnoozePulseAudioModule.*
-modules/snoozepulse-audio/src/**
-src/**
-```
-
-**Acceptance criteria**
-
-- `WaveformWindow` exposes:
-  - `fill(samples: ShortArray, count: Int): FloatArray` — copies exactly `patchSamples`
-    samples into a pre-allocated `FloatArray(patchSamples)` normalized via
-    `sample / 32768.0f` and returns the same instance every call. Throws if
-    `count != patchSamples`.
-  - `slidingWindows(mono16k: ShortArray, totalCount: Int, onPatch: (FloatArray) -> Unit)` —
-    calls `onPatch` once per full 15,600-sample window with a `hopSamples` = 7,800 step
-    (50 % overlap). Trailing partial window is discarded.
-- Constants: `patchSamples = 15_600` (0.975 s @ 16 kHz), `hopSamples = 7_800`.
-- No heap allocation in the hot path after construction; all scratch buffers are held on
-  the instance and reused. Verified by an "allocation-free" assertion that calls `fill`
-  twice and confirms the returned reference is identity-equal.
-- A JVM (Kotlin) parity test compares the flattened window output for
-  `__fixtures__/audio/reference_tone.wav` against
-  `__fixtures__/waveform/reference_tone_windows.bin` and asserts mean absolute error
-  `≤ 1e-6`. Equivalent Swift XCTest exists; Windows hosts may mark iOS execution as
-  deferred to a Mac host.
-- The Python oracle (`generate_fixtures.py`) is deterministic (fixed seed / analytic
-  waveform) and regenerates both files bit-for-bit.
-- `YamnetClassifier.classify(patch: FloatArray)` is *not* called from `WaveformWindow` or
-  anywhere in `CaptureEngine`. This task ends with an input preparer, no detector rewrite.
-
-**Validation**
-
-```bash
-npm run typecheck
-npm run lint
-npm test
-cd modules/snoozepulse-audio/android && ./gradlew :snoozepulse-audio:test
-```
-
-On a Mac host, additionally run `xcodebuild test -scheme SnoozePulseAudio` or the Expo
-prebuild equivalent to execute `WaveformWindowTests.swift`. Windows may report the iOS
-test as deferred.
-
-**STOP.** Report parity MAE for each platform run and the fixture SHA-256 hashes. Wait for
-review.
-
----
-
-## Task 6.3 — Classifier-driven episode builder; delete the loudness detector
-
-**Objective**
-Rewrite `CaptureEngine.emitMeterAndDetect` around classifier probability with hysteresis,
-grow the event payloads, and delete every code path where dB feeds detection.
-
-**Read first**
-
-- `docs/decisions.md` — ADR-21, ADR-23, ADR-24
-- `docs/api-contracts.md`
-- `docs/native-audio.md`
-
-**May modify**
-
-```text
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/CaptureEngine.kt
-modules/snoozepulse-audio/ios/CaptureEngine.swift
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/SnoozePulseAudioModule.kt   (wire classifier into CaptureEngine constructor only)
-modules/snoozepulse-audio/ios/SnoozePulseAudioModule.swift                                                 (wire classifier into CaptureEngine constructor only)
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/SnoreClassifier.kt           (widen classify() return type only)
-modules/snoozepulse-audio/ios/SnoreClassifier.swift                                                        (widen classify() return type only)
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/YamnetClassifier.kt          (return-value plumbing only; delegate + model loading are frozen)
-modules/snoozepulse-audio/ios/YamnetClassifier.swift                                                       (return-value plumbing only; delegate + model loading are frozen)
-modules/snoozepulse-audio/src/SnoozePulseAudio.types.ts
-src/native/AudioEngine.ts
-src/types/**                (only AudioLevelEvent, SnoreEvent, and their close relatives)
-src/repositories/mappers.ts (populate M6-added SnoreEvent fields with sentinel defaults until Task 6.5 adds the SQL columns)
-```
-
-**Must not modify**
-
-```text
-modules/snoozepulse-audio/**/WaveformWindow.*
-modules/snoozepulse-audio/**/AudioDsp.*     (kept only for display dB)
-src/store/**
-src/features/**
-src/services/**            (no signature changes to IAudioService)
-src/repositories/**        (except mappers.ts as narrowly noted above)
-```
-
-**Acceptance criteria**
-
-- Every 0.975 s window is fed through `MelSpectrogram` → `YamnetClassifier.classify`. The
-  resulting `confidence = P(Snoring) + P(Snort)` is emitted on every `AudioLevelEvent`.
-- Episode builder uses hysteresis: enter ≥ 0.55, exit < 0.35, minimum episode 300 ms,
-  hang 700 ms. Constants live in a single named block at the top of `CaptureEngine` and
-  in `MelSpectrogram` if any front-end constant is needed there.
-- The `db >= ambientBaselineDb + SNORE_MARGIN_DB` branch is deleted. `SNORE_MARGIN_DB`
-  no longer appears anywhere in `modules/snoozepulse-audio` (`grep` proof required in the
-  STOP report).
-- `AudioLevelEvent` gains `confidence: number` and `noiseFloorDb: number`. `SnoreEvent`
-  gains `confidence: number`, `classLabel: 'snoring' | 'snort'`, and
-  `spectralPeakHz: number | null`. Payload shapes match `docs/api-contracts.md` exactly.
-- `noiseFloorDb` may be a stub (e.g. always `0`) in this task — Task 6.4 implements the
-  rolling median.
-- `AudioEngine.ts` forwards every new field; no field is dropped in adaptation.
-- Store selectors and features compile with zero changes to their business logic.
-
-**Validation**
-
-```bash
-npm run typecheck
-npm run lint
-npm test
-npx expo run:android
-```
-
-On device, run a 90-second cough / speech / TV smoke test and record the episode count
-(target: 0). Play back a snore clip through room speakers and confirm ≥ 1 episode. Paste
-both results in the STOP report.
-
-**STOP.** Report the grep-clean proof for `SNORE_MARGIN_DB`, the smoke-test counts, and
-the platforms verified.
-
----
-
-## Task 6.4 — AGC-safe capture and rolling noise floor
-
-**Objective**
-Switch Android's capture source away from `MIC`, keep iOS as `.measurement`, and replace
-the one-shot ambient calibration with a rolling 60 s noise-floor estimate exposed via
-`AudioLevelEvent.noiseFloorDb`.
-
-**Read first**
-
-- `docs/decisions.md` — ADR-25
-- Android `MediaRecorder.AudioSource` documentation
-
-**May modify**
-
-```text
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/CaptureEngine.kt
-modules/snoozepulse-audio/ios/CaptureEngine.swift
-modules/snoozepulse-audio/android/src/main/java/expo/modules/snoozepulseaudio/SnoozePulseAudioModule.kt
-modules/snoozepulse-audio/ios/SnoozePulseAudioModule.swift
-src/features/home/**       (calibration copy only, no functional change)
-```
-
-**Must not modify**
-
-```text
-modules/snoozepulse-audio/**/YamnetClassifier.*
-modules/snoozepulse-audio/**/WaveformWindow.*
-modules/snoozepulse-audio/**/AudioDsp.*
-modules/snoozepulse-audio/src/**
-src/native/**
-src/types/**
-src/services/**
-src/store/**
-```
-
-**Acceptance criteria**
-
-- Android tries `MediaRecorder.AudioSource.UNPROCESSED` first when the OS advertises
-  support via `AudioManager.getProperty("android.media.property.SUPPORT_AUDIO_SOURCE_UNPROCESSED")
-  == "true"`, then falls back to `VOICE_RECOGNITION`. `MIC` is not used.
-- The chosen source is logged with a stable tag on every session start.
-- iOS `.measurement` mode is retained without changes.
-- A rolling 60 s median of the display dB is maintained on the native thread; the current
-  value populates `AudioLevelEvent.noiseFloorDb` on every emit.
-- The JS-facing `calibrate()` promise returns the current noise-floor estimate immediately
-  and does not block for 3 s.
-- Home-screen calibration affordance stays; copy may be softened to "measuring
-  environment" or equivalent.
-- No functional change to the classifier or the episode builder.
-
-**Validation**
-
-```bash
-npm run typecheck
-npm run lint
-npm test
-npx expo run:android
-```
-
-On device, confirm the granted-source log line and observe `noiseFloorDb` climbing during
-the first minute of capture.
-
-**STOP.** Report the granted-source log line for each device you test and the observed
-noise-floor curve.
-
----
-
-## Task 6.5 — V2 analytics and destructive schema migration
-
-**Objective**
-Introduce confidence-weighted V1-replacement scoring, migrate the SQLite schema, and wipe
-pre-M6 sessions per ADR-26.
-
-**Read first**
-
-- `docs/decisions.md` — ADR-10, ADR-26
-- `docs/api-contracts.md` — analytics inputs
-- `docs/coding-standards.md` — Deferred Implementations
-
-**May modify**
-
-```text
-src/services/analytics/**
 src/services/database/migrations.ts
-src/services/database/client.ts     (only if the migration API requires it)
 src/repositories/**
-src/services/**                     (composition-root wiring only)
-src/types/**                        (analytics model fields only)
+src/services/**          (new ISleepScheduleService + impl + tests)
+src/types/**
+src/hooks/createContainer.ts   (composition-root wiring only)
+src/store/**               (only if a thin schedule slice is required to expose
+                           persisted values; no session lifecycle changes)
 ```
 
 **Must not modify**
 
 ```text
 modules/**
-src/features/**                     (except tiny fixes if a type widening breaks a screen)
-src/store/**                        (except tiny fixes if a type widening breaks a slice)
-src/theme/**
+src/features/**
+src/native/**
+docs/**
 ```
 
 **Acceptance criteria**
 
-- New files: `src/services/analytics/sleepScoreV2.ts`, `snoreScoreV2.ts`,
-  `scoringConstantsV2.ts`. V1 files are kept, unchanged, and are marked read-only via a
-  doc comment ("V1 heuristic. Kept for archival reads only; no write path calls this after
-  M6.").
-- `ScoreInputs` gains `avgConfidence: number`, `snoringShareByConfidence: number`,
-  `spectralConsistency: number`, and `episodeRegularity: number`. Existing fields remain.
-- A new migration adds `sleep_sessions.score_version INTEGER NOT NULL DEFAULT 2`, deletes
-  every row from `sleep_sessions`, `snore_events`, and `session_buckets`, and reclaims all
-  snippet files under the documents directory in the same transaction where possible.
-- The analytics composition root and `AudioService.finishActiveSession` call the V2
-  functions. V1 functions are unreachable from the write path.
-- Unit tests cover both V2 pure functions and the migration idempotency.
-- No `TODO`, no stub, no throw.
+- Migration V4 is additive. Existing `sleep_sessions` rows are not deleted.
+- Keys exist for local bedtime, wake time, and `automaticTrackingEnabled`.
+- Missing keys read as: no schedule yet, automatic tracking `false`.
+- `ISleepScheduleService` is the only consumer of those keys. The store does
+  not call the repository.
+- Round-trip unit tests cover read / write / default-off.
+- Times are stored in a timezone-safe, local-wall-clock form documented in the
+  type (not as a UTC instant that drifts).
 
 **Validation**
 
@@ -479,68 +169,54 @@ src/theme/**
 npm run typecheck
 npm run lint
 npm test
-npx expo run:android
 ```
 
-On device, verify that any existing sessions were wiped on first launch and that a fresh
-session persists with `score_version=2`.
-
-**STOP.** Report the migration output, the row counts before and after, and the platforms
-verified.
+**STOP.** Report the key names, default values, and migration number. Wait.
 
 ---
 
-## Task 6.6 — Regression corpus, precision / recall gates, RC-2 _(deferred, ADR-29)_
-
-> **Status: deferred.** ADR-29 postpones this task to post-M6 hardening. It reopens the
-> moment either of these triggers fires (whichever comes first): the app is distributed
-> outside the development team, or any change is made to the detection pipeline (model
-> swap, threshold retune, class-label edit, front-end change). The rest of this section is
-> preserved verbatim as the definition of the eventual gate — a future agent picks it up
-> under ADR-29. Do **not** execute this task as part of the M6 exit path.
+## Task 7.2 — Settings UI for schedule and opt-in
 
 **Objective**
-Assemble the public regression corpus, add golden-audio tests that exercise the
-`WaveformWindow` + YAMNet + episode-builder pipeline, publish a confusion matrix, and cut
-RC-2.
+Let the user set bedtime, wake time, and enable/disable automatic tracking from
+Settings, using existing Settings primitives. Privacy copy explains microphone
+use during the scheduled window.
 
 **Read first**
 
-- `docs/decisions.md` — ADR-27
-- `docs/testing-strategy.md` — Classifier Regression
+- `docs/prd-automatic-sleep-tracking.md` §2, §17
+- `docs/design-spec.md`
+- `src/features/settings/**`
+- `.cursor/rules/01-guardrails.mdc`
 
 **May modify**
 
 ```text
-modules/snoozepulse-audio/__fixtures__/audio/**
-modules/snoozepulse-audio/__fixtures__/LICENSES.md
-src/services/analytics/__tests__/**
-src/**/__tests__/**
-docs/testing-strategy.md       (documentation-updated requirement only)
-NOTICES.md                     (create if it doesn't exist)
-README.md
-package.json                   (only if a new dev-only test helper is required)
+src/features/settings/**
+src/features/onboarding/**   (only if adding a schedule step; Settings-only is
+                             acceptable for this task)
+src/theme/**                 (only if a token is genuinely missing; sample it)
+src/store/**                 (selectors / actions for schedule, no business rules)
 ```
 
 **Must not modify**
 
 ```text
-application source, except to fix a defect a test reveals
+modules/**
+src/native/**
+src/services/database/**
+src/repositories/**
+docs/**
 ```
 
 **Acceptance criteria**
 
-- Corpus size: ≥ 50 labelled snore clips, ≥ 100 non-snore clips (fans, coughs, speech,
-  music, rain, blanket rustle). Every clip is CC0, CC-BY-4.0, or otherwise redistributable;
-  license and attribution recorded in `LICENSES.md` and, where required, in `NOTICES.md`.
-- Golden-audio Jest suite loads each clip, runs it through the `WaveformWindow` +
-  YAMNet classifier via a native-parity test harness, and asserts the episode builder's
-  output against the label.
-- Precision ≥ 0.85 and recall ≥ 0.90 on the labelled dev set. Failing the gate fails the
-  test suite.
-- Confusion matrix is printed to the test log and captured in the RC-2 report.
-- All release gates from the archived Task 5.6 (typecheck, lint, tests, no runtime
-  warnings, no TODO, documentation current) still pass.
+- Settings shows bedtime, wake time, and an automatic-tracking control.
+- Automatic tracking cannot be turned on without the user doing so.
+- Privacy sentence from the feature PRD §17 is visible near the toggle.
+- Accessibility labels on every interactive control.
+- Existing users who never open the new section remain opted out.
+- Theme tokens only. No hex literals outside `src/theme/**`.
 
 **Validation**
 
@@ -548,64 +224,53 @@ application source, except to fix a defect a test reveals
 npm run typecheck
 npm run lint
 npm test
-npx expo run:android --variant release
 ```
 
-**STOP.** M6 complete except for the UI refresh (Task 6.7). Report the precision / recall
-figures, confusion matrix, and RC-2 status. Wait for the instruction to commit.
+**STOP.** Report screenshots or a structural description of the new Settings
+section. Do not start the state machine.
 
 ---
 
-## Task 6.7 — UI wiring for the ML detector _(placeholder — finalised after Task 6.6)_
+## Task 7.3 — Readiness state machine
 
 **Objective**
-The M1–M3 screens were built for a loudness-threshold detector and still reference concepts
-that no longer exist (sensitivity slider, ambient-margin readout, dB-driven snore states,
-"Calibrated - Quiet Environment" style copy). Plumb the ML-driven fields introduced by
-M6.3–M6.5 into the existing screen scaffolding and delete every remnant of the loudness
-narrative. **This task is data plumbing plus copy cleanup — full visual reconciliation with
-the reference mockups is Task 6.8.**
+A pure TypeScript Sleep Readiness machine, unit-tested with fakes, that decides
+when to request start and stop. It does not start the engine itself in this
+task — it exposes intents the next tasks will wire.
 
-- Surface classifier confidence and hysteretic state on the record screen.
-- Show class distribution (`snoring` vs `snort`), rolling noise floor, and V2 score
-  breakdown on the session detail.
-- Retire any "sensitivity" / "threshold" / "ambient calibration" affordances or copy.
-- Update onboarding / marketing screens if any promise loudness-based tuning.
+**Read first**
 
-**Read first (finalise when this task starts)**
+- `docs/prd-automatic-sleep-tracking.md` §4, §9, §10, §12
+- `docs/architecture.md` — recording state machine (do not merge)
+- ADR-31, ADR-32
 
-- `docs/decisions.md` — ADR-21, ADR-24, ADR-26
-- `docs/api-contracts.md` — post-M6.3 `AudioLevelEvent`, `SnoreEvent`, `ScoreInputs` shapes
-
-**May modify (draft — refine when this task starts)**
+**May modify**
 
 ```text
-src/features/**
-src/components/**
-src/theme/**            (only if a new token is genuinely missing; sample colors from reference images per ADR-06)
-src/store/**            (only for selector additions; no business-logic changes)
+src/services/**            (readiness service + constants + tests)
+src/types/**
 ```
 
 **Must not modify**
 
 ```text
-modules/**              (native pipeline is frozen by Task 6.3–6.5 sign-off)
-src/services/**
-src/repositories/**
+modules/**
+src/features/**
 src/native/**
+src/repositories/**
 docs/**
 ```
 
-**Acceptance criteria (draft)**
+**Acceptance criteria**
 
-- Confidence, `classLabel`, and rolling `noiseFloorDb` are all rendered on screen (not
-  buried in dev overlays).
-- V2 score breakdown from Task 6.5 is visible on the session detail.
-- No dead references to "sensitivity", "threshold", or "loudness detection" remain in
-  copy, component names, or props.
-- On-device smoke tests still confirm detector behaviour on a real snore clip vs
-  non-snore clips (Task 6.6's formal gate is deferred per ADR-29). UI changes do not
-  regress detector behaviour or scoring.
+- States: `SCHEDULED`, `READINESS_WINDOW`, `SETTLING`, `MONITORING`,
+  `WAKE_WINDOW`, `COMPLETED`, `ERROR`.
+- Illegal transitions are rejected, same pattern as the recording machine.
+- Start intent requires: in window + settled + not interacting + acceptable
+  environment. Stationary-alone tests must **not** emit start.
+- Window offsets and thresholds live in one named constants block.
+- No clock, sensor, or audio I/O inside the reducer — those are injected.
+- Recording states are not duplicated here.
 
 **Validation**
 
@@ -613,49 +278,238 @@ docs/**
 npm run typecheck
 npm run lint
 npm test
-npx expo run:android
 ```
 
-Manual pass on Pixel 6 to confirm ML fields render and dead copy is gone. Visual fidelity
-to the mockups is deferred to Task 6.8.
-
-**STOP.** Report which fields are surfaced where, the deleted concepts, and screenshots.
+**STOP.** Paste the transition table and the stationary-alone failing case.
 
 ---
 
-## Task 6.8 — Mockup-aligned visual polish _(placeholder — finalised after Task 6.7)_
+## Task 7.4 — Device signals (Android first)
 
 **Objective**
-Bring every user-facing screen up to its reference image under `docs/`. This is the pure
-visual system pass — layout, cards, graphs, typography, palette, spacing — applied
-consistently through a small set of reusable primitives so we do not accumulate one-offs.
-Feature parity where the app supports it; skip or restyle mockup elements whose data the
-app does not produce (e.g. weekly comparison arrows without weekly aggregates).
+Adapters for charging, phone interaction, and motion that the readiness machine
+can read. Android is the validation target. Ask before any new dependency.
 
-Screens in scope, each with a dedicated reference image:
+**Read first**
 
-- Home — `docs/home-screen.jpg`
-- Active Session (dimmed / lock-friendly) — `docs/active-session.jpg`
-- Morning Summary & Analytics — `docs/summary-screen.jpg`
-- History & Weekly Trends — `docs/history-screen.jpg`
+- `docs/prd-automatic-sleep-tracking.md` §5, §6, §16
+- ADR-32
+- `package.json` — `expo-battery` is already installed
 
-The four-panel composite `docs/mockup.jpg` is the cross-screen consistency reference (nav
-bar, color rhythm, card treatments).
+**May modify**
 
-**Read first (finalise when this task starts)**
+```text
+src/services/**
+src/native/**              (JS wrappers only, if a native signal is approved)
+modules/snoozepulse-audio/**   (only if extending the existing module is approved
+                               instead of a new package — ask first)
+src/types/**
+```
 
-- `.cursor/rules/01-guardrails.mdc` — Design Rules and Definition of Done
-- `docs/decisions.md` — ADR-06 (theme tokens), ADR-17 (design fidelity)
-- The four per-screen reference images plus `docs/mockup.jpg`
-
-**May modify (draft — refine when this task starts)**
+**Must not modify**
 
 ```text
 src/features/**
-src/components/**
-src/theme/**            (sample colors from reference images per ADR-06; no invented values)
-src/app/**              (route-level layout / tab-bar treatment)
-assets/**               (if new icons / illustrations are required and cannot be composed)
+docs/**
+```
+
+**Acceptance criteria**
+
+- `IReadinessSignals` (name may vary) exposes: charging, screen/interactive,
+  motion-settled, and a placeholder for audio-environment that may be "unknown"
+  until a later sample exists.
+- Implementations are fakes in tests; the store/UI never construct them.
+- Motion is documented as phone-settled, not person-in-bed.
+- Charging uses `expo-battery` unless a gap is proven.
+- If `expo-sensors` or other packages are required, **stop and ask** before
+  installing. Do not install speculatively.
+
+**Validation**
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+```
+
+**STOP.** Report which signals are live vs stubbed, and any dependency request.
+
+---
+
+## Task 7.5 — Scheduler starts the existing audio engine
+
+**Objective**
+Arm the readiness window around bedtime. When the combined rule fires, call
+existing `IAudioService.startSession()`. No second microphone.
+
+**Read first**
+
+- `docs/prd-automatic-sleep-tracking.md` §3, §11
+- ADR-32
+- `src/services/IAudioService.ts`
+- `src/store/sessionSlice.ts`
+
+**May modify**
+
+```text
+src/services/**
+src/store/**
+src/hooks/createContainer.ts
+src/native/**              (JS only, if Android alarm wiring needs a wrapper)
+modules/**                 (only with approval, Android scheduler glue)
+```
+
+**Must not modify**
+
+```text
+src/features/**            (Home comes in Task 7.8)
+docs/**
+```
+
+**Acceptance criteria**
+
+- Automatic path calls the same `startSession()` as the manual button.
+- No new `AudioRecord` / `AVAudioEngine` instance for readiness.
+- Manual start still works while automatic tracking is on or off.
+- If the user is in an active session, the scheduler does not start a second one.
+- Unit tests cover: combined rule fires → start; interacting → no start;
+  already recording → no start.
+
+**Validation**
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+```
+
+On-device Android check is expected: enable auto-tracking, set bedtime soon,
+confirm a session starts only after settled + idle. Report if the OS will not
+wake a killed process yet — that gap is ADR-32, not a silent workaround.
+
+**STOP.** Report how the window is armed on Android.
+
+---
+
+## Task 7.6 — Wake completion and morning notification
+
+**Objective**
+End the session in the wake window through existing `stopSession()`, then show
+a local notification that opens that night's Summary.
+
+**Read first**
+
+- `docs/prd-automatic-sleep-tracking.md` §12–§14
+- ADR-32
+- Expo Router linking for `session/[id]/summary`
+
+**May modify**
+
+```text
+src/services/**
+src/store/**
+src/app/**                 (deep-link / notification response only)
+package.json               (only after approval for notifications)
+app.json                   (only after approval, notification permissions)
+```
+
+**Must not modify**
+
+```text
+modules/snoozepulse-audio/**   (detector frozen)
+docs/**
+```
+
+**Acceptance criteria**
+
+- Wake window uses named constants, not the exact wake timestamp as "user awoke".
+- Successful auto-complete persists scores the same way as a manual slide-to-end.
+- Local notification copy matches the feature PRD §14 in intent.
+- Tap opens the completed session's Summary, not a generic Home.
+- **Ask before** adding `expo-notifications` or native notification code.
+
+**Validation**
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+```
+
+**STOP.** Report the deep-link route and whether a new package was approved.
+
+---
+
+## Task 7.7 — Failed nights, charger reminder, privacy
+
+**Objective**
+Nights that did not track are not presented as summaries. Unplugged phones get a
+gentle charger reminder. Opt-in copy stays honest.
+
+**Read first**
+
+- `docs/prd-automatic-sleep-tracking.md` §15–§17
+- ADR-30 (minimum session length / discard)
+- ADR-31
+
+**May modify**
+
+```text
+src/services/**
+src/features/settings/**
+src/features/home/**       (reminder / failed-night copy only)
+src/types/**
+src/store/**
+```
+
+**Must not modify**
+
+```text
+modules/**
+docs/**
+```
+
+**Acceptance criteria**
+
+- Microphone denied, missing schedule, and engine errors produce a failed or
+  skipped night, never a Summary with invented scores.
+- Sessions shorter than `MIN_SESSION_DURATION_MS` still follow ADR-30.
+- Charger reminder is non-blocking when auto-tracking is on and unplugged near
+  the window.
+- Privacy copy remains on the opt-in control.
+
+**Validation**
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+```
+
+**STOP.** List the failure states and the copy used for each.
+
+---
+
+## Task 7.8 — Home when automatic tracking is on
+
+**Objective**
+When automatic tracking is enabled, Home's primary daily message is tonight's
+status, not "press Start". Start remains as an override. Reuse existing Home
+primitives and tokens. Do not invent a new visual language.
+
+**Read first**
+
+- `docs/prd.md` §6
+- `docs/design-spec.md`
+- `src/features/home/**`
+- ADR-06, ADR-08
+
+**May modify**
+
+```text
+src/features/home/**
+src/theme/**               (only if a token is missing; sample it)
+src/store/**               (selectors only)
 ```
 
 **Must not modify**
@@ -665,25 +519,16 @@ modules/**
 src/services/**
 src/repositories/**
 src/native/**
-src/types/**
-src/store/**            (visual polish must not touch business logic or selectors)
 docs/**
 ```
 
-**Acceptance criteria (draft)**
+**Acceptance criteria**
 
-- Each in-scope screen visually reconciles with its reference image per ADR-17. Where a
-  mockup element has no backing data, the omission is deliberate and documented in the
-  STOP report — no fake numbers.
-- Every card / graph / tab / list-row is a reusable primitive in `src/components/ui`; no
-  one-off `View + Text + StyleSheet` clusters remain in feature files.
-- Colors come from theme tokens (ADR-06). Grep proof: no hex literals outside
-  `src/theme/**`.
-- Typography respects the design scale — no inline `fontSize` outside theme.
-- Accessibility labels on every interactive element (Definition of Done #4).
-- The gate from Task 6.7 still passes; on-device smoke tests still confirm detector
-  behaviour (Task 6.6's formal regression gate is deferred per ADR-29). Visual polish
-  must not regress the detector, scoring, or ML wiring.
+- Auto off: Home behaves as product v1 (Start is primary).
+- Auto on: status reflects armed / waiting / monitoring / failed / ready.
+- Start is still reachable and labelled as an override, not removed.
+- No hex literals outside theme. Accessibility labels on new controls.
+- Branding remains SnoozePulse.
 
 **Validation**
 
@@ -691,26 +536,22 @@ docs/**
 npm run typecheck
 npm run lint
 npm test
-npx expo run:android
 ```
 
-Manual side-by-side visual pass on Pixel 6, iterating until the rendered screen matches
-its reference image (guardrail step 4).
-
-**STOP.** Report per-screen: before/after screenshots, deviations from the mockup and why,
-and the list of new primitives added under `src/components/ui`.
+**STOP.** M7 complete on the TypeScript/Android path. Report Home states and
+any iOS gaps left for macOS validation.
 
 ---
 
 # Progress Tracker
 
-| Task | Title                                                     | Status    |
-| ---- | --------------------------------------------------------- | --------- |
-| 6.1  | TFLite runtime scaffold and model asset                   | complete  |
-| 6.2  | Waveform-window front-end and byte-parity harness         | complete  |
-| 6.3  | Classifier-driven episode builder; delete loudness path   | complete  |
-| 6.4  | AGC-safe capture and rolling noise floor                  | complete  |
-| 6.5  | V2 analytics and destructive schema migration             | complete  |
-| 6.6  | Regression corpus, precision / recall gates, RC-2         | deferred (ADR-29) |
-| 6.7  | UI wiring for the ML detector                             | active    |
-| 6.8  | Mockup-aligned visual polish                              | pending   |
+| Task | Title                                              | Status  |
+| ---- | -------------------------------------------------- | ------- |
+| 7.1  | Sleep schedule persistence                         | pending |
+| 7.2  | Settings UI for schedule and opt-in                | pending |
+| 7.3  | Readiness state machine                            | pending |
+| 7.4  | Device signals (Android first)                     | pending |
+| 7.5  | Scheduler starts the existing audio engine         | pending |
+| 7.6  | Wake completion and morning notification           | pending |
+| 7.7  | Failed nights, charger reminder, privacy           | pending |
+| 7.8  | Home when automatic tracking is on                 | pending |

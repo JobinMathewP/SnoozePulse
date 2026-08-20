@@ -2,11 +2,17 @@
 
 ## Scope
 
-The product is four screens: **Home**, **Active Session**, **Summary**, **History**.
+The product is four screens: **Home**, **Active Session**, **Summary**, **History**, plus
+**Settings** (from the Home gear) and first-run **Onboarding**.
 
 The reference images show a four-tab bottom bar including **Insights** and **Profile**.
 Those two are not part of the product. They are not built and not stubbed — the images are
 stale on this point (ADR-09).
+
+Product v2 does not add a tab. It adds a Sleep Schedule section in Settings (and
+optionally an onboarding step) and changes Home copy when automatic tracking is on.
+Until a dedicated v2 Home mock exists, reuse existing primitives and tokens. Do not
+invent a new visual language (ADR-06, ADR-31).
 
 ## Navigation Map
 
@@ -38,7 +44,8 @@ Landing page.
 
 Contains:
 
-- Hero button
+- Hero button (manual Start). When automatic tracking is on, tonight's status is the
+  primary daily message and Start remains as an override (product v2).
 - Status cards
 - Bottom navigation
 
@@ -86,6 +93,20 @@ Contains:
 - Weekly trends
 - Calendar
 - Comparison cards
+
+---
+
+Settings
+
+No dedicated reference image for Sleep Schedule yet. Add the v2 section using existing
+Settings rows, cards, and tokens (`src/features/settings/`). Bedtime, wake time, automatic
+tracking opt-in, and the microphone privacy sentence from
+`docs/prd-automatic-sleep-tracking.md` §17.
+
+Onboarding
+
+ADR-30's four slides stay. A schedule / opt-in step may be added later in M7; Settings-only
+is acceptable for Task 7.2.
 
 Do NOT:
 

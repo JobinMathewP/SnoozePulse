@@ -583,3 +583,161 @@ This ADR adds one new dependency (`expo-store-review`) and one new colour token 
 for modal veils — the only value not sampled from a reference image, since no modal mock
 exists). Layering is unchanged: UI → Store → Services → Repositories, with `ProfileService`
 and `ReviewService` injected at the composition root (ADR-12, ADR-18).
+
+---
+
+## ADR-31 — Product v2 is Automatic Sleep Tracking
+
+Ratified when product v1 (App Store / Play Store 1.0.0) shipped and v2 planning started.
+
+**Version names**
+
+- **Product v1** = the released store app. Manual "Start Sleep Session", YAMNet in the
+  native module, confidence-weighted scores, onboarding, Settings, no backend.
+- **Product v2** = Automatic Sleep Tracking, specified in `docs/prd.md` and
+  `docs/prd-automatic-sleep-tracking.md`.
+- ADR-21 "V2 detector" and ADR-26 "V2 scoring" are **algorithm version labels**. They
+  already shipped inside product v1. Do not rename those ADRs and do not treat "V2
+  scoring" as the App Store version.
+
+**Product principle**
+
+> Set your sleep schedule once. SnoozePulse takes care of the rest.
+
+The user should not have to remember to open the app and press Start every night. Manual
+start **remains** as an override for naps, travel, and nights when automatic tracking
+does not fire.
+
+**Scope that is in**
+
+- User-configured bedtime and wake time, persisted locally in `app_settings` (additive
+  SQLite migration **V4**, non-destructive — recorded nights survive).
+- Explicit opt-in for automatic tracking. Never silently enable overnight microphone use.
+- A **Sleep Readiness** state machine that may start and stop the existing recording
+  session. It does not merge into the recording machine
+  (`IDLE → STARTING → RECORDING → PAUSED → STOPPING → COMPLETED`).
+- Supporting on-device signals: schedule, motion, phone interaction, charging,
+  environmental audio. Stationary phone **alone** cannot start monitoring.
+- Automatic start calls the existing `IAudioService.startSession()` path. No second
+  capture pipeline.
+- Automatic completion around the wake window, then a **local** morning notification
+  that deep-links to Summary.
+- Honest failed/incomplete sessions. No fabricated analytics.
+- A gentle charger reminder when automatic tracking is on and the device is not
+  charging. Not a hard requirement.
+
+**Scope that is out of the first v2 ship**
+
+- Acoustic echo cancellation.
+- Wearables.
+- A learned sleep-readiness model.
+- Inferring actual wake from sensors (wake window is time-based for this ship).
+- Weekday vs weekend schedules, travel/timezone intelligence beyond device local time.
+- Changing YAMNet thresholds because music is playing. Playback-dominant audio is a
+  **quality flag**, not a sensitivity knob (see the feature PRD §8). Touching the
+  native detector reopens ADR-29.
+
+**Language**
+
+Internally and in user-facing copy, the system reports **sleep readiness**, never "the
+user is in bed" or "the user is asleep". Phone sensors cannot prove location or sleep
+state. Wellness positioning from ADR-30 is unchanged.
+
+**Onboarding**
+
+ADR-30's four-slide first-run flow stays. Sleep schedule and the automatic-tracking
+opt-in may be collected as an additional onboarding step **or** only in Settings for
+the first M7 tasks. Either way the user can change them later. Do not silently
+default automatic tracking on.
+
+**Layering**
+
+Unchanged: UI → Store → Services → Repositories → SQLite / Native. New work lands as
+`ISleepScheduleService` / `IReadinessService` (names may be adjusted at implementation)
+injected at the composition root. The store does not call repositories. Android remains
+the primary development and validation platform (ADR-17).
+
+---
+
+## ADR-32 — Background execution for Sleep Readiness
+
+Ratified with ADR-31. This is the hard constraint on automatic tracking.
+
+The feature is useless if it only works while the app is open. It is also illegal
+(product-wise) if it starts the microphone all evening "just in case".
+
+**What the OS will and will not do**
+
+- **Android** can wake the app at the start of the readiness window (exact alarm /
+  foreground service) and then evaluate cheap signals. The existing microphone
+  foreground service is what runs **after** `START SESSION`, not before.
+- **iOS** will not reliably run arbitrary code at bedtime if the process is killed.
+  Product v2 implements the same TypeScript interfaces on iOS; killed-state
+  auto-start is **best-effort** until validated on macOS. A user who leaves the app
+  backgrounded, or who opens it during the evening, must still get automatic start
+  once settled. Do not invent a backend or silent push to paper over this.
+
+**Readiness vs monitoring**
+
+```text
+SCHEDULED          no extra process required
+READINESS_WINDOW   cheap signals only (time, charging, screen interactive, motion)
+SETTLING           same cheap signals, sustained
+MONITORING         existing native audio engine / FGS / background audio
+WAKE_WINDOW        existing engine still running until STOP SESSION
+COMPLETED          local notification, process may sleep
+```
+
+Do not open a second microphone pipeline during `READINESS_WINDOW`. If environmental
+audio is used as a supporting signal, it must go through the existing native module as
+a short, explicit sample — not overnight capture. Privacy copy must say the microphone
+is used during the **scheduled sleep window**, not only after snores are detected.
+
+**Signals are supporting, combined, and tunable**
+
+Exact thresholds stay in one named constants block (same pattern as scoring constants)
+and are tuned from real nights. A combination is required to start. Motion measures the
+phone, not the person.
+
+**Charging** is advisory. Low battery / missing microphone permission / OS interruption
+must mark the night failed or incomplete rather than writing a fake Summary.
+
+**New dependencies** (notifications, background tasks, motion) are installed only at
+the milestone task that needs them, and only after approval. `expo-battery` is already
+present.
+
+---
+
+## ADR-33 — Documentation restructure for product v2
+
+Ratified with ADR-31.
+
+Product v1 shipped. The M6 roadmap, M6 implementation plan, and the v1 PRD are moved
+into `docs/archive/`:
+
+| Archived file | Was |
+| ------------- | --- |
+| `docs/archive/prd-v1.md` | `docs/SnoreTracker_App_PRD_Specification.md` |
+| `docs/archive/roadmap-m6.md` | `docs/roadmap.md` |
+| `docs/archive/implementation-plan-m6.md` | `docs/implementation-plan.md` |
+
+M1–M5 archives remain. Their banners now point at M7, not M6.
+
+Active documents:
+
+- `docs/prd.md` — product v2
+- `docs/prd-automatic-sleep-tracking.md` — feature spec
+- `docs/roadmap.md` — M7 phases
+- `docs/implementation-plan.md` — M7 tasks
+- `docs/README.md` — map and documentation priority
+
+Living architecture docs (`architecture.md`, `api-contracts.md`, `native-audio.md`,
+`design-spec.md`, and the rest) stay at the top level and are updated in place. They
+describe the shipped engine plus the v2 readiness layer.
+
+ADR-29's corpus trigger fired when v1 left the development team. The corpus remains a
+hardening backlog item in the M6 archive. Product v2 does not block on it unless the
+detection pipeline changes.
+
+`docs/decisions.md` still wins over every other document.
+

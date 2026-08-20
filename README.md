@@ -69,14 +69,22 @@ modules/
 
 ## Documentation
 
-Start with `docs/decisions.md` — it records the ratified architecture decisions and is the
-tie-breaker whenever any other document disagrees.
+Start with `docs/README.md` for the map, then `docs/decisions.md` — it records the
+ratified architecture decisions and is the tie-breaker whenever any other document
+disagrees.
+
+Product v1 (App Store 1.0.0) has shipped. Active work is product v2: Automatic Sleep
+Tracking (`docs/prd.md`, `docs/prd-automatic-sleep-tracking.md`, M7 in
+`docs/roadmap.md`). Shipped plans live in `docs/archive/`.
 
 | Document | Contents |
 | --- | --- |
+| `docs/README.md` | Map, version names, documentation priority |
 | `docs/decisions.md` | Architecture decision record |
-| `docs/implementation-plan.md` | Task-by-task execution plan |
-| `docs/roadmap.md` | Phase definitions |
+| `docs/prd.md` | Product v2 requirements |
+| `docs/prd-automatic-sleep-tracking.md` | Automatic tracking feature spec |
+| `docs/implementation-plan.md` | Task-by-task execution plan (M7) |
+| `docs/roadmap.md` | Phase definitions (M7) |
 | `docs/architecture.md` | System topology and layering |
 | `docs/api-contracts.md` | Interfaces and event payloads |
 | `docs/native-audio.md` | Native audio pipeline |
@@ -84,7 +92,6 @@ tie-breaker whenever any other document disagrees.
 | `docs/design-spec.md` | Screen references and navigation map |
 | `docs/coding-standards.md` | Code conventions |
 | `docs/testing-strategy.md` | Test pyramid and QA checklist |
-| `docs/SnoreTracker_App_PRD_Specification.md` | Product requirements |
 
 ## Public site
 

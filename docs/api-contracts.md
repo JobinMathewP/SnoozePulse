@@ -67,7 +67,9 @@ interface SnoreEvent {
 because storage is full or the retention cap was hit.
 
 `peakDb` is retained for legacy Summary metric cards but does not affect scoring after M6
-(ADR-26); V2 scores weight episodes by `confidence` and duration, not peak dB.
+(ADR-26); confidence-weighted scores weight episodes by `confidence` and duration, not
+peak dB. "V2 scores" in this file means the scoring functions from ADR-26, which shipped
+in product v1.
 
 ---
 
@@ -111,10 +113,10 @@ Session creation and completion, readiness checks, and snippet retention enforce
 ## IAnalyticsService
 Sleep score, snore score, timeline bucket aggregation, and weekly/monthly comparisons.
 
-From Milestone 6 onward, scoring is V2 (ADR-26). Each score is a single pure function
-with its weighting constants in one named block. The V1 pure functions
-(`computeSleepScoreV1`, `computeSnoreScoreV1`) remain in the codebase for archival reads
-only; the write path calls V2 exclusively.
+From Milestone 6 onward (shipped in product v1), scoring is the ADR-26 functions.
+Each score is a single pure function with its weighting constants in one named block.
+The older pure functions (`computeSleepScoreV1`, `computeSnoreScoreV1`) remain in the
+codebase for archival reads only; the write path calls the ADR-26 functions exclusively.
 
 V2 score inputs (`ScoreInputs`) grow the following fields:
 
@@ -136,6 +138,18 @@ interface ScoreInputs {
 
 The agent must not invent medical or clinical scoring.
 
+## ISleepScheduleService
+
+Product v2. Owns bedtime, wake time, and `automaticTrackingEnabled`. Persists through
+`ISettingsRepository` into `app_settings` (migration V4). Default automatic tracking is
+off. Exact method names are fixed in Task 7.1.
+
+## IReadinessService
+
+Product v2. Owns the Sleep Readiness state machine and, once wired, requests
+`IAudioService.startSession()` / `stopSession()`. It does not capture audio. Exact
+method names are fixed in Task 7.3.
+
 ---
 
 # Zustand Store
@@ -154,6 +168,9 @@ Actions:
 - resumeSession() — invoked by the audio engine, never by a control
 - updateAudioLevel()
 - addSnoreEvent()
+
+Product v2 may add schedule / readiness selectors. They must not become a second
+recording lifecycle. Automatic start still goes through `startSession()`.
 
 `currentDecibel` is updated at a throttled rate for non-animated consumers. The waveform does
 not read it (ADR-13).

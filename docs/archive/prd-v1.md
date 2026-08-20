@@ -1,3 +1,9 @@
+> **Archived — product v1 (App Store 1.0.0).**
+>
+> This is the PRD that shipped. Product v2 lives in `docs/prd.md` plus the
+> feature spec `docs/prd-automatic-sleep-tracking.md`. Do not treat this file
+> as the active product contract. See `docs/archive/README.md` and ADR-33.
+
 # SnoozePulse – Product Requirements Document (PRD)
 
 **Version:** 1.0  

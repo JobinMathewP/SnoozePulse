@@ -6,6 +6,9 @@ Perform all audio capture, DSP, feature extraction, and ML inference on native t
 JavaScript subscribes to throttled events only. No PCM, tensors, or log-mel patches ever
 cross the bridge (ADR-16, ADR-22).
 
+Product v2 (Automatic Sleep Tracking) **starts and stops** this engine. It does not
+copy it. No second `AudioRecord` / `AVAudioEngine` for readiness (ADR-32).
+
 ```text
 Microphone
       │

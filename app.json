@@ -52,6 +52,7 @@
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/icon.png"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "package": "com.snoozepulse.app",
       "permissions": [

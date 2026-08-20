@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -28,6 +30,8 @@ const LOGO = require('../../../assets/images/onboarding/logo.png') as number;
 
 /** Mockup logo band is ~120–140 dp; four spacing.xl steps lands in that range. */
 const LOGO_SIZE = spacing.xl * 4;
+/** Compact profile disc while the keyboard is open so the field stays above it. */
+const PROFILE_HERO_COMPACT = spacing.xl * 3;
 
 type OnboardingScreenProps = {
   /**
@@ -52,9 +56,33 @@ const nameSlide = SLIDES[3];
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const [index, setIndex] = useState(0);
   const [name, setName] = useState('');
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const isLast = index === LAST_INDEX;
   const slide = SLIDES[index];
+  const compactName = isLast && keyboardVisible;
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!compactName) {
+      return;
+    }
+    const handle = requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [compactName]);
 
   const goNext = () => {
     if (isLast) {
@@ -78,12 +106,27 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
       {index === 1 ? <PhotoBackdrop source={AI_BG} /> : null}
 
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'right', 'bottom', 'left']}>
+        {/*
+          iOS: pad the layout above the keyboard.
+          Android: window resizes via softwareKeyboardLayoutMode=resize; KAV stays off to
+          avoid double insets. ScrollView + compact name layout keep the field clear.
+        */}
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          enabled={isLast}
+          behavior="padding"
+          enabled={isLast && Platform.OS === 'ios'}
         >
-          <View style={{ flex: 1, paddingHorizontal: spacing.md }}>
+          <ScrollView
+            ref={scrollRef}
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingHorizontal: spacing.md,
+            }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+          >
             <ProgressDots
               count={ONBOARDING_SLIDE_COUNT}
               index={index}
@@ -93,12 +136,17 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               )}
             />
 
-            <View style={{ flex: 1 }}>
+            <View style={{ flexGrow: 1 }}>
               {slide.key === 'welcome' ? <WelcomeBody /> : null}
               {slide.key === 'ai' ? <AiBody /> : null}
               {slide.key === 'privacy' ? <PrivacyBody /> : null}
               {slide.key === 'name' ? (
-                <NameBody name={name} onChangeName={setName} onSubmit={goNext} />
+                <NameBody
+                  name={name}
+                  onChangeName={setName}
+                  onSubmit={goNext}
+                  compact={compactName}
+                />
               ) : null}
             </View>
 
@@ -144,7 +192,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                 </Pressable>
               ) : null}
             </View>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
@@ -153,7 +201,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
 function WelcomeBody() {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md }}>
+    <View style={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md }}>
       <Image
         source={LOGO}
         style={{ width: LOGO_SIZE, height: LOGO_SIZE }}
@@ -190,7 +238,7 @@ function WelcomeBody() {
 
 function AiBody() {
   return (
-    <View style={{ flex: 1, justifyContent: 'flex-end', gap: spacing.md, paddingBottom: spacing.lg }}>
+    <View style={{ flexGrow: 1, justifyContent: 'flex-end', gap: spacing.md, paddingBottom: spacing.lg }}>
       <HighlightHeading parts={ai.heading} />
       <Text
         style={{
@@ -231,7 +279,7 @@ function AiBody() {
 
 function PrivacyBody() {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', gap: spacing.md }}>
+    <View style={{ flexGrow: 1, justifyContent: 'center', gap: spacing.md }}>
       <HighlightHeading parts={privacy.heading} />
       <View style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
         <PrivacyHero />
@@ -280,26 +328,43 @@ type NameBodyProps = {
   readonly name: string;
   readonly onChangeName: (value: string) => void;
   readonly onSubmit: () => void;
+  /** Shrink the hero and pin content up so the field stays above the keyboard. */
+  readonly compact: boolean;
 };
 
-function NameBody({ name, onChangeName, onSubmit }: NameBodyProps) {
+function NameBody({ name, onChangeName, onSubmit, compact }: NameBodyProps) {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', gap: spacing.md }}>
+    <View
+      style={{
+        flexGrow: 1,
+        justifyContent: compact ? 'flex-start' : 'center',
+        gap: compact ? spacing.sm : spacing.md,
+        paddingTop: compact ? spacing.sm : 0,
+      }}
+    >
       <HighlightHeading parts={nameSlide.heading} />
-      <View style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
-        <ProfileHero />
-      </View>
-      <Text
-        style={{
-          color: colors.fgBody,
-          fontFamily: fontFamily.regular,
-          fontSize: fontSize.body,
-          lineHeight: lineHeight.body,
-          textAlign: 'center',
-        }}
-      >
-        {nameSlide.body}
-      </Text>
+      {!compact ? (
+        <View style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
+          <ProfileHero />
+        </View>
+      ) : (
+        <View style={{ alignItems: 'center' }}>
+          <ProfileHero size={PROFILE_HERO_COMPACT} />
+        </View>
+      )}
+      {!compact ? (
+        <Text
+          style={{
+            color: colors.fgBody,
+            fontFamily: fontFamily.regular,
+            fontSize: fontSize.body,
+            lineHeight: lineHeight.body,
+            textAlign: 'center',
+          }}
+        >
+          {nameSlide.body}
+        </Text>
+      ) : null}
       <View style={{ gap: spacing.xs }}>
         <Text
           style={{

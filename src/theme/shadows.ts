@@ -55,10 +55,10 @@ export const shadows = {
   heroGlow: {
     shadowColor: colors.heroGlow,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.65,
-    shadowRadius: 28,
-    elevation: 12,
-    css: `0 0 28px ${colors.heroGlow}`,
+    shadowOpacity: 0.9,
+    shadowRadius: 36,
+    elevation: 16,
+    css: `0 0 36px ${colors.heroGlow}`,
   },
   /** Settings icon-tile bloom. Colour is sampled `settingsAccent`; spread is modest so cards stay readable. */
   settingsGlow: {

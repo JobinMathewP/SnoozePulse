@@ -7,6 +7,8 @@ export const homeCopy = {
   headline: "Ready for a better night's sleep?",
   /** Three sentences — wrap to three lines on the reference width. */
   subhead: 'Track your snoring. Understand your sleep. Wake up refreshed.',
+  heroLabel: 'START',
+  heroSublabel: 'SLEEP SESSION',
   heroAccessibilityLabel: 'Start sleep session',
   settingsAccessibilityLabel: 'Open settings',
   startingLabel: 'Starting…',

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { ErrorPanel, Screen, StatusCard } from '@/components/ui';
+import { ErrorPanel, Screen, StatusCard, StatusDivider, StatusStack } from '@/components/ui';
 import { TOUCH_TARGET } from '@/components/ui/touchTarget';
 import { useAppStore, useInsights, useProfile, useSession, useSettings } from '@/hooks';
 import { shouldShowChargerReminder } from '@/services';
@@ -16,11 +16,10 @@ import type {
   SleepSession,
 } from '@/types';
 
+import { batteryCardCopyFor } from './batteryCard';
 import { BrandMark } from './BrandMark';
 import { StartSessionHero } from './StartSessionHero';
 import {
-  BATTERY_LOW_THRESHOLD,
-  batteryCopy,
   batterySavedCopy,
   calibrationCopy,
   chargerReminderCopy,
@@ -180,22 +179,24 @@ export function HomeScreen() {
 
   const levelKnown = batteryLevel >= 0;
   const percent = levelKnown ? Math.round(batteryLevel * 100) : null;
-  const batteryLow = levelKnown && batteryLevel <= BATTERY_LOW_THRESHOLD;
-  const batteryTone = batteryLow ? 'alert' : 'success';
-  const batteryColor = batteryLow ? colors.alertText : colors.homeReady;
   const powerConnected =
     batteryState === BatteryState.CHARGING ||
     batteryState === BatteryState.FULL ||
     batteryState === BatteryState.NOT_CHARGING;
+  const battery = batteryCardCopyFor(batteryLevel, powerConnected);
+  const batteryPositive = battery.kind !== 'low' && (battery.kind === 'ready' || powerConnected);
+  const batteryTone: StatusTone = battery.kind === 'low' ? 'alert' : batteryPositive ? 'success' : 'informational';
+  const batteryColor = battery.kind === 'low' ? colors.alertText : batteryPositive ? colors.homeReady : colors.homeAccent;
   const chargingKnown =
     powerConnected || batteryState === BatteryState.UNPLUGGED;
   const showChargerReminder =
     chargingKnown &&
-    !batteryLow &&
+    battery.kind === 'ready' &&
     shouldShowChargerReminder({
       automaticTrackingEnabled,
       charging: powerConnected,
       isRecording,
+      batteryLevel,
       bedtime,
       wakeTime,
       now: new Date(),
@@ -328,11 +329,6 @@ export function HomeScreen() {
     tonight.openActiveOnPress,
   ]);
 
-  const cardChrome = {
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.homeCard,
-    borderColor: colors.homeCardBorder,
-  };
   const starting = busy || sessionState === 'STARTING';
 
   return (
@@ -460,68 +456,74 @@ export function HomeScreen() {
       )}
 
       <View style={{ gap: spacing.sm, paddingBottom: spacing.xs }}>
-        <StatusCard
-          tone={batteryTone}
-          title={batteryLow ? batteryCopy.lowTitle : batteryCopy.okTitle}
-          subtitle={batteryLow ? batteryCopy.lowSubtitle : batteryCopy.okSubtitle}
-          icon={<BatteryStatusIcon color={batteryColor} />}
-          trailing={<BatteryPercent percent={percent} color={batteryColor} />}
-          style={cardChrome}
-          accessibilityLabel={
-            percent === null
-              ? `${batteryLow ? batteryCopy.lowTitle : batteryCopy.okTitle}. Battery level unavailable.`
-              : `${batteryLow ? batteryCopy.lowTitle : batteryCopy.okTitle}. ${percent} percent.`
-          }
-          testID="home-status-battery"
-        />
-        <StatusCard
-          tone={mic.tone}
-          title={mic.title}
-          subtitle={mic.subtitle}
-          icon={
-            <MicStatusIcon color={mic.ok ? colors.homeReady : colors.alertText} />
-          }
-          trailing={mic.ok ? <StatusCheck /> : undefined}
-          style={cardChrome}
-          onPress={
-            readiness?.microphone === 'denied'
-              ? () => {
-                  void Linking.openSettings();
-                }
-              : undefined
-          }
-          accessibilityLabel={
-            readiness?.microphone === 'denied'
-              ? microphoneCopy.openSettingsAccessibilityLabel
-              : undefined
-          }
-          testID="home-status-microphone"
-        />
-        <StatusCard
-          tone={calibrationTone}
-          title={calibrationCopy.pendingTitle}
-          subtitle={
-            calibrated && readiness?.calibration
-              ? calibrationSubtitle(readiness.calibration.environment)
-              : calibrationCopy.pendingSubtitle
-          }
-          icon={<PulseStatusIcon color={colors.homeAccent} />}
-          trailing={<WaveformTrail />}
-          style={cardChrome}
-          testID="home-status-calibration"
-        />
-
-        {showChargerReminder ? (
+        <StatusStack testID="home-status-stack">
           <StatusCard
-            tone="informational"
-            title={chargerReminderCopy.title}
-            subtitle={chargerReminderCopy.subtitle}
-            icon={<BatteryStatusIcon color={colors.homeAccent} />}
-            style={cardChrome}
-            accessibilityLabel={chargerReminderCopy.accessibilityLabel}
-            testID="home-charger-reminder"
+            embed
+            tone={batteryTone}
+            title={battery.title}
+            subtitle={battery.subtitle}
+            icon={<BatteryStatusIcon color={batteryColor} />}
+            trailing={<BatteryPercent percent={percent} color={batteryColor} />}
+            accessibilityLabel={
+              percent === null
+                ? `${battery.title}. Battery level unavailable.`
+                : `${battery.title}. ${percent} percent.`
+            }
+            testID="home-status-battery"
           />
-        ) : null}
+          <StatusDivider />
+          <StatusCard
+            embed
+            tone={mic.tone}
+            title={mic.title}
+            subtitle={mic.subtitle}
+            icon={
+              <MicStatusIcon color={mic.ok ? colors.homeReady : colors.alertText} />
+            }
+            trailing={mic.ok ? <StatusCheck /> : undefined}
+            onPress={
+              readiness?.microphone === 'denied'
+                ? () => {
+                    void Linking.openSettings();
+                  }
+                : undefined
+            }
+            accessibilityLabel={
+              readiness?.microphone === 'denied'
+                ? microphoneCopy.openSettingsAccessibilityLabel
+                : undefined
+            }
+            testID="home-status-microphone"
+          />
+          <StatusDivider />
+          <StatusCard
+            embed
+            tone={calibrationTone}
+            title={calibrationCopy.pendingTitle}
+            subtitle={
+              calibrated && readiness?.calibration
+                ? calibrationSubtitle(readiness.calibration.environment)
+                : calibrationCopy.pendingSubtitle
+            }
+            icon={<PulseStatusIcon color={colors.homeAccent} />}
+            trailing={<WaveformTrail />}
+            testID="home-status-calibration"
+          />
+          {showChargerReminder ? (
+            <>
+              <StatusDivider />
+              <StatusCard
+                embed
+                tone="informational"
+                title={chargerReminderCopy.title}
+                subtitle={chargerReminderCopy.subtitle}
+                icon={<BatteryStatusIcon color={colors.homeAccent} />}
+                accessibilityLabel={chargerReminderCopy.accessibilityLabel}
+                testID="home-charger-reminder"
+              />
+            </>
+          ) : null}
+        </StatusStack>
 
         <LastNightCard
           session={lastNight.session}

@@ -45,6 +45,7 @@ export { SleepScheduleService } from './SleepScheduleService';
 export { NightOutcomeService } from './NightOutcomeService';
 export {
   CHARGER_REMINDER_LEAD_MINUTES,
+  CHARGER_REMINDER_MAX_LEVEL,
   missedReasonFromStartError,
   shouldShowChargerReminder,
   sleepNightIso,

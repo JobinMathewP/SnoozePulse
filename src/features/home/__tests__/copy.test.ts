@@ -1,4 +1,5 @@
 import {
+  batteryCopy,
   batterySavedCopy,
   chargerReminderCopy,
   missedNightCopy,
@@ -30,6 +31,12 @@ describe('home failed-night copy', () => {
     expect(batterySavedCopy.caption).toBe(
       "SnoozePulse saved last night's tracking before the battery ran out.",
     );
+  });
+
+  it('does not call 21% sufficient for overnight recording', () => {
+    expect(batteryCopy.okSubtitle).toBe('Sufficient for overnight recording');
+    expect(batteryCopy.cautionTitle).toBe('Charge recommended');
+    expect(batteryCopy.cautionSubtitle).toBe('May not last overnight unplugged');
   });
 
   it('keeps the charger reminder non-blocking', () => {

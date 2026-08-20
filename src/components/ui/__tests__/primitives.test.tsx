@@ -79,4 +79,17 @@ describe('StatusCard', () => {
     fireEvent.press(screen.getByLabelText('Open system settings'));
     expect(onPress).toHaveBeenCalled();
   });
+
+  it('exposes info rows as text, not buttons', async () => {
+    await render(
+      <StatusCard
+        tone="success"
+        title="Battery Ready"
+        subtitle="Sufficient for overnight recording"
+        icon={<Text>icon</Text>}
+      />,
+    );
+    expect(screen.getByLabelText('Battery Ready. Sufficient for overnight recording')).toBeTruthy();
+    expect(screen.queryByRole('button')).toBeNull();
+  });
 });

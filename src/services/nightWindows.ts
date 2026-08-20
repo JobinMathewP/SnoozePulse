@@ -1,5 +1,5 @@
 import type { AppError, IsoDate, LocalTimeOfDay, MissedNightReason } from '@/types';
-import { toIsoDateLocal } from '@/utils';
+import { BATTERY_OVERNIGHT_READY_THRESHOLD, BATTERY_SAVE_THRESHOLD, toIsoDateLocal } from '@/utils';
 
 import { READINESS } from './readiness/readinessConstants';
 import {
@@ -12,6 +12,13 @@ import {
 
 /** Hours before bedtime (on top of the 30-minute readiness lead) to surface the charger reminder. */
 export const CHARGER_REMINDER_LEAD_MINUTES = 180;
+
+/**
+ * Highest charge that still warrants the unplugged reminder. Above this, Battery Ready
+ * is already the honest story. At or below {@link BATTERY_SAVE_THRESHOLD} the Battery
+ * Low card owns the plug-in message.
+ */
+export const CHARGER_REMINDER_MAX_LEVEL = BATTERY_OVERNIGHT_READY_THRESHOLD;
 
 /**
  * Wake-morning calendar date for the sleep night that contains `now`.
@@ -50,12 +57,27 @@ export function shouldShowChargerReminder(args: {
   readonly automaticTrackingEnabled: boolean;
   readonly charging: boolean;
   readonly isRecording: boolean;
+  readonly batteryLevel: number;
   readonly bedtime: LocalTimeOfDay | null;
   readonly wakeTime: LocalTimeOfDay | null;
   readonly now: Date;
 }): boolean {
-  const { automaticTrackingEnabled, charging, isRecording, bedtime, wakeTime, now } = args;
+  const {
+    automaticTrackingEnabled,
+    charging,
+    isRecording,
+    batteryLevel,
+    bedtime,
+    wakeTime,
+    now,
+  } = args;
   if (!automaticTrackingEnabled || charging || isRecording) {
+    return false;
+  }
+  if (batteryLevel < 0 || batteryLevel <= BATTERY_SAVE_THRESHOLD) {
+    return false;
+  }
+  if (batteryLevel > CHARGER_REMINDER_MAX_LEVEL) {
     return false;
   }
   if (bedtime === null || wakeTime === null) {

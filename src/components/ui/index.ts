@@ -8,7 +8,7 @@
 export { Screen } from './Screen';
 export { Card, CardRow, type CardWidth } from './Card';
 export { SectionHeader } from './SectionHeader';
-export { StatusCard, type StatusCardTone } from './StatusCard';
+export { StatusCard, StatusDivider, StatusStack, type StatusCardTone } from './StatusCard';
 export { MetricCard } from './MetricCard';
 export { Button } from './Button';
 export { ConfirmDialog } from './ConfirmDialog';

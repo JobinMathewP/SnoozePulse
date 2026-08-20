@@ -1,6 +1,7 @@
 export { canTransition, SESSION_TRANSITIONS } from './sessionTransitions';
 export { errorRecoveryHint, errorTitle } from './errorMessages';
 export {
+  BATTERY_OVERNIGHT_READY_THRESHOLD,
   BATTERY_SAVE_THRESHOLD,
   MIN_SESSION_DURATION_MS,
   REVIEW_PROMPT_AFTER_SESSIONS,

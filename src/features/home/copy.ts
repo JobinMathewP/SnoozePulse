@@ -1,4 +1,4 @@
-import { BATTERY_SAVE_THRESHOLD } from '@/utils';
+import { BATTERY_OVERNIGHT_READY_THRESHOLD, BATTERY_SAVE_THRESHOLD } from '@/utils';
 
 /**
  * Static Home copy and battery threshold — not mock session data.
@@ -94,9 +94,16 @@ export const tonightCopy = {
 /** Same charge fraction as the in-session save-and-stop guard (ADR-34). */
 export const BATTERY_LOW_THRESHOLD = BATTERY_SAVE_THRESHOLD;
 
+/** "Battery Ready / Sufficient" only above this. 21–50% is not overnight-ready. */
+export const BATTERY_READY_THRESHOLD = BATTERY_OVERNIGHT_READY_THRESHOLD;
+
 export const batteryCopy = {
   lowTitle: 'Battery Low',
   lowSubtitle: 'Plug in charger recommended',
+  cautionTitle: 'Charge recommended',
+  cautionSubtitle: 'May not last overnight unplugged',
+  cautionChargingTitle: 'Charging',
+  cautionChargingSubtitle: 'Keep connected for overnight recording',
   okTitle: 'Battery Ready',
   okSubtitle: 'Sufficient for overnight recording',
 } as const;

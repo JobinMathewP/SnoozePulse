@@ -40,3 +40,10 @@ export const REVIEW_PROMPT_AFTER_SESSIONS = 3;
  * to kill the process before we flush SQLite.
  */
 export const BATTERY_SAVE_THRESHOLD = 0.2;
+
+/**
+ * Charge fraction above which Home may call the pack sufficient for overnight
+ * recording. At or below this (and above {@link BATTERY_SAVE_THRESHOLD}) the
+ * battery card must not say "Battery Ready".
+ */
+export const BATTERY_OVERNIGHT_READY_THRESHOLD = 0.5;

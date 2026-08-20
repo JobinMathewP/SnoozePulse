@@ -1,5 +1,6 @@
 import {
   CHARGER_REMINDER_LEAD_MINUTES,
+  CHARGER_REMINDER_MAX_LEVEL,
   missedReasonFromStartError,
   shouldShowChargerReminder,
   sleepNightIso,
@@ -43,12 +44,14 @@ describe('shouldShowChargerReminder', () => {
     automaticTrackingEnabled: true,
     charging: false,
     isRecording: false,
+    batteryLevel: 0.4,
     bedtime,
     wakeTime,
   };
 
   it('shows in the three-hour lead before readiness', () => {
     expect(CHARGER_REMINDER_LEAD_MINUTES).toBe(180);
+    expect(CHARGER_REMINDER_MAX_LEVEL).toBe(0.5);
     const now = new Date(2026, 7, 20, 20, 30, 0, 0);
     expect(shouldShowChargerReminder({ ...base, now })).toBe(true);
   });
@@ -75,5 +78,23 @@ describe('shouldShowChargerReminder', () => {
       shouldShowChargerReminder({ ...base, now, automaticTrackingEnabled: false }),
     ).toBe(false);
     expect(shouldShowChargerReminder({ ...base, now, bedtime: null })).toBe(false);
+  });
+
+  it('does not show when the pack is already Battery Ready above 50%', () => {
+    const now = new Date(2026, 7, 20, 23, 15, 0, 0);
+    expect(shouldShowChargerReminder({ ...base, now, batteryLevel: 1 })).toBe(false);
+    expect(shouldShowChargerReminder({ ...base, now, batteryLevel: 0.51 })).toBe(false);
+  });
+
+  it('does not show at or below 20% so it does not stack on Battery Low', () => {
+    const now = new Date(2026, 7, 20, 23, 15, 0, 0);
+    expect(shouldShowChargerReminder({ ...base, now, batteryLevel: 0.2 })).toBe(false);
+    expect(shouldShowChargerReminder({ ...base, now, batteryLevel: -1 })).toBe(false);
+  });
+
+  it('shows at 50% unplugged in the window', () => {
+    const now = new Date(2026, 7, 20, 23, 15, 0, 0);
+    expect(shouldShowChargerReminder({ ...base, now, batteryLevel: 0.5 })).toBe(true);
+    expect(shouldShowChargerReminder({ ...base, now, batteryLevel: 0.21 })).toBe(true);
   });
 });

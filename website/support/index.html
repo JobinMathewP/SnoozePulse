@@ -6,7 +6,7 @@
     <title>Support — SnoozePulse</title>
     <meta
       name="description"
-      content="Help for SnoozePulse: microphone access, overnight recording, deleting data, and how to contact us."
+      content="Help for SnoozePulse: microphone access, automatic tracking, overnight recording, deleting data, and how to contact us."
     />
     <link rel="canonical" href="https://jobinmathewp.github.io/SnoozePulse/support/" />
     <meta property="og:title" content="Support — SnoozePulse" />
@@ -49,8 +49,8 @@
           <h1>Support</h1>
           <p class="lede">
             SnoozePulse is a local sleep monitor. Most issues come down to
-            microphone permission, how a session is started, or what stays on
-            the phone.
+            microphone permission, how a session starts (manual or automatic),
+            or what stays on the phone.
           </p>
 
           <div class="actions" style="margin-bottom: 2.25rem">
@@ -66,19 +66,21 @@
           <section class="faq">
             <h2>Why does SnoozePulse need the microphone?</h2>
             <p>
-              The app listens for snoring during a session you start. It uses
-              that audio on the device to detect events and to save short
-              snippets. It does not upload the recording.
+              The app listens for snoring during a session. It uses that audio
+              on the device to detect events and to save short snippets. It does
+              not upload the recording. A session can start when you tap Start
+              on Home, or automatically around bedtime if you have turned that
+              on in Settings.
             </p>
           </section>
 
           <section class="faq">
             <h2>Does recording continue when the phone is locked?</h2>
             <p>
-              Yes, after you start a sleep session. On iPhone this uses
-              background audio. On Android it uses a foreground service and a
-              persistent notification. Recording stops when you slide to end the
-              session.
+              Yes, after a session has started. On iPhone this uses background
+              audio. On Android it uses a foreground service and a persistent
+              notification. Recording stops when you slide to end the session,
+              or when automatic tracking finishes around your wake time.
             </p>
           </section>
 
@@ -99,10 +101,40 @@
           </section>
 
           <section class="faq">
+            <h2>How do I turn on automatic tracking?</h2>
+            <p>
+              In Settings, set a bedtime and wake time, then enable Automatic
+              Sleep Tracking. The app will not silently turn this on. It uses
+              the microphone during your scheduled sleep window only when the
+              phone looks settled — it does not listen all evening.
+            </p>
+          </section>
+
+          <section class="faq">
+            <h2>Why does the app ask for motion?</h2>
+            <p>
+              Motion (accelerometer) helps decide whether the phone is still on
+              a nightstand. It does not count steps or track workouts. You can
+              deny it; you can still start a session yourself from Home.
+            </p>
+          </section>
+
+          <section class="faq">
+            <h2>I did not get a morning notification</h2>
+            <p>
+              Morning alerts are local on the phone, not sent from a server.
+              Allow notifications for SnoozePulse in system Settings. A
+              notification is created after a night is saved. Tapping it should
+              open that night’s summary.
+            </p>
+          </section>
+
+          <section class="faq">
             <h2>The app is not detecting snoring</h2>
             <p>
               Place the phone on a nightstand with the microphone unobstructed,
-              keep microphone permission enabled, and start a session from Home.
+              keep microphone permission enabled, and either start a session
+              from Home or confirm automatic tracking is on with a schedule set.
               Very quiet snoring or a noisy room can reduce detections. This is
               a wellness tool, not a clinical monitor.
             </p>

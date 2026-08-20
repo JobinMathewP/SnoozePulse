@@ -2,7 +2,7 @@
   "expo": {
     "name": "SnoozePulse",
     "slug": "SnoozePulse",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "snoozepulse",
@@ -11,6 +11,9 @@
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.snoozepulse.app",
       "supportsTablet": false,
+      "entitlements": {
+        "aps-environment": "production"
+      },
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"

@@ -54,7 +54,7 @@
           <p class="eyebrow">Legal</p>
           <h1>Privacy Policy</h1>
           <p class="meta">
-            Effective 15 August 2026 · Last updated 15 August 2026
+            Effective 15 August 2026 · Last updated 21 August 2026
           </p>
 
           <nav class="toc" aria-label="On this page">
@@ -91,15 +91,17 @@
 
           <h2 id="summary">2. Summary</h2>
           <p>
-            SnoozePulse uses the microphone during a sleep session that you
-            start, detects snoring on the device, and may save short audio
-            snippets plus session metrics on that same device. That information
-            is not uploaded to us. We do not sell data and we do not track you
-            across apps or websites.
+            SnoozePulse uses the microphone during a sleep session to detect
+            snoring on the device, and may save short audio snippets plus session
+            metrics on that same device. You can start a session yourself, or
+            opt in to automatic tracking so the app may start around your usual
+            bedtime when the phone looks settled. That information is not
+            uploaded to us. We do not sell data and we do not track you across
+            apps or websites.
           </p>
 
           <h2 id="data">3. Data processed on your device</h2>
-          <p>When you run a sleep session, the app may process:</p>
+          <p>When you use SnoozePulse, the app may process on this phone:</p>
           <ul>
             <li>
               Microphone audio, used only to detect snoring and to save short
@@ -110,12 +112,25 @@
               count, loudness, scores, and a timeline.
             </li>
             <li>
-              Local database records and audio files stored in the app’s private
-              storage on your phone.
+              Your optional bedtime and wake times, and whether you turned on
+              automatic sleep tracking. Automatic tracking is off until you
+              enable it in Settings.
             </li>
             <li>
-              Battery level and Low Power Mode, used only to show readiness
-              warnings and to simplify the on-screen waveform.
+              Motion from the accelerometer, charging state, and whether you
+              are using the phone, used only to decide if the device looks
+              settled for the night. These signals do not count steps or
+              track workouts, and they are not used to infer that you are
+              asleep.
+            </li>
+            <li>
+              Battery level and Low Power Mode, used to show readiness
+              warnings, to save or skip a night when the battery is too low,
+              and to simplify the on-screen waveform.
+            </li>
+            <li>
+              Local database records and audio files stored in the app’s private
+              storage on your phone.
             </li>
           </ul>
           <p>
@@ -143,19 +158,31 @@
           <h2 id="permissions">5. Permissions</h2>
           <p>
             <strong>Microphone.</strong> Required to detect snoring. Capture
-            starts only after you tap Start Sleep Session and stops when you
-            slide to end the session, or when the session is otherwise closed.
-            The system may also show a recording indicator while the microphone
-            is in use, including while the screen is locked.
+            starts when you tap Start Sleep Session, or — only if you have
+            turned on automatic tracking — around your scheduled sleep window
+            when the phone appears settled. The microphone is not left open all
+            evening “just in case.” Capture stops when you slide to end the
+            session, when the wake window completes, or when the session is
+            otherwise closed. The system may show a recording indicator while
+            the microphone is in use, including while the screen is locked.
           </p>
           <p>
-            <strong>Notifications (Android).</strong> Used for the ongoing
-            foreground-service notice while a session is running. These are
-            local system notifications, not push messages from a server.
+            <strong>Motion.</strong> On some devices the app reads the
+            accelerometer at a low rate to tell whether the phone is still.
+            This is optional for automatic tracking. Denying motion does not
+            block a session you start yourself.
+          </p>
+          <p>
+            <strong>Notifications.</strong> Local notices only — nothing is sent
+            from a SnoozePulse server. Android shows an ongoing foreground-service
+            notice while a session is running. After a saved night, the app may
+            show a morning summary notification on iOS and Android. Tapping it
+            opens that night’s summary on this device.
           </p>
           <p>
             You can revoke permissions in system Settings. The app cannot
-            monitor sleep without the microphone.
+            monitor sleep without the microphone. You can turn automatic
+            tracking off at any time in SnoozePulse Settings.
           </p>
 
           <h2 id="retention">6. Storage and deletion</h2>

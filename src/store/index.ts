@@ -10,6 +10,7 @@ export { err, ok } from './result';
 export type { AppStore, AppStoreBootState } from './createAppStore';
 export { createAppStore } from './createAppStore';
 export { bindAudioSubscriptions } from './bindAudioSubscriptions';
+export { bindBatteryGuard } from './bindBatteryGuard';
 export { DECIBEL_STORE_THROTTLE_MS } from './throttle';
 export { liveAudioLevel, decibelToWaveLevel } from './liveAudioLevel';
 

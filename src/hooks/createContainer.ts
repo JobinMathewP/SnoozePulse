@@ -19,6 +19,7 @@ import {
 import {
   AnalyticsService,
   AudioService,
+  ExpoBatteryMonitor,
   ExpoSnippetStorage,
   ProfileService,
   ReviewService,
@@ -27,6 +28,7 @@ import {
   ensureDatabase,
   type IAnalyticsService,
   type IAudioService,
+  type IBatteryMonitor,
   type IProfileService,
   type IReviewService,
   type ISleepScheduleService,
@@ -43,10 +45,12 @@ export interface Container extends StoreDependencies {
   readonly settingsRepository: ISettingsRepository;
   readonly snippetStorage: ISnippetStorage;
   /**
-   * Sleep schedule + automatic-tracking opt-in (ADR-31). Not on the store yet —
-   * Task 7.2 wires UI. The store never talks to the settings repository (ADR-12).
+   * Sleep schedule + automatic-tracking opt-in (ADR-31). Settings UI is Task 7.2.
+   * The store never talks to the settings repository (ADR-12).
    */
   readonly sleepScheduleService: ISleepScheduleService;
+  /** Charge port for the in-session save-and-stop guard (ADR-34). */
+  readonly batteryMonitor: IBatteryMonitor;
   /**
    * Profile read once at boot so `createAppStore` can seed the onboarding gate
    * synchronously and avoid a tabs-then-onboarding flash (ADR-30).
@@ -91,6 +95,7 @@ export async function createContainer(): Promise<Container> {
   const sleepScheduleService: ISleepScheduleService = new SleepScheduleService(
     settingsRepository,
   );
+  const batteryMonitor: IBatteryMonitor = new ExpoBatteryMonitor();
 
   // 4) Boot recovery — clear any leftover native capture / sticky mic FGS, close DB
   //    sessions left open after a force-kill, then ADR-15 retention.
@@ -133,6 +138,7 @@ export async function createContainer(): Promise<Container> {
     profileService,
     reviewService,
     sleepScheduleService,
+    batteryMonitor,
     bootProfile,
   };
 }

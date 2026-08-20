@@ -11,6 +11,12 @@ export type SessionSlice = {
   readonly sessionState: SessionState;
   readonly isRecording: boolean;
   readonly activeSession: SleepSession | null;
+  /**
+   * Id of the session most recently saved by `stopSession` (manual end or ADR-34
+   * battery save). Active Session consumes this to open Summary when the stop was
+   * not initiated from that route's slider.
+   */
+  readonly lastCompletedSessionId: string | null;
   /** Last typed failure that put the machine in `ERROR` (Task 5.5). */
   readonly lastError: AppError | null;
 
@@ -26,6 +32,8 @@ export type SessionSlice = {
    * Safe to call from Home / Active recovery UI.
    */
   recoverSession: () => Promise<Result<void>>;
+  /** Clear {@link SessionSlice.lastCompletedSessionId} after Summary navigation. */
+  consumeLastCompletedSession: () => void;
   /**
    * System-only (ADR-14). Wired from the audio interruption subscription at the
    * composition root — never exposed on UI hooks.
@@ -73,6 +81,7 @@ export function createSessionSlice(
     sessionState: 'IDLE',
     isRecording: false,
     activeSession: null,
+    lastCompletedSessionId: null,
     lastError: null,
 
     async startSession() {
@@ -81,7 +90,7 @@ export function createSessionSlice(
         enterError(toStarting.error, true);
         return toStarting;
       }
-      set({ lastError: null });
+      set({ lastError: null, lastCompletedSessionId: null });
 
       const result = await deps.audioService.startSession();
       if (!result.ok) {
@@ -113,6 +122,7 @@ export function createSessionSlice(
         });
         liveAudioLevel.value = 0;
         if (recovered.ok && recovered.value) {
+          set({ lastCompletedSessionId: recovered.value.id });
           return ok(recovered.value);
         }
         if (!recovered.ok) {
@@ -145,7 +155,11 @@ export function createSessionSlice(
         return toCompleted;
       }
 
-      set({ activeSession: result.value, lastError: null });
+      set({
+        activeSession: result.value,
+        lastError: null,
+        lastCompletedSessionId: result.value.id,
+      });
       transition('IDLE');
       set({ activeSession: null });
       liveAudioLevel.value = 0;
@@ -161,10 +175,15 @@ export function createSessionSlice(
         sessionState: 'IDLE',
         isRecording: false,
         activeSession: null,
+        lastCompletedSessionId: null,
         lastError: null,
       });
       liveAudioLevel.value = 0;
       return result;
+    },
+
+    consumeLastCompletedSession() {
+      set({ lastCompletedSessionId: null });
     },
 
     async recoverSession() {
@@ -177,16 +196,18 @@ export function createSessionSlice(
             sessionState: 'IDLE',
             isRecording: false,
             activeSession: null,
+            lastCompletedSessionId: null,
             lastError: null,
           });
         } else {
-          set({ activeSession: null, lastError: null });
+          set({ activeSession: null, lastCompletedSessionId: null, lastError: null });
         }
       } else {
         set({
           sessionState: 'IDLE',
           isRecording: false,
           activeSession: null,
+          lastCompletedSessionId: null,
           lastError: null,
         });
       }

@@ -70,6 +70,7 @@ services/                    repositories/
   AnalyticsService             SettingsRepository
   SleepScheduleService
   ReadinessService
+  ExpoBatteryMonitor        (IBatteryMonitor — ADR-34)
 ```
 
 Product v2 adds schedule and readiness services. They orchestrate *when* to call
@@ -119,6 +120,11 @@ Any state → ERROR
 `MONITORING` means "request `startSession()`". `COMPLETED` means "request `stopSession()`".
 The recording machine still owns capture. Do not merge the two machines. Internally this
 is **Sleep Readiness**, never "user is in bed".
+
+Readiness opens 30 minutes before expected bedtime and stays open until 2 hours before
+the wake window starts (ADR-31). Default stop is the end of the wake window. An
+in-progress recording at or below 20% while unplugged is stopped and saved through the
+same `stopSession()` path (ADR-34), via `IBatteryMonitor` at the composition root.
 
 ## 3.1 Live Audio Render Path
 

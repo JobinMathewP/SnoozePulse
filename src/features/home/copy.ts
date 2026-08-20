@@ -1,3 +1,5 @@
+import { BATTERY_SAVE_THRESHOLD } from '@/utils';
+
 /**
  * Static Home copy and battery threshold — not mock session data.
  */
@@ -36,8 +38,8 @@ export const lastNightCopy = {
   durationLabel: 'Duration',
 } as const;
 
-/** Fraction of charge at or below which the battery card uses the alert tone. */
-export const BATTERY_LOW_THRESHOLD = 0.2;
+/** Same charge fraction as the in-session save-and-stop guard (ADR-34). */
+export const BATTERY_LOW_THRESHOLD = BATTERY_SAVE_THRESHOLD;
 
 export const batteryCopy = {
   lowTitle: 'Battery Low',

@@ -18,6 +18,7 @@ import { ErrorPanel, Screen } from '@/components/ui';
 import { createContainer, StoreProvider } from '@/hooks';
 import {
   bindAudioSubscriptions,
+  bindBatteryGuard,
   createAppStore,
   type AppStore,
 } from '@/store';
@@ -53,9 +54,13 @@ export default function RootLayout() {
       setBootError(null);
       const container = await createContainer();
       const appStore = createAppStore(container, { profile: container.bootProfile });
-      const unsubscribe = bindAudioSubscriptions(appStore, container.audioService);
+      const unsubAudio = bindAudioSubscriptions(appStore, container.audioService);
+      const unsubBattery = bindBatteryGuard(appStore, container.batteryMonitor);
       setStore(appStore);
-      return unsubscribe;
+      return () => {
+        unsubAudio();
+        unsubBattery();
+      };
     } catch (cause: unknown) {
       console.error('[composition] failed to assemble container', cause);
       setStore(null);

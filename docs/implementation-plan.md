@@ -268,7 +268,9 @@ docs/**
 - Illegal transitions are rejected, same pattern as the recording machine.
 - Start intent requires: in window + settled + not interacting + acceptable
   environment. Stationary-alone tests must **not** emit start.
-- Window offsets and thresholds live in one named constants block.
+- Window offsets and thresholds live in one named constants block. Readiness stays
+  open until 2 hours before the wake window starts (not a 60-minute post-bedtime
+  lag). 2 AM on an 11 PM–7 AM night is in window; 5 AM is not.
 - No clock, sensor, or audio I/O inside the reducer — those are injected.
 - Recording states are not duplicated here.
 
@@ -372,6 +374,8 @@ docs/**
 - No new `AudioRecord` / `AVAudioEngine` instance for readiness.
 - Manual start still works while automatic tracking is on or off.
 - If the user is in an active session, the scheduler does not start a second one.
+- Do not auto-start when the pack is already at or below 20% and unplugged (ADR-34
+  skip). Manual Start still works.
 - Unit tests cover: combined rule fires → start; interacting → no start;
   already recording → no start.
 
@@ -423,6 +427,9 @@ docs/**
 **Acceptance criteria**
 
 - Wake window uses named constants, not the exact wake timestamp as "user awoke".
+  Default stop is the end of that window; snore-extend is out of this task.
+- In-progress low battery still save-stops via the existing ADR-34 guard; this task
+  does not invent a second stop path.
 - Successful auto-complete persists scores the same way as a manual slide-to-end.
 - Local notification copy matches the feature PRD §14 in intent.
 - Tap opens the completed session's Summary, not a generic Home.
@@ -473,7 +480,10 @@ docs/**
 
 - Microphone denied, missing schedule, and engine errors produce a failed or
   skipped night, never a Summary with invented scores.
-- Sessions shorter than `MIN_SESSION_DURATION_MS` still follow ADR-30.
+- An in-progress session that hits 20% unplugged is **saved** (ADR-34), not failed.
+  Auto-start skipped for low battery is a missed night, not a Summary.
+- Sessions shorter than `MIN_SESSION_DURATION_MS` still follow ADR-30 on slide-to-end.
+  Battery save bypasses that discard dialog.
 - Charger reminder is non-blocking when auto-tracking is on and unplugged near
   the window.
 - Privacy copy remains on the opt-in control.

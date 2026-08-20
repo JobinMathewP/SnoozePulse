@@ -55,8 +55,9 @@ Evening → readiness window → phone appears settled → START SESSION
 ```
 
 The configured bedtime is an **expected** time, not a recording start timestamp.
-The system never claims that phone motion proves the user is in bed or asleep.
-The internal name for the decision is **Sleep Readiness** (ADR-31).
+Readiness stays open until two hours before the wake window so late nights can
+still auto-start. The system never claims that phone motion proves the user is in
+bed or asleep. The internal name for the decision is **Sleep Readiness** (ADR-31).
 
 ---
 
@@ -74,6 +75,7 @@ The internal name for the decision is **Sleep Readiness** (ADR-31).
 - Medical diagnosis, apnea detection, clinical scoring.
 - Wearables, AEC, a learned readiness model.
 - Inferring actual sleep/wake from sensors as a hard requirement.
+- Detecting "phone in another room" from sleep breathing.
 - Redesigning the four v1 screens without a new reference image.
 - A second native capture pipeline.
 

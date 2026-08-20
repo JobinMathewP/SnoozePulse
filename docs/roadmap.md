@@ -14,7 +14,8 @@ Product v1 (App Store / Play Store 1.0.0) shipped. M1–M6 are archived under
 `docs/archive/`. The only active milestone is **M7 — Automatic Sleep Tracking**
 (product v2, Phases 34–41, Tasks 7.1–7.8).
 
-See ADR-31 (product), ADR-32 (background), ADR-33 (docs restructure).
+See ADR-31 (product), ADR-32 (background), ADR-33 (docs restructure), ADR-34
+(battery save-and-stop).
 
 ---
 
@@ -92,10 +93,10 @@ Readiness (not bed detection), entirely on-device.
 Exit condition for M7: schedule persists; automatic tracking is off until
 opt-in; readiness window evaluates combined signals; stationary-alone cannot
 start; `IAudioService.startSession()` / `stopSession()` are the only capture
-lifecycle calls; wake window completes the session; a local notification opens
-Summary; failed nights are distinct from successful ones; Home still offers
-manual start as an override; Android is validated. iOS shares interfaces and is
-best-effort until macOS validation (ADR-32).
+lifecycle calls; wake window completes the session; a low-battery running session
+is saved (ADR-34); a local notification opens Summary; failed nights are distinct
+from successful ones; Home still offers manual start as an override; Android is
+validated. iOS shares interfaces and is best-effort until macOS validation (ADR-32).
 
 Playback-dominant episode tightening (§8 of the feature PRD) is **not** an M7
 exit requirement.
@@ -141,7 +142,8 @@ Tasks:
 
 - Implement `SCHEDULED → READINESS_WINDOW → SETTLING → MONITORING → WAKE_WINDOW → COMPLETED` with `ERROR` from any state.
 - Combined-signal start rule; stationary-alone rejected.
-- Named constants block for window offsets and thresholds.
+- Named constants block for window offsets and thresholds (open until 2 hours
+  before the wake window).
 - This machine calls start/stop through interfaces; it does not own recording state.
 
 ---
@@ -170,8 +172,9 @@ Allowed: scheduler service, Android alarm / FGS wiring, store wiring, tests.
 
 Tasks:
 
-- Enter readiness window around bedtime.
+- Enter readiness window around bedtime (open until 2 hours before the wake window).
 - When the combined rule fires, call existing `IAudioService.startSession()`.
+- Do not auto-start at or below 20% unplugged (ADR-34).
 - No second microphone pipeline.
 - Manual start still works and is not blocked by the scheduler.
 
@@ -200,8 +203,9 @@ Allowed: copy, notification/reminder UX, session failure states, tests.
 
 Tasks:
 
-- Microphone denied, low battery, and OS interruption produce honest failed /
-  incomplete nights.
+- Microphone denied, **skipped** auto-start for low battery, and OS interruption
+  produce honest failed / incomplete nights.
+- An in-progress session that hits 20% unplugged is saved (ADR-34), not failed.
 - Non-blocking charger reminder when auto-tracking is on and the device is
   unplugged near the window.
 - Privacy copy is visible at opt-in.

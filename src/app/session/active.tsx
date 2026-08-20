@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { ConfirmDialog, ErrorPanel } from '@/components/ui';
@@ -17,8 +17,16 @@ import { errorRecoveryHint, errorTitle, isSessionTooShort } from '@/utils';
  */
 export default function ActiveSessionRoute() {
   const router = useRouter();
-  const { stopSession, discardSession, activeSession, sessionState, lastError, recoverSession } =
-    useSession();
+  const {
+    stopSession,
+    discardSession,
+    activeSession,
+    sessionState,
+    lastError,
+    lastCompletedSessionId,
+    recoverSession,
+    consumeLastCompletedSession,
+  } = useSession();
   const { storageQuotaWarning, clearStorageQuotaWarning } = useAudioLevels();
   const [ending, setEnding] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -49,11 +57,26 @@ export default function ActiveSessionRoute() {
       setEnding(false);
       return;
     }
+    consumeLastCompletedSession();
     router.replace({
       pathname: '/session/[id]/summary',
       params: { id: result.value.id },
     });
-  }, [ending, stopSession, recoverSession, router]);
+  }, [ending, stopSession, recoverSession, consumeLastCompletedSession, router]);
+
+  // Battery save-and-stop (ADR-34) runs at the composition root. If we are still on this
+  // route when that flush finishes, open Summary — skip the too-short discard dialog.
+  useEffect(() => {
+    if (!lastCompletedSessionId || ending) {
+      return;
+    }
+    const id = lastCompletedSessionId;
+    consumeLastCompletedSession();
+    router.replace({
+      pathname: '/session/[id]/summary',
+      params: { id },
+    });
+  }, [lastCompletedSessionId, ending, consumeLastCompletedSession, router]);
 
   const onEndSession = useCallback(() => {
     if (ending) {

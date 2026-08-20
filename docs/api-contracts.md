@@ -148,7 +148,14 @@ off. Exact method names are fixed in Task 7.1.
 
 Product v2. Owns the Sleep Readiness state machine and, once wired, requests
 `IAudioService.startSession()` / `stopSession()`. It does not capture audio. Exact
-method names are fixed in Task 7.3.
+method names are fixed in Task 7.3. Readiness stays open until 2 hours before the
+wake window (ADR-31).
+
+## IBatteryMonitor
+
+Charge port for ADR-34. `getSnapshot()` / `subscribe()` expose `{ level, charging }`.
+The composition root binds `bindBatteryGuard`, which calls store `stopSession()` at
+or below 20% while unplugged. The store does not import `expo-battery`.
 
 ---
 
@@ -159,7 +166,8 @@ State:
 - currentDecibel
 - isRecording
 - activeSession
-- lastSnoreEvent
+- lastCompletedSessionId — set by `stopSession` so Active Session can open Summary
+  after an ADR-34 battery save
 
 Actions:
 - startSession()

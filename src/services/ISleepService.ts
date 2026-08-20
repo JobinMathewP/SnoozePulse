@@ -15,8 +15,10 @@ import type { Result } from '@/repositories';
 /**
  * Whether Home may offer "Start sleep session".
  *
- * Battery is observed by the UI via `expo-battery` later; this contract covers the two
- * checks `ISleepService` owns: microphone permission and ambient calibration.
+ * Battery is observed by the UI via `expo-battery` for the Home card. An in-progress
+ * session at or below 20% (unplugged) is stopped and saved at the composition root
+ * (ADR-34). This contract covers the two checks `ISleepService` owns: microphone
+ * permission and ambient calibration.
  */
 export interface SessionReadiness {
   readonly microphone: MicrophonePermissionStatus;

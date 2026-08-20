@@ -8,7 +8,7 @@
 **Platforms:** Android + iOS (Android primary, ADR-17)  
 **Status:** Active  
 **Parent:** `docs/prd.md`  
-**ADRs:** ADR-31 (product), ADR-32 (background), ADR-33 (docs)
+**ADRs:** ADR-31 (product), ADR-32 (background), ADR-33 (docs), ADR-34 (battery save)
 
 This is the feature specification. Product-level vision and non-goals live in
 `docs/prd.md`. Ratified constraints live in `docs/decisions.md` and win if they
@@ -115,21 +115,27 @@ The system should **not** assume that the configured bedtime is the actual sleep
 ## 4. Sleep readiness window
 
 The configured bedtime represents an **expected bedtime**, not an exact recording
-start time.
+start time. Readiness opens 30 minutes before that time and **stays open until 2
+hours before the wake window starts**. The system does not give up an hour after
+bedtime — late nights can still auto-start.
 
-Example:
+Example (bedtime 11:30 PM, wake 7:00 AM):
 
 ```text
-Expected bedtime
-11:30 PM
+Expected bedtime     11:30 PM
+Expected wake         7:00 AM
 
 Readiness window
-11:00 PM → 12:30 AM
+11:00 PM → 4:30 AM
+
+Wake window
+6:30 AM → 7:30 AM
 ```
 
-Window offsets are internal constants, not user-facing settings, until a later
-task proves they need to be. During this period SnoozePulse evaluates whether the
-device appears settled.
+A 2:00 AM settle can still start. ~5:00 AM cannot (too close to wake). Window
+offsets are internal constants (`READINESS` in code), not user-facing settings,
+until a later task proves they need to be. During this period SnoozePulse
+evaluates whether the device appears settled.
 
 ---
 
@@ -178,6 +184,13 @@ Does NOT necessarily mean user is sleeping
 ```
 
 Motion is a supporting signal only.
+
+### 5.3 Phone in another room
+
+Do **not** claim we can detect that the phone was left in another room from sleep
+breathing. The classifier is snore/snort (YAMNet), not quiet respiration. A quiet
+empty room and a quiet non-snorer are indistinguishable on this pipeline. A later
+heuristic may use other signals; it is out of this ship.
 
 ---
 
@@ -386,8 +399,13 @@ Wake window:
 ```
 
 The system should avoid treating the exact configured wake time as proof that the
-user woke up. This ship ends monitoring on the wake window (time-based). Future
-versions may use additional signals to determine actual wake time.
+user woke up. Default end of monitoring is the **end of the wake window**
+(time-based).
+
+A later improvement may **extend** past that window when recent snores are still
+firing, with a hard cap (for example wake + 2 hours, or the user picking up the
+phone). Sleep breathing is **not** a keep-going signal — YAMNet does not reliably
+hear quiet respiration. That extend path is out of this ship.
 
 ---
 
@@ -441,8 +459,23 @@ Microphone permission is required.
 
 ### Insufficient battery
 
+Two different outcomes:
+
+**Could not start** (already at or below 20% and unplugged at auto-start time):
+
 ```text
-SnoozePulse couldn't complete last night's tracking.
+Tonight's tracking couldn't start.
+Battery was too low.
+```
+
+That is a missed / failed night, not a Summary.
+
+**Started, then hit 20% while unplugged** (ADR-34): stop through `stopSession()`,
+**save** the scores, and treat it as a real (possibly short) completed night. Do
+not discard. Do not invent analytics. Charging devices are not stopped.
+
+```text
+SnoozePulse saved last night's tracking before the battery ran out.
 ```
 
 ### Device unavailable / system interruption
@@ -466,7 +499,8 @@ For the best experience, connect your charger before bed.
 ```
 
 This is a **gentle reminder**, not a blocking requirement. `expo-battery` is
-already in the app.
+already in the app. The 20% save-and-stop guard (ADR-34) is separate: reminder is
+advisory; running out of charge while recording is not.
 
 ---
 
@@ -548,9 +582,11 @@ because the phone's sensors cannot reliably determine the user's physical locati
 Not required for the first implementation:
 
 - Acoustic echo cancellation
-- Improved sleep / wake inference
+- Improved sleep / wake inference, including extending past the wake window when
+  recent snores are still firing (hard cap required)
 - Wearable integration
 - A personalized sleep-readiness model (time + motion + interaction + audio + history)
+- Heuristics for "phone left in another room" that do not pretend to hear sleep breathing
 
 ---
 
@@ -562,7 +598,8 @@ Not required for the first implementation:
 - [ ] User can enable/disable automatic tracking.
 - [ ] Settings persist locally (`app_settings`, migration V4).
 - [ ] No backend is required.
-- [ ] App enters a configurable readiness window around bedtime.
+- [ ] App enters a configurable readiness window around bedtime (open until 2 hours
+      before the wake window; 2 AM can still start on a typical night).
 - [ ] Motion is used as a supporting signal.
 - [ ] Phone interaction can delay automatic monitoring.
 - [ ] Audio environment can contribute to readiness decisions.
@@ -579,6 +616,7 @@ Not required for the first implementation:
 - [ ] A local morning notification can be generated.
 - [ ] Notification opens the Summary screen.
 - [ ] Failed/incomplete sessions are clearly distinguished from successful sessions.
+- [ ] An in-progress session at or below 20% unplugged is saved, not discarded (ADR-34).
 
 ### Privacy
 

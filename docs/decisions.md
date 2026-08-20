@@ -616,6 +616,10 @@ does not fire.
 - A **Sleep Readiness** state machine that may start and stop the existing recording
   session. It does not merge into the recording machine
   (`IDLE → STARTING → RECORDING → PAUSED → STOPPING → COMPLETED`).
+- Readiness stays open from 30 minutes before expected bedtime until **2 hours before
+  the wake window starts**, so a late night can still auto-start. Example: 11:00 PM
+  bedtime / 7:00 AM wake → wake window 6:30–7:30, latest auto-start ~4:30 AM. A 2:00 AM
+  settle may start; ~5:00 AM must not.
 - Supporting on-device signals: schedule, motion, phone interaction, charging,
   environmental audio. Stationary phone **alone** cannot start monitoring.
 - Automatic start calls the existing `IAudioService.startSession()` path. No second
@@ -623,6 +627,8 @@ does not fire.
 - Automatic completion around the wake window, then a **local** morning notification
   that deep-links to Summary.
 - Honest failed/incomplete sessions. No fabricated analytics.
+- In-progress sessions at or below 20% while unplugged are stopped and **saved**
+  (ADR-34). Auto-start does not begin in that condition (missed night).
 - A gentle charger reminder when automatic tracking is on and the device is not
   charging. Not a hard requirement.
 
@@ -631,7 +637,11 @@ does not fire.
 - Acoustic echo cancellation.
 - Wearables.
 - A learned sleep-readiness model.
-- Inferring actual wake from sensors (wake window is time-based for this ship).
+- Inferring actual wake from sensors as a hard stop (default end is the wake window;
+  extending for recent snores is a later improvement, not this ship).
+- Detecting that the phone was left in another room from "sleep breathing." YAMNet
+  hears snore/snort, not quiet respiration; a quiet empty room and a quiet non-snorer
+  are indistinguishable.
 - Weekday vs weekend schedules, travel/timezone intelligence beyond device local time.
 - Changing YAMNet thresholds because music is playing. Playback-dominant audio is a
   **quality flag**, not a sensitivity knob (see the feature PRD §8). Touching the
@@ -699,8 +709,12 @@ Exact thresholds stay in one named constants block (same pattern as scoring cons
 and are tuned from real nights. A combination is required to start. Motion measures the
 phone, not the person.
 
-**Charging** is advisory. Low battery / missing microphone permission / OS interruption
-must mark the night failed or incomplete rather than writing a fake Summary.
+**Charging** is advisory for auto-start. An in-progress session at or below 20% while
+unplugged is stopped and **saved** (ADR-34) — it is not discarded and it is not a failed
+night with invented scores. Auto-start must not begin when the pack is already at or
+below that threshold and unplugged; that skip is an honest missed night. Missing
+microphone permission / OS interruption still mark the night failed or incomplete
+rather than writing a fake Summary.
 
 **New dependencies** (notifications, background tasks, motion) are installed only at
 the milestone task that needs them, and only after approval. `expo-battery` is already
@@ -740,4 +754,43 @@ hardening backlog item in the M6 archive. Product v2 does not block on it unless
 detection pipeline changes.
 
 `docs/decisions.md` still wins over every other document.
+
+---
+
+## ADR-34 — Low battery stops an in-progress session and saves it
+
+Ratified with the late-start readiness window. Product rule:
+
+> If the pack is getting genuinely low (about 20%, and 15% is already too late),
+> stop the session and **save** whatever we have.
+
+**Threshold**
+
+`BATTERY_SAVE_THRESHOLD = 0.2` (same fraction Home uses for the battery-low card).
+Charging or full packs are never stopped — the phone can recover. Unknown levels
+(`< 0`) are ignored.
+
+**Save, do not discard**
+
+`stopSession()` already finalizes scores and persists `COMPLETED`. That is the path.
+Do not call `discardSession()`. Do not transition to `ERROR` solely because of charge.
+ADR-30's five-minute discard dialog is UI-only on slide-to-end; a battery stop bypasses
+it and saves even a short night rather than risking an OS kill with nothing on disk.
+
+**Where it runs**
+
+A battery port (`IBatteryMonitor`) is bound at the composition root, alongside audio
+subscriptions, so the guard still fires with the screen locked and will still fire if
+auto-start later records without Active Session focused. Active Session navigates to
+Summary when that save completes.
+
+**Auto-start**
+
+If the pack is already at or below 20% and unplugged when the scheduler would start,
+do not start (honest missed night). That check lands with Task 7.5. Manual Start
+remains possible; Home already warns. If they start anyway at 18%, this guard saves
+immediately.
+
+This ADR supersedes the ADR-32 sentence that treated low battery as a failed /
+incomplete night for an **already running** session.
 

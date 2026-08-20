@@ -32,3 +32,11 @@ export const MIN_SESSION_DURATION_MS = 5 * 60 * 1000;
  * we only ask after the user has seen real value across a few nights.
  */
 export const REVIEW_PROMPT_AFTER_SESSIONS = 3;
+
+/**
+ * Charge fraction at or below which an in-progress session is stopped and **saved**
+ * (ADR-34). Same number Home uses for the battery-low card. Charging devices are
+ * not stopped — the pack can recover. 20% is early enough that the OS is unlikely
+ * to kill the process before we flush SQLite.
+ */
+export const BATTERY_SAVE_THRESHOLD = 0.2;

@@ -60,7 +60,7 @@ deferred because the development machine is Windows (ADR-17).
 - Background recording with the screen locked
 - Screen rotation
 - Permission denial flow
-- Low battery behavior
+- Low battery behavior: 20% unplugged during a session saves and stops (ADR-34)
 - System interruption: incoming call pauses and resumes the session
 - Long (8+ hour) recording stability
 - Retention cleanup fires at 30 days / 500 MB

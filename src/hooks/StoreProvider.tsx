@@ -42,10 +42,12 @@ export function useSession() {
       isRecording: state.isRecording,
       activeSession: state.activeSession,
       lastError: state.lastError,
+      lastCompletedSessionId: state.lastCompletedSessionId,
       startSession: state.startSession,
       stopSession: state.stopSession,
       discardSession: state.discardSession,
       recoverSession: state.recoverSession,
+      consumeLastCompletedSession: state.consumeLastCompletedSession,
     })),
   );
 }

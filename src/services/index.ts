@@ -14,15 +14,25 @@ export type { ISnippetStorage } from './ISnippetStorage';
 export type { IProfileService } from './IProfileService';
 export type { IReviewService } from './IReviewService';
 export type { ISleepScheduleService } from './ISleepScheduleService';
+export type { IReadinessService, ReadinessEvaluateInput } from './readiness';
+export type { BatterySnapshot, IBatteryMonitor } from './battery/IBatteryMonitor';
 
 export { AudioService } from './AudioService';
 export { SleepService } from './SleepService';
 export { ExpoSnippetStorage } from './ExpoSnippetStorage';
 export { FakeAudioEngine } from './fakes/FakeAudioEngine';
+export { FakeBatteryMonitor } from './fakes/FakeBatteryMonitor';
+export { ExpoBatteryMonitor } from './battery/ExpoBatteryMonitor';
 export { AnalyticsService } from './analytics';
 export { ProfileService } from './ProfileService';
 export { ReviewService, type ReviewPrompter } from './ReviewService';
 export { SleepScheduleService } from './SleepScheduleService';
+export {
+  READINESS,
+  ReadinessService,
+  canTransitionReadiness,
+  reduceReadiness,
+} from './readiness';
 
 export {
   DATABASE_VERSION,

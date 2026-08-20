@@ -12,6 +12,10 @@ export function addMinutesToClock(baseMinutes: number, delta: number): number {
   return ((baseMinutes + delta) % MINUTES_PER_DAY + MINUTES_PER_DAY) % MINUTES_PER_DAY;
 }
 
+export function localTimeOfDayFromDate(date: Date): LocalTimeOfDay {
+  return { hours: date.getHours(), minutes: date.getMinutes() };
+}
+
 /** Minutes walking forward from `from` to `to` on a 24h clock (0 when equal). */
 export function forwardMinutes(from: number, to: number): number {
   return (to - from + MINUTES_PER_DAY) % MINUTES_PER_DAY;

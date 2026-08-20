@@ -30,14 +30,40 @@ export interface ReadinessSnapshot {
   readonly inReadinessWindow: boolean;
   readonly inWakeWindow: boolean;
   readonly wakeWindowEnded: boolean;
-  /** Phone is relatively stationary. Never interpreted as "user is in bed". */
-  readonly phoneSettled: boolean;
+  /**
+   * Phone is relatively stationary. `null` means no motion sample (denied, missing,
+   * or stub) — auto-start then relies on the other signals. `false` means we know
+   * the phone is moving and must delay. Never interpreted as "user is in bed".
+   */
+  readonly phoneSettled: boolean | null;
   readonly interacting: boolean;
-  readonly environmentAcceptable: boolean;
+  /**
+   * Pre-start environment is acceptable. `null` means no sample yet — do not block
+   * auto-start. `false` means we sampled and it is not acceptable.
+   */
+  readonly environmentAcceptable: boolean | null;
   readonly settleElapsedMs: number;
 }
 
 export interface ReadinessStep {
   readonly state: ReadinessState;
   readonly intent: ReadinessIntent;
+}
+
+/**
+ * Live device signals for Sleep Readiness (Task 7.4). `null` means the adapter
+ * has no sample. Missing motion or environment does not block auto-start; a
+ * known `false` (phone moving / room too loud) does.
+ *
+ * `phoneSettled` is the **phone**, not the person. It must never be read as
+ * "user is in bed" (ADR-31).
+ */
+export interface ReadinessSignalsSnapshot {
+  readonly charging: boolean;
+  /** 0–1, or `< 0` when unknown. */
+  readonly batteryLevel: number;
+  /** True while SnoozePulse is in the foreground (`active` / `inactive`). */
+  readonly interacting: boolean;
+  readonly phoneSettled: boolean | null;
+  readonly environmentAcceptable: boolean | null;
 }

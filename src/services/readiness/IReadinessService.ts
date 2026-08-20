@@ -16,9 +16,9 @@ import type {
 export type ReadinessEvaluateInput = {
   readonly schedule: SleepSchedule;
   readonly now: LocalTimeOfDay;
-  readonly phoneSettled: boolean;
+  readonly phoneSettled: boolean | null;
   readonly interacting: boolean;
-  readonly environmentAcceptable: boolean;
+  readonly environmentAcceptable: boolean | null;
   readonly settleElapsedMs: number;
 };
 

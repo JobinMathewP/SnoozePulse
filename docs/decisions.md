@@ -706,7 +706,10 @@ is used during the **scheduled sleep window**, not only after snores are detecte
 **Signals are supporting, combined, and tunable**
 
 Exact thresholds stay in one named constants block (same pattern as scoring constants)
-and are tuned from real nights. A combination is required to start. Motion measures the
+and are tuned from real nights. A combination is required to start when the samples
+exist. **Missing** motion or a pre-start environment sample must not block auto-start;
+the remaining signals (window, not interacting, settle duration) still apply. A
+**known** moving phone or known-noisy room still delays start. Motion measures the
 phone, not the person.
 
 **Charging** is advisory for auto-start. An in-progress session at or below 20% while

@@ -266,8 +266,10 @@ docs/**
 - States: `SCHEDULED`, `READINESS_WINDOW`, `SETTLING`, `MONITORING`,
   `WAKE_WINDOW`, `COMPLETED`, `ERROR`.
 - Illegal transitions are rejected, same pattern as the recording machine.
-- Start intent requires: in window + settled + not interacting + acceptable
-  environment. Stationary-alone tests must **not** emit start.
+- Start intent requires: in window + not interacting + settle duration, plus
+  settled/quiet **when those samples exist**. Missing motion or environment does
+  not block start; a known-moving phone or known-noisy room does.
+  Stationary-alone tests must **not** emit start.
 - Window offsets and thresholds live in one named constants block. Readiness stays
   open until 2 hours before the wake window starts (not a 60-minute post-bedtime
   lag). 2 AM on an 11 PM–7 AM night is in window; 5 AM is not.

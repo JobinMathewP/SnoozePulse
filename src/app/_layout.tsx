@@ -7,7 +7,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Stack } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
@@ -15,10 +15,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { StoreApi } from 'zustand/vanilla';
 
 import { ErrorPanel, Screen } from '@/components/ui';
-import { createContainer, StoreProvider } from '@/hooks';
+import { createContainer, StoreProvider, useAppStore } from '@/hooks';
 import {
   bindAudioSubscriptions,
   bindBatteryGuard,
+  bindReadinessScheduler,
   createAppStore,
   type AppStore,
 } from '@/store';
@@ -29,6 +30,25 @@ import type { AppError } from '@/types';
 // already have been dismissed. Released in the effect below once Inter is resident, so no
 // frame is ever painted in the system face and then reflowed (ADR-07).
 SplashScreen.preventAutoHideAsync();
+
+/** Open Active Session when auto-start (or any path) reaches RECORDING off that route. */
+function AutoSessionGate() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const sessionState = useAppStore((state) => state.sessionState);
+
+  useEffect(() => {
+    if (sessionState !== 'RECORDING') {
+      return;
+    }
+    if (pathname === '/session/active' || pathname.startsWith('/onboarding')) {
+      return;
+    }
+    router.replace('/session/active');
+  }, [sessionState, pathname, router]);
+
+  return null;
+}
 
 function toBootError(cause: unknown): AppError {
   return {
@@ -56,10 +76,16 @@ export default function RootLayout() {
       const appStore = createAppStore(container, { profile: container.bootProfile });
       const unsubAudio = bindAudioSubscriptions(appStore, container.audioService);
       const unsubBattery = bindBatteryGuard(appStore, container.batteryMonitor);
+      const unsubReadiness = bindReadinessScheduler(
+        appStore,
+        container.readinessService,
+        container.readinessSignals,
+      );
       setStore(appStore);
       return () => {
         unsubAudio();
         unsubBattery();
+        unsubReadiness();
       };
     } catch (cause: unknown) {
       console.error('[composition] failed to assemble container', cause);
@@ -145,6 +171,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StoreProvider store={store}>
+        <AutoSessionGate />
         <Stack
           screenOptions={{
             headerTintColor: colors.fg,

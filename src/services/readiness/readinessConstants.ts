@@ -23,4 +23,15 @@ export const READINESS = {
    * before emitting `start_session`.
    */
   SETTLE_DURATION_MS: 10 * 60 * 1000,
+  /** Accelerometer poll while evaluating readiness. Slow on purpose (battery). */
+  MOTION_UPDATE_INTERVAL_MS: 1000,
+  /**
+   * | |a| − 1 g | below this counts as still. Tight enough to catch walking,
+   * loose enough for a phone on a mattress.
+   */
+  MOTION_STILL_G_DELTA: 0.08,
+  /** How long samples must stay still before `phoneSettled` becomes true. */
+  MOTION_STILL_STREAK_MS: 3000,
+  /** How often the scheduler re-evaluates while the JS process is alive. */
+  TICK_INTERVAL_MS: 15_000,
 } as const;

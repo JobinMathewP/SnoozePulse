@@ -108,6 +108,52 @@ describe('reduceReadiness', () => {
     expect(start).toEqual({ state: 'MONITORING', intent: 'start_session' });
   });
 
+  it('starts from the other signals when motion data is missing', () => {
+    const intoSettling = reduceReadiness(
+      'READINESS_WINDOW',
+      snapshot({ phoneSettled: null, interacting: false }),
+    );
+    expect(intoSettling.state).toBe('SETTLING');
+
+    const start = reduceReadiness(
+      'SETTLING',
+      snapshot({
+        phoneSettled: null,
+        interacting: false,
+        environmentAcceptable: true,
+        settleElapsedMs: READINESS.SETTLE_DURATION_MS,
+      }),
+    );
+    expect(start).toEqual({ state: 'MONITORING', intent: 'start_session' });
+  });
+
+  it('starts when the environment sample is missing but other signals are ready', () => {
+    const start = reduceReadiness(
+      'SETTLING',
+      snapshot({
+        phoneSettled: true,
+        interacting: false,
+        environmentAcceptable: null,
+        settleElapsedMs: READINESS.SETTLE_DURATION_MS,
+      }),
+    );
+    expect(start).toEqual({ state: 'MONITORING', intent: 'start_session' });
+  });
+
+  it('delays start when motion reports the phone is moving', () => {
+    const step = reduceReadiness(
+      'READINESS_WINDOW',
+      snapshot({
+        phoneSettled: false,
+        interacting: false,
+        environmentAcceptable: true,
+        settleElapsedMs: READINESS.SETTLE_DURATION_MS,
+      }),
+    );
+    expect(step.state).toBe('READINESS_WINDOW');
+    expect(step.intent).toBe('none');
+  });
+
   it('completes with stop_session after the wake window ends', () => {
     const intoWake = reduceReadiness('MONITORING', snapshot({ inWakeWindow: true }));
     expect(intoWake).toEqual({ state: 'WAKE_WINDOW', intent: 'none' });

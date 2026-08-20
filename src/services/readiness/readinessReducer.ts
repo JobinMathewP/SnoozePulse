@@ -17,14 +17,18 @@ function go(from: ReadinessState, to: ReadinessState, intent: ReadinessStep['int
   return { state: to, intent };
 }
 
+function allowsOrUnknown(flag: boolean | null): boolean {
+  return flag !== false;
+}
+
 function startReady(snapshot: ReadinessSnapshot): boolean {
   return (
     snapshot.automaticTrackingEnabled &&
     snapshot.scheduleConfigured &&
     snapshot.inReadinessWindow &&
-    snapshot.phoneSettled &&
+    allowsOrUnknown(snapshot.phoneSettled) &&
     !snapshot.interacting &&
-    snapshot.environmentAcceptable &&
+    allowsOrUnknown(snapshot.environmentAcceptable) &&
     snapshot.settleElapsedMs >= READINESS.SETTLE_DURATION_MS
   );
 }
@@ -34,7 +38,7 @@ function becomingSettled(snapshot: ReadinessSnapshot): boolean {
     snapshot.automaticTrackingEnabled &&
     snapshot.scheduleConfigured &&
     snapshot.inReadinessWindow &&
-    snapshot.phoneSettled &&
+    allowsOrUnknown(snapshot.phoneSettled) &&
     !snapshot.interacting
   );
 }

@@ -15,6 +15,12 @@ export type { IProfileService } from './IProfileService';
 export type { IReviewService } from './IReviewService';
 export type { ISleepScheduleService } from './ISleepScheduleService';
 export type { IReadinessService, ReadinessEvaluateInput } from './readiness';
+export type {
+  IEnvironmentMonitor,
+  IInteractionMonitor,
+  IMotionMonitor,
+  IReadinessSignals,
+} from './readiness';
 export type { BatterySnapshot, IBatteryMonitor } from './battery/IBatteryMonitor';
 
 export { AudioService } from './AudioService';
@@ -22,6 +28,7 @@ export { SleepService } from './SleepService';
 export { ExpoSnippetStorage } from './ExpoSnippetStorage';
 export { FakeAudioEngine } from './fakes/FakeAudioEngine';
 export { FakeBatteryMonitor } from './fakes/FakeBatteryMonitor';
+export { FakeReadinessSignals } from './fakes/FakeReadinessSignals';
 export { ExpoBatteryMonitor } from './battery/ExpoBatteryMonitor';
 export { AnalyticsService } from './analytics';
 export { ProfileService } from './ProfileService';
@@ -30,8 +37,13 @@ export { SleepScheduleService } from './SleepScheduleService';
 export {
   READINESS,
   ReadinessService,
+  ReadinessSignals,
+  StubMotionMonitor,
+  UnknownEnvironmentMonitor,
   canTransitionReadiness,
+  createReadinessSignals,
   reduceReadiness,
+  toEvaluateFlags,
 } from './readiness';
 
 export {

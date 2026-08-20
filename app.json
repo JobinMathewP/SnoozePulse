@@ -82,6 +82,12 @@
           "enableBackgroundRecording": true
         }
       ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "SnoozePulse uses the accelerometer to tell when your phone is sitting still so automatic overnight tracking can start. It does not count steps or track workouts."
+        }
+      ],
       "./plugins/withSwiftUICoreFix",
       "./plugins/withStoreReviewSceneFix"
     ],

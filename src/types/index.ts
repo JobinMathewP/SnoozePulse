@@ -89,6 +89,7 @@ export type { LocalTimeOfDay, SleepSchedule } from './schedule';
 
 export type {
   ReadinessIntent,
+  ReadinessSignalsSnapshot,
   ReadinessSnapshot,
   ReadinessState,
   ReadinessStep,

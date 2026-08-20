@@ -319,16 +319,17 @@ environmental conditions, time, charging.
 The device appears to be becoming inactive.
 
 ```text
-Phone stationary
-+
 No active interaction
 +
 Appropriate time
 +
-Reasonably quiet environment
+Phone stationary when motion data exists
++
+Reasonably quiet environment when a sample exists
 ```
 
 The system can transition toward monitoring. Stationary alone is not enough.
+Missing motion does not block this path.
 
 ---
 
@@ -339,14 +340,19 @@ The app should **not** start solely because the phone becomes stationary.
 ```text
 Scheduled window
         +
-Phone appears settled
-        +
 No obvious active phone use
         +
-Acceptable environment
+Phone appears settled (when motion data exists)
+        +
+Acceptable environment (when a sample exists)
         ↓
 START MONITORING
 ```
+
+If motion data is missing (permission denied, sensor unavailable, or the process
+was not alive to sample), auto-start continues using the other readiness signals.
+Same for a missing pre-start environment sample. A **known** moving phone or a
+**known** noisy room still delays start. Stationary phone alone is never enough.
 
 Exact thresholds stay in one named constants block and are tuned through
 real-world testing.

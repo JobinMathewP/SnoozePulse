@@ -22,14 +22,18 @@ import {
   ExpoBatteryMonitor,
   ExpoSnippetStorage,
   ProfileService,
+  ReadinessService,
   ReviewService,
   SleepScheduleService,
   SleepService,
+  createReadinessSignals,
   ensureDatabase,
   type IAnalyticsService,
   type IAudioService,
   type IBatteryMonitor,
   type IProfileService,
+  type IReadinessService,
+  type IReadinessSignals,
   type IReviewService,
   type ISleepScheduleService,
   type ISleepService,
@@ -51,6 +55,8 @@ export interface Container extends StoreDependencies {
   readonly sleepScheduleService: ISleepScheduleService;
   /** Charge port for the in-session save-and-stop guard (ADR-34). */
   readonly batteryMonitor: IBatteryMonitor;
+  readonly readinessService: IReadinessService;
+  readonly readinessSignals: IReadinessSignals;
   /**
    * Profile read once at boot so `createAppStore` can seed the onboarding gate
    * synchronously and avoid a tabs-then-onboarding flash (ADR-30).
@@ -96,6 +102,8 @@ export async function createContainer(): Promise<Container> {
     settingsRepository,
   );
   const batteryMonitor: IBatteryMonitor = new ExpoBatteryMonitor();
+  const readinessService: IReadinessService = new ReadinessService();
+  const readinessSignals: IReadinessSignals = createReadinessSignals(batteryMonitor);
 
   // 4) Boot recovery — clear any leftover native capture / sticky mic FGS, close DB
   //    sessions left open after a force-kill, then ADR-15 retention.
@@ -139,6 +147,8 @@ export async function createContainer(): Promise<Container> {
     reviewService,
     sleepScheduleService,
     batteryMonitor,
+    readinessService,
+    readinessSignals,
     bootProfile,
   };
 }

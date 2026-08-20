@@ -5,6 +5,7 @@ import { ReviewService } from '@/services/ReviewService';
 import { SleepScheduleService } from '@/services/SleepScheduleService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
+import { FakeNotificationService } from '@/services/fakes/FakeNotificationService';
 import { createAppStore } from '@/store/createAppStore';
 import { bindAudioSubscriptions } from '@/store/bindAudioSubscriptions';
 import { DECIBEL_STORE_THROTTLE_MS } from '@/store/throttle';
@@ -33,6 +34,7 @@ function buildGraph() {
     requestReview: async () => undefined,
   });
   const sleepScheduleService = new SleepScheduleService(settingsRepo);
+  const notifications = new FakeNotificationService();
   const store = createAppStore({
     audioService,
     sleepService,
@@ -40,6 +42,7 @@ function buildGraph() {
     profileService,
     reviewService,
     sleepScheduleService,
+    notificationService: notifications,
   });
   return {
     engine,
@@ -51,13 +54,14 @@ function buildGraph() {
     audioService,
     profileService,
     reviewService,
+    notifications,
     store,
   };
 }
 
 describe('recording lifecycle integration', () => {
   it('calibrates, starts, persists snore events, and stops to COMPLETED', async () => {
-    const { engine, sleepService, store, snoreRepo } = buildGraph();
+    const { engine, sleepService, store, snoreRepo, notifications } = buildGraph();
     engine.setPermission('granted');
 
     const calibrated = await sleepService.calibrateAmbient();
@@ -89,6 +93,8 @@ describe('recording lifecycle integration', () => {
     const events = await snoreRepo.getEvents(started.value.id);
     // Events may flush on stop even if emit went through service buffer.
     expect(events.ok).toBe(true);
+    expect(notifications.announces).toHaveLength(1);
+    expect(notifications.announces[0]?.sessionId).toBe(started.value.id);
   });
 
   it('rejects start without calibration', async () => {

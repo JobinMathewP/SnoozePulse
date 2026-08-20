@@ -22,14 +22,20 @@ export type {
   IReadinessSignals,
 } from './readiness';
 export type { BatterySnapshot, IBatteryMonitor } from './battery/IBatteryMonitor';
+export type {
+  AnnounceCompletedSessionInput,
+  INotificationService,
+} from './notifications';
 
 export { AudioService } from './AudioService';
 export { SleepService } from './SleepService';
 export { ExpoSnippetStorage } from './ExpoSnippetStorage';
 export { FakeAudioEngine } from './fakes/FakeAudioEngine';
 export { FakeBatteryMonitor } from './fakes/FakeBatteryMonitor';
+export { FakeNotificationService } from './fakes/FakeNotificationService';
 export { FakeReadinessSignals } from './fakes/FakeReadinessSignals';
 export { ExpoBatteryMonitor } from './battery/ExpoBatteryMonitor';
+export { ExpoNotificationService } from './notifications';
 export { AnalyticsService } from './analytics';
 export { ProfileService } from './ProfileService';
 export { ReviewService, type ReviewPrompter } from './ReviewService';

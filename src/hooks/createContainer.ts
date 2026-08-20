@@ -20,6 +20,7 @@ import {
   AnalyticsService,
   AudioService,
   ExpoBatteryMonitor,
+  ExpoNotificationService,
   ExpoSnippetStorage,
   ProfileService,
   ReadinessService,
@@ -31,6 +32,7 @@ import {
   type IAnalyticsService,
   type IAudioService,
   type IBatteryMonitor,
+  type INotificationService,
   type IProfileService,
   type IReadinessService,
   type IReadinessSignals,
@@ -102,6 +104,8 @@ export async function createContainer(): Promise<Container> {
     settingsRepository,
   );
   const batteryMonitor: IBatteryMonitor = new ExpoBatteryMonitor();
+  /** Local morning Summary (PRD §14). Not a killed-process auto-start wake. */
+  const notificationService: INotificationService = new ExpoNotificationService();
   const readinessService: IReadinessService = new ReadinessService();
   const readinessSignals: IReadinessSignals = createReadinessSignals(batteryMonitor);
 
@@ -147,6 +151,7 @@ export async function createContainer(): Promise<Container> {
     reviewService,
     sleepScheduleService,
     batteryMonitor,
+    notificationService,
     readinessService,
     readinessSignals,
     bootProfile,

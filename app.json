@@ -61,7 +61,8 @@
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.SCHEDULE_EXACT_ALARM"
       ]
     },
     "plugins": [
@@ -86,6 +87,14 @@
         "expo-sensors",
         {
           "motionPermission": "SnoozePulse uses the accelerometer to tell when your phone is sitting still so automatic overnight tracking can start. It does not count steps or track workouts."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#6366F1",
+          "defaultChannel": "morning-summary",
+          "enableBackgroundRemoteNotifications": false
         }
       ],
       "./plugins/withSwiftUICoreFix",

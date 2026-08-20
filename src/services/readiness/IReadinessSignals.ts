@@ -7,6 +7,8 @@ import type { ReadinessSignalsSnapshot } from '@/types';
 export interface IReadinessSignals {
   getSnapshot(): Promise<ReadinessSignalsSnapshot>;
   subscribe(listener: (snapshot: ReadinessSignalsSnapshot) => void): () => void;
+  /** Pause the accelerometer while a session is recording (battery). */
+  setMotionSamplingEnabled(enabled: boolean): void;
 }
 
 /** Foreground vs background. Does not know about other apps or screen-on. */
@@ -23,6 +25,7 @@ export interface IInteractionMonitor {
 export interface IMotionMonitor {
   getPhoneSettled(): boolean | null;
   subscribe(listener: (phoneSettled: boolean | null) => void): () => void;
+  setSamplingEnabled(enabled: boolean): void;
 }
 
 /** Environmental audio before `START SESSION`. `null` until a short sample exists. */

@@ -7,6 +7,7 @@ import { ReviewService } from '@/services/ReviewService';
 import { SleepScheduleService } from '@/services/SleepScheduleService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
+import { FakeNotificationService } from '@/services/fakes/FakeNotificationService';
 import { createAppStore } from '@/store/createAppStore';
 import { runReadinessTick, type ReadinessLoopState } from '@/store/bindReadinessScheduler';
 import type { ReadinessSignalsSnapshot } from '@/types';
@@ -33,6 +34,7 @@ function buildGraph() {
     requestReview: async () => undefined,
   });
   const sleepScheduleService = new SleepScheduleService(settingsRepo);
+  const notifications = new FakeNotificationService();
   const store = createAppStore({
     audioService,
     sleepService,
@@ -40,8 +42,9 @@ function buildGraph() {
     profileService,
     reviewService,
     sleepScheduleService,
+    notificationService: notifications,
   });
-  return { engine, sleepService, store, readiness: new ReadinessService() };
+  return { engine, sleepService, store, readiness: new ReadinessService(), notifications };
 }
 
 function inWindowNow(): Date {
@@ -92,6 +95,7 @@ describe('runReadinessTick', () => {
     const state: ReadinessLoopState = {
       settleStartedAt: now.getTime() - READINESS.SETTLE_DURATION_MS,
       startInFlight: false,
+      stopInFlight: false,
     };
     await tickThree(graph, READY_SIGNALS, now, state);
 
@@ -109,6 +113,7 @@ describe('runReadinessTick', () => {
     const state: ReadinessLoopState = {
       settleStartedAt: now.getTime() - READINESS.SETTLE_DURATION_MS,
       startInFlight: false,
+      stopInFlight: false,
     };
     await tickThree(
       graph,
@@ -134,6 +139,7 @@ describe('runReadinessTick', () => {
     const state: ReadinessLoopState = {
       settleStartedAt: now.getTime() - READINESS.SETTLE_DURATION_MS,
       startInFlight: false,
+      stopInFlight: false,
     };
     await tickThree(graph, READY_SIGNALS, now, state);
 
@@ -150,6 +156,7 @@ describe('runReadinessTick', () => {
     const state: ReadinessLoopState = {
       settleStartedAt: now.getTime() - READINESS.SETTLE_DURATION_MS,
       startInFlight: false,
+      stopInFlight: false,
     };
     await tickThree(
       graph,
@@ -159,5 +166,82 @@ describe('runReadinessTick', () => {
     );
 
     expect(graph.store.getState().sessionState).toBe('IDLE');
+  });
+
+  it('does not stop at the start of the wake window', async () => {
+    const graph = buildGraph();
+    graph.engine.setPermission('granted');
+    await graph.sleepService.calibrateAmbient();
+    await armSchedule(graph.store);
+
+    const bedtime = inWindowNow();
+    const state: ReadinessLoopState = {
+      settleStartedAt: bedtime.getTime() - READINESS.SETTLE_DURATION_MS,
+      startInFlight: false,
+      stopInFlight: false,
+    };
+    await tickThree(graph, READY_SIGNALS, bedtime, state);
+    expect(graph.store.getState().sessionState).toBe('RECORDING');
+
+    const seven = new Date(bedtime);
+    seven.setHours(7, 0, 0, 0);
+    await runReadinessTick({
+      store: graph.store,
+      readiness: graph.readiness,
+      signals: READY_SIGNALS,
+      now: seven,
+      state,
+    });
+    await runReadinessTick({
+      store: graph.store,
+      readiness: graph.readiness,
+      signals: READY_SIGNALS,
+      now: seven,
+      state,
+    });
+
+    expect(graph.store.getState().sessionState).toBe('RECORDING');
+    expect(graph.readiness.getState()).toBe('WAKE_WINDOW');
+  });
+
+  it('stops and saves at the end of the wake window', async () => {
+    const graph = buildGraph();
+    graph.engine.setPermission('granted');
+    await graph.sleepService.calibrateAmbient();
+    await armSchedule(graph.store);
+
+    const bedtime = inWindowNow();
+    const state: ReadinessLoopState = {
+      settleStartedAt: bedtime.getTime() - READINESS.SETTLE_DURATION_MS,
+      startInFlight: false,
+      stopInFlight: false,
+    };
+    await tickThree(graph, READY_SIGNALS, bedtime, state);
+    expect(graph.store.getState().sessionState).toBe('RECORDING');
+
+    const morning = new Date(bedtime);
+    morning.setHours(8, 0, 0, 0);
+    await runReadinessTick({
+      store: graph.store,
+      readiness: graph.readiness,
+      signals: READY_SIGNALS,
+      now: morning,
+      state,
+    });
+    await runReadinessTick({
+      store: graph.store,
+      readiness: graph.readiness,
+      signals: READY_SIGNALS,
+      now: morning,
+      state,
+    });
+
+    expect(graph.store.getState().sessionState).toBe('IDLE');
+    expect(graph.store.getState().lastCompletedSessionId).toEqual(expect.any(String));
+    expect(graph.readiness.getState()).toBe('COMPLETED');
+    expect(graph.notifications.announces).toHaveLength(1);
+    expect(graph.notifications.announces[0]?.sessionId).toBe(
+      graph.store.getState().lastCompletedSessionId,
+    );
   });
 });

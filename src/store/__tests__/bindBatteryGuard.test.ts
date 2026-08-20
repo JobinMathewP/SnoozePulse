@@ -6,6 +6,7 @@ import { SleepScheduleService } from '@/services/SleepScheduleService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
 import { FakeBatteryMonitor } from '@/services/fakes/FakeBatteryMonitor';
+import { FakeNotificationService } from '@/services/fakes/FakeNotificationService';
 import { createAppStore } from '@/store/createAppStore';
 import { bindBatteryGuard } from '@/store/bindBatteryGuard';
 
@@ -38,6 +39,7 @@ function buildGraph() {
     profileService,
     reviewService,
     sleepScheduleService,
+    notificationService: new FakeNotificationService(),
   });
   return { engine, sleepRepo, sleepService, store };
 }

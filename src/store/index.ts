@@ -12,6 +12,7 @@ export { createAppStore } from './createAppStore';
 export { bindAudioSubscriptions } from './bindAudioSubscriptions';
 export { bindBatteryGuard } from './bindBatteryGuard';
 export { bindReadinessScheduler, runReadinessTick } from './bindReadinessScheduler';
+export { bindNotificationResponse } from './bindNotificationResponse';
 export { DECIBEL_STORE_THROTTLE_MS } from './throttle';
 export { liveAudioLevel, decibelToWaveLevel } from './liveAudioLevel';
 

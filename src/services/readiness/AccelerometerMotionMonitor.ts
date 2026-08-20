@@ -16,8 +16,8 @@ export type AccelerometerPort = {
  * permission is undetermined or denied, `phoneSettled` stays `null` and auto-start
  * falls back to the other readiness signals.
  *
- * Unsubscribe stops the sensor. Do not leave this running overnight after monitoring
- * has started (Task 7.5).
+ * Unsubscribe or {@link AccelerometerMotionMonitor.setSamplingEnabled} stops the
+ * sensor so it does not run overnight after monitoring has started.
  */
 export class AccelerometerMotionMonitor implements IMotionMonitor {
   private settled: boolean | null = null;
@@ -25,6 +25,7 @@ export class AccelerometerMotionMonitor implements IMotionMonitor {
   private nativeSub: { remove(): void } | null = null;
   private startInFlight: Promise<void> | null = null;
   private readonly listeners = new Set<(phoneSettled: boolean | null) => void>();
+  private samplingEnabled = true;
 
   constructor(
     private readonly accelerometer: AccelerometerPort = Accelerometer,
@@ -38,13 +39,26 @@ export class AccelerometerMotionMonitor implements IMotionMonitor {
   subscribe(listener: (phoneSettled: boolean | null) => void): () => void {
     this.listeners.add(listener);
     listener(this.settled);
-    void this.ensureListening();
+    if (this.samplingEnabled) {
+      void this.ensureListening();
+    }
     return () => {
       this.listeners.delete(listener);
       if (this.listeners.size === 0) {
         this.stopListening();
       }
     };
+  }
+
+  setSamplingEnabled(enabled: boolean): void {
+    this.samplingEnabled = enabled;
+    if (!enabled) {
+      this.stopListening();
+      return;
+    }
+    if (this.listeners.size > 0) {
+      void this.ensureListening();
+    }
   }
 
   private async ensureListening(): Promise<void> {

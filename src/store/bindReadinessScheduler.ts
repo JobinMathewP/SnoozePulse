@@ -13,6 +13,7 @@ import type { AppStore } from './createAppStore';
 export type ReadinessLoopState = {
   settleStartedAt: number | null;
   startInFlight: boolean;
+  stopInFlight: boolean;
 };
 
 /**
@@ -61,7 +62,31 @@ export async function runReadinessTick(args: {
     environmentAcceptable: flags.environmentAcceptable,
     settleElapsedMs: state.settleStartedAt === null ? 0 : nowMs - state.settleStartedAt,
   });
-  if (!step.ok || step.value.intent !== 'start_session') {
+  if (!step.ok) {
+    return;
+  }
+
+  if (step.value.intent === 'stop_session') {
+    const sessionState = store.getState().sessionState;
+    if (
+      (sessionState !== 'RECORDING' && sessionState !== 'PAUSED') ||
+      state.stopInFlight
+    ) {
+      return;
+    }
+    state.stopInFlight = true;
+    try {
+      const stopped = await store.getState().stopSession();
+      if (!stopped.ok) {
+        console.warn('[readiness] auto-stop failed', stopped.error);
+      }
+    } finally {
+      state.stopInFlight = false;
+    }
+    return;
+  }
+
+  if (step.value.intent !== 'start_session') {
     return;
   }
 
@@ -83,8 +108,9 @@ export async function runReadinessTick(args: {
 }
 
 /**
- * Arm Sleep Readiness while the JS process is alive. Killed-state wake is ADR-32
- * (Task 7.6), not a silent workaround here.
+ * Arm Sleep Readiness while the JS process is alive. Morning Summary is a local
+ * notification (Task 7.6). Killed-process auto-start still needs a native exact
+ * alarm / FGS wake (ADR-32) — a notification is not that wake.
  */
 export function bindReadinessScheduler(
   store: StoreApi<AppStore>,
@@ -95,7 +121,11 @@ export function bindReadinessScheduler(
     intervalMs?: number;
   },
 ): () => void {
-  const state: ReadinessLoopState = { settleStartedAt: null, startInFlight: false };
+  const state: ReadinessLoopState = {
+    settleStartedAt: null,
+    startInFlight: false,
+    stopInFlight: false,
+  };
   const now = options?.now ?? (() => new Date());
   const intervalMs = options?.intervalMs ?? READINESS.TICK_INTERVAL_MS;
 
@@ -118,10 +148,17 @@ export function bindReadinessScheduler(
   const unsubSignals = signals.subscribe(() => {
     tick();
   });
+  const unsubStore = store.subscribe((current, prev) => {
+    if (current.isRecording === prev.isRecording) {
+      return;
+    }
+    signals.setMotionSamplingEnabled(!current.isRecording);
+  });
   const timer = setInterval(tick, intervalMs);
 
   return () => {
     unsubSignals();
+    unsubStore();
     clearInterval(timer);
   };
 }

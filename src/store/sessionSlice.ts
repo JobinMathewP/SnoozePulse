@@ -1,4 +1,4 @@
-import type { AppError, SessionState, SleepSession } from '@/types';
+import type { AppError, LocalTimeOfDay, SessionState, SleepSession } from '@/types';
 import { canTransition } from '@/utils';
 
 import type { StoreDependencies } from './container';
@@ -12,9 +12,9 @@ export type SessionSlice = {
   readonly isRecording: boolean;
   readonly activeSession: SleepSession | null;
   /**
-   * Id of the session most recently saved by `stopSession` (manual end or ADR-34
-   * battery save). Active Session consumes this to open Summary when the stop was
-   * not initiated from that route's slider.
+   * Id of the session most recently saved by `stopSession` (manual end, ADR-34
+   * battery save, or a morning-notification tap). Active Session and AutoSessionGate
+   * consume this to open Summary.
    */
   readonly lastCompletedSessionId: string | null;
   /** Last typed failure that put the machine in `ERROR` (Task 5.5). */
@@ -44,7 +44,10 @@ export type SessionSlice = {
 };
 
 type SetState = (partial: Partial<SessionSlice>) => void;
-type GetState = () => Pick<SessionSlice, 'sessionState'>;
+type GetState = () => Pick<SessionSlice, 'sessionState'> & {
+  readonly bedtime: LocalTimeOfDay | null;
+  readonly wakeTime: LocalTimeOfDay | null;
+};
 
 export function createSessionSlice(
   deps: StoreDependencies,
@@ -66,6 +69,15 @@ export function createSessionSlice(
       isRecording: to === 'RECORDING' || to === 'PAUSED',
     });
     return ok(undefined);
+  };
+
+  const announceCompleted = (sessionId: string): void => {
+    const { bedtime, wakeTime } = get();
+    void deps.notificationService.announceCompletedSession({
+      sessionId,
+      bedtime,
+      wakeTime,
+    });
   };
 
   const enterError = (error: AppError, clearSession: boolean): void => {
@@ -123,6 +135,7 @@ export function createSessionSlice(
         liveAudioLevel.value = 0;
         if (recovered.ok && recovered.value) {
           set({ lastCompletedSessionId: recovered.value.id });
+          announceCompleted(recovered.value.id);
           return ok(recovered.value);
         }
         if (!recovered.ok) {
@@ -166,6 +179,7 @@ export function createSessionSlice(
       // A night was saved — let the review service decide whether to surface the one-time
       // rating sheet (ADR-30). Fire-and-forget: it must never block or fail the stop flow.
       void deps.reviewService.recordSavedSessionAndMaybeAsk();
+      announceCompleted(result.value.id);
       return result;
     },
 

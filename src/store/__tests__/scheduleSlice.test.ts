@@ -5,6 +5,7 @@ import { ReviewService } from '@/services/ReviewService';
 import { SleepScheduleService } from '@/services/SleepScheduleService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
+import { FakeNotificationService } from '@/services/fakes/FakeNotificationService';
 import { createAppStore } from '@/store/createAppStore';
 import {
   FakeSettingsRepository,
@@ -31,6 +32,7 @@ function buildStore(repo = new FakeSettingsRepository()) {
       requestReview: async () => undefined,
     }),
     sleepScheduleService: new SleepScheduleService(repo),
+    notificationService: new FakeNotificationService(),
   });
   return { store, repo };
 }

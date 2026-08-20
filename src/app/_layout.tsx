@@ -19,6 +19,7 @@ import { createContainer, StoreProvider, useAppStore } from '@/hooks';
 import {
   bindAudioSubscriptions,
   bindBatteryGuard,
+  bindNotificationResponse,
   bindReadinessScheduler,
   createAppStore,
   type AppStore,
@@ -31,11 +32,13 @@ import type { AppError } from '@/types';
 // frame is ever painted in the system face and then reflowed (ADR-07).
 SplashScreen.preventAutoHideAsync();
 
-/** Open Active Session when auto-start (or any path) reaches RECORDING off that route. */
+/** Open Active Session while recording, and Summary after an auto/battery save. */
 function AutoSessionGate() {
   const router = useRouter();
   const pathname = usePathname();
   const sessionState = useAppStore((state) => state.sessionState);
+  const lastCompletedSessionId = useAppStore((state) => state.lastCompletedSessionId);
+  const consumeLastCompletedSession = useAppStore((state) => state.consumeLastCompletedSession);
 
   useEffect(() => {
     if (sessionState !== 'RECORDING') {
@@ -46,6 +49,21 @@ function AutoSessionGate() {
     }
     router.replace('/session/active');
   }, [sessionState, pathname, router]);
+
+  useEffect(() => {
+    if (!lastCompletedSessionId || pathname.startsWith('/onboarding')) {
+      return;
+    }
+    if (pathname.includes('/summary')) {
+      return;
+    }
+    const id = lastCompletedSessionId;
+    consumeLastCompletedSession();
+    router.replace({
+      pathname: '/session/[id]/summary',
+      params: { id },
+    });
+  }, [lastCompletedSessionId, pathname, consumeLastCompletedSession, router]);
 
   return null;
 }
@@ -76,6 +94,10 @@ export default function RootLayout() {
       const appStore = createAppStore(container, { profile: container.bootProfile });
       const unsubAudio = bindAudioSubscriptions(appStore, container.audioService);
       const unsubBattery = bindBatteryGuard(appStore, container.batteryMonitor);
+      const unsubNotifications = bindNotificationResponse(
+        appStore,
+        container.notificationService,
+      );
       const unsubReadiness = bindReadinessScheduler(
         appStore,
         container.readinessService,
@@ -85,6 +107,7 @@ export default function RootLayout() {
       return () => {
         unsubAudio();
         unsubBattery();
+        unsubNotifications();
         unsubReadiness();
       };
     } catch (cause: unknown) {

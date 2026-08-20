@@ -54,6 +54,10 @@ class ManualMotion implements IMotionMonitor {
       this.listeners.delete(listener);
     };
   }
+
+  setSamplingEnabled(_enabled: boolean): void {
+    return;
+  }
 }
 
 class ManualEnvironment implements IEnvironmentMonitor {

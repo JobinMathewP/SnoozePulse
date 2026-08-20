@@ -33,4 +33,8 @@ export class FakeReadinessSignals implements IReadinessSignals {
       this.listeners.delete(listener);
     };
   }
+
+  setMotionSamplingEnabled(_enabled: boolean): void {
+    return;
+  }
 }

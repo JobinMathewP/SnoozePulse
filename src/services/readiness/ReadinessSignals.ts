@@ -62,6 +62,10 @@ export class ReadinessSignals implements IReadinessSignals {
     };
   }
 
+  setMotionSamplingEnabled(enabled: boolean): void {
+    this.motion.setSamplingEnabled(enabled);
+  }
+
   private compose(batteryLevel: number, charging: boolean): ReadinessSignalsSnapshot {
     return {
       charging,

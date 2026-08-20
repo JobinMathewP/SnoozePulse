@@ -18,4 +18,8 @@ export class StubMotionMonitor implements IMotionMonitor {
     listener(null);
     return () => undefined;
   }
+
+  setSamplingEnabled(_enabled: boolean): void {
+    return;
+  }
 }

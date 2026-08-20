@@ -18,3 +18,4 @@ export type { AudioSlice } from './audioSlice';
 export type { SettingsSlice } from './settingsSlice';
 export type { InsightsSlice, SessionDetail, HistoryTrends } from './insightsSlice';
 export type { ProfileSlice } from './profileSlice';
+export type { ScheduleSlice } from './scheduleSlice';

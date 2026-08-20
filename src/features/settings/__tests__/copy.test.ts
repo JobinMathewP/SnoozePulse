@@ -12,4 +12,12 @@ describe('settings copy', () => {
     expect(settingsCopy.disclaimerTitle).toBe('Wellness, not medical advice');
     expect(settingsCopy.disclaimerBody.toLowerCase()).toContain('not a medical device');
   });
+
+  it('explains microphone use next to the automatic-tracking opt-in', () => {
+    expect(settingsCopy.sleepSectionTitle).toBe('Sleep schedule');
+    expect(settingsCopy.automaticTrackingLabel).toBe('Automatic Sleep Tracking');
+    expect(settingsCopy.automaticTrackingPrivacy).toBe(
+      'SnoozePulse uses your microphone during your scheduled sleep window to detect snoring and analyze sleep sounds.',
+    );
+  });
 });

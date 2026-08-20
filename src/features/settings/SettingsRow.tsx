@@ -22,6 +22,14 @@ type SettingsRowProps = {
   readonly description?: string;
   /** `link` shows an external-link glyph; `nav` a chevron; `destructive` tints the row; `none` no trailing. */
   readonly variant?: 'link' | 'nav' | 'destructive' | 'none';
+  readonly accessory?: ReactNode;
+  /**
+   * When true with `onPress`, only the label/icon cluster is pressable. `accessory`
+   * stays a sibling so a Switch can receive its own Android touches.
+   */
+  readonly isolateAccessory?: boolean;
+  readonly accessibilityRole?: 'button' | 'switch';
+  readonly checked?: boolean;
   readonly testID?: string;
 };
 
@@ -86,6 +94,10 @@ export function SettingsRow({
   icon,
   description,
   variant = 'nav',
+  accessory,
+  isolateAccessory = false,
+  accessibilityRole = 'button',
+  checked,
   testID,
 }: SettingsRowProps) {
   const destructive = variant === 'destructive';
@@ -93,7 +105,7 @@ export function SettingsRow({
     variant === 'link' ? 'open-outline' : variant === 'none' ? null : 'chevron-forward';
   const trailingColor = destructive ? colors.settingsDestructive : colors.fgCaption;
 
-  const body = (
+  const leading = (
     <>
       {icon ? <IconTile icon={icon} destructive={destructive} /> : null}
       <View style={{ flex: 1, gap: spacing.xs }}>
@@ -120,17 +132,18 @@ export function SettingsRow({
           </Text>
         ) : null}
       </View>
-      {trailing ? (
-        <Ionicons
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          name={trailing}
-          size={fontSize.bodyLg}
-          color={trailingColor}
-        />
-      ) : null}
     </>
   );
+
+  const trailingIcon = trailing ? (
+    <Ionicons
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      name={trailing}
+      size={fontSize.bodyLg}
+      color={trailingColor}
+    />
+  ) : null;
 
   const rowStyle = {
     minHeight: TOUCH_TARGET,
@@ -140,10 +153,46 @@ export function SettingsRow({
     gap: spacing.md,
   };
 
+  if (onPress && isolateAccessory) {
+    return (
+      <View style={rowStyle} testID={testID}>
+        <Pressable
+          accessibilityRole={accessibilityRole}
+          accessibilityState={
+            accessibilityRole === 'switch' ? { checked: checked === true } : undefined
+          }
+          accessibilityLabel={accessibilityLabel}
+          onPress={onPress}
+          style={{
+            flex: 1,
+            minHeight: TOUCH_TARGET,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.md,
+          }}
+        >
+          {leading}
+        </Pressable>
+        {accessory}
+      </View>
+    );
+  }
+
+  const body = (
+    <>
+      {leading}
+      {accessory}
+      {trailingIcon}
+    </>
+  );
+
   if (onPress) {
     return (
       <Pressable
-        accessibilityRole="button"
+        accessibilityRole={accessibilityRole}
+        accessibilityState={
+          accessibilityRole === 'switch' ? { checked: checked === true } : undefined
+        }
         accessibilityLabel={accessibilityLabel}
         onPress={onPress}
         style={rowStyle}

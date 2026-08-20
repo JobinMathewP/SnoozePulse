@@ -3,6 +3,7 @@ import type {
   IAudioService,
   IProfileService,
   IReviewService,
+  ISleepScheduleService,
   ISleepService,
 } from '@/services';
 
@@ -19,4 +20,5 @@ export interface StoreDependencies {
   readonly analyticsService: IAnalyticsService;
   readonly profileService: IProfileService;
   readonly reviewService: IReviewService;
+  readonly sleepScheduleService: ISleepScheduleService;
 }

@@ -61,4 +61,28 @@ export const settingsCopy = {
   supportAccessibilityLabel: 'Open the support page in your browser',
 
   versionPrefix: 'SnoozePulse v',
+
+  sleepSectionTitle: 'Sleep schedule',
+  sleepSectionPrompt: 'When do you usually sleep?',
+  bedtimeLabel: 'Bedtime',
+  wakeLabel: 'Wake-up',
+  timeUnset: 'Not set',
+  bedtimeAccessibilityLabel: (display: string) => `Bedtime, ${display}`,
+  wakeAccessibilityLabel: (display: string) => `Wake-up, ${display}`,
+  timePickerSaveLabel: 'Save',
+  timePickerSaveAccessibilityLabel: 'Save sleep time',
+  timePickerCancelLabel: 'Cancel',
+  timePickerCancelAccessibilityLabel: 'Cancel sleep time',
+  hourStepperDecreaseLabel: 'Decrease hour',
+  hourStepperIncreaseLabel: 'Increase hour',
+  minuteStepperDecreaseLabel: 'Decrease minutes',
+  minuteStepperIncreaseLabel: 'Increase minutes',
+  periodAmLabel: 'AM',
+  periodPmLabel: 'PM',
+  automaticTrackingLabel: 'Automatic Sleep Tracking',
+  automaticTrackingDescription:
+    'SnoozePulse can automatically start monitoring around your usual bedtime when your phone appears to be settled for the night.',
+  automaticTrackingPrivacy:
+    'SnoozePulse uses your microphone during your scheduled sleep window to detect snoring and analyze sleep sounds.',
+  automaticTrackingAccessibilityLabel: 'Automatic sleep tracking',
 } as const;

@@ -12,6 +12,7 @@ import { colors, fontFamily, fontSize, lineHeight, radius, shadows, spacing } fr
 
 import { settingsCopy, settingsUrls } from './copy';
 import { SettingsDivider, SettingsRow, SettingsSection } from './SettingsRow';
+import { SleepScheduleSection } from './SleepScheduleSection';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
@@ -288,6 +289,8 @@ export function SettingsScreen() {
           )}
         </View>
       </SettingsSection>
+
+      <SleepScheduleSection />
 
       <SettingsSection title={settingsCopy.dataSectionTitle}>
         <SettingsRow

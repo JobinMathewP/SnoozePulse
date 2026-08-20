@@ -2,6 +2,7 @@ import { AnalyticsService } from '@/services/analytics/AnalyticsService';
 import { AudioService } from '@/services/AudioService';
 import { ProfileService } from '@/services/ProfileService';
 import { ReviewService } from '@/services/ReviewService';
+import { SleepScheduleService } from '@/services/SleepScheduleService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
 import { createAppStore } from '@/store/createAppStore';
@@ -31,12 +32,14 @@ function buildGraph() {
     isAvailableAsync: async () => false,
     requestReview: async () => undefined,
   });
+  const sleepScheduleService = new SleepScheduleService(settingsRepo);
   const store = createAppStore({
     audioService,
     sleepService,
     analyticsService: analytics,
     profileService,
     reviewService,
+    sleepScheduleService,
   });
   return {
     engine,

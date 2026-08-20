@@ -110,7 +110,7 @@ export function useInsights() {
   );
 }
 
-/** Greeting name, onboarding flag, and profile actions (ADR-30). */
+/** Greeting name and onboarding flag (ADR-30). */
 export function useProfile() {
   return useAppStore(
     useShallow((state) => ({
@@ -119,7 +119,6 @@ export function useProfile() {
       loadProfile: state.loadProfile,
       setDisplayName: state.setDisplayName,
       completeOnboarding: state.completeOnboarding,
-      rateApp: state.rateApp,
     })),
   );
 }

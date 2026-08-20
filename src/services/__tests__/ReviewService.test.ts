@@ -55,18 +55,3 @@ describe('ReviewService.recordSavedSessionAndMaybeAsk', () => {
     expect(again.ok && again.value).toBe(false);
   });
 });
-
-describe('ReviewService.requestReviewManually', () => {
-  it('surfaces the sheet on demand when available', async () => {
-    const { service, requestReview } = build();
-    const result = await service.requestReviewManually();
-    expect(result.ok).toBe(true);
-    expect(requestReview).toHaveBeenCalledTimes(1);
-  });
-
-  it('never throws when the sheet is unavailable', async () => {
-    const { service } = build(false);
-    const result = await service.requestReviewManually();
-    expect(result.ok).toBe(true);
-  });
-});

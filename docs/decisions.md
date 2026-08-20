@@ -560,10 +560,9 @@ that implies a session-overwrite model or a stubbed Settings screen.
 
 - A real Settings screen carries: the greeting name, on-device retention info (ADR-15),
   **Delete all sleep data** (destructive, confirmed), the medical disclaimer, external
-  Privacy / Terms / Support links (the GitHub Pages site under `website/`), a rating entry
-  point, and the app version. Chrome is illustrated (moon header, privacy/wellness art,
-  grouped cards) matching `assets/new_images/settings-screen.png`; the compliance rows and
-  store paths are unchanged.
+  Privacy / Terms / Support links (the GitHub Pages site under `website/`), and the app
+  version. Chrome is illustrated (moon header, privacy/wellness art, grouped cards) matching
+  `assets/new_images/settings-screen.png`; the compliance rows and store paths are unchanged.
 - No dead affordances (App Store Guideline 2.1): the History "insights" card is now static,
   honest, general-guidance copy and is non-tappable; the Summary timeline info icon opens a
   real explanatory dialog.
@@ -577,8 +576,8 @@ that implies a session-overwrite model or a stubbed Settings screen.
 
 - `expo-store-review` surfaces Apple's / Google's native in-app review sheet **once**, after
   the **3rd saved session** (`REVIEW_PROMPT_AFTER_SESSIONS`). A once-only flag persists so it
-  never re-asks; Settings offers a manual "Rate" row. The app never shows its own
-  like/dislike gate — the OS throttles and owns the outcome.
+  never re-asks. There is no Settings "Rate" row. The app never shows its own like/dislike
+  gate — the OS throttles and owns the outcome.
 
 This ADR adds one new dependency (`expo-store-review`) and one new colour token (`scrim`,
 for modal veils — the only value not sampled from a reference image, since no modal mock

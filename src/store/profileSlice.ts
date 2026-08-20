@@ -4,9 +4,7 @@ import type { StoreDependencies } from './container';
 import type { Result } from './result';
 
 /**
- * Profile slice — the optional greeting name, the onboarding flag, and the manual rating
- * entry point (ADR-30). Reads/writes go through `IProfileService` / `IReviewService`; the
- * store never touches the settings repository directly (ADR-12).
+ * Profile slice — the optional greeting name and the onboarding flag (ADR-30).
  *
  * Initial state is seeded synchronously from a boot read (see `createAppStore`) so the
  * onboarding gate never flashes the tabs before redirecting.
@@ -24,8 +22,6 @@ export type ProfileSlice = {
    * the gate stops redirecting.
    */
   completeOnboarding: (name?: string | null) => Promise<Result<void>>;
-  /** Surface the native rating sheet on explicit user intent (Settings "Rate" row). */
-  rateApp: () => Promise<Result<void>>;
 };
 
 type SetState = (partial: Partial<ProfileSlice>) => void;
@@ -74,10 +70,6 @@ export function createProfileSlice(
         set({ onboarded: true });
       }
       return result;
-    },
-
-    async rateApp() {
-      return deps.reviewService.requestReviewManually();
     },
   };
 }

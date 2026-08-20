@@ -29,7 +29,7 @@ const AVATAR_SIZE = spacing.xl + spacing.md;
  */
 export function SettingsScreen() {
   const router = useRouter();
-  const { displayName, setDisplayName, rateApp } = useProfile();
+  const { displayName, setDisplayName } = useProfile();
   const { deleteAllSleepData, seedDemoData } = useSettings();
 
   const [name, setName] = useState(displayName ?? '');
@@ -369,17 +369,6 @@ export function SettingsScreen() {
             openUrl(settingsUrls.support);
           }}
           testID="settings-support"
-        />
-        <SettingsDivider />
-        <SettingsRow
-          label={settingsCopy.rateLabel}
-          accessibilityLabel={settingsCopy.rateAccessibilityLabel}
-          icon={{ ion: 'star-outline' }}
-          variant="nav"
-          onPress={() => {
-            void rateApp();
-          }}
-          testID="settings-rate"
         />
       </SettingsSection>
 

@@ -6,7 +6,10 @@
  * and destructively wipes every V1 row — pre-M6 sessions cannot be re-scored with the V2
  * signals, so keeping them would silently mix incompatible scores. Version 3 (ADR-30) adds
  * a key-value `app_settings` table for the display name, onboarding flag, and rating-prompt
- * bookkeeping — additive only, so it never disturbs recorded nights.
+ * bookkeeping — additive only, so it never disturbs recorded nights. Version 4 (ADR-31)
+ * is the product-v2 sleep-schedule bump: bedtime, wake time, and automatic-tracking keys
+ * live in the existing `app_settings` table and are written on demand. V4 is additive and
+ * non-destructive — recorded nights survive.
  *
  * Later versions append `if (current === n)` blocks only — never edit a prior migration
  * body after it has shipped.
@@ -15,7 +18,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 /** Latest schema version applied by this app build. */
-export const DATABASE_VERSION = 3;
+export const DATABASE_VERSION = 4;
 
 const MIGRATION_V1 = `
 CREATE TABLE IF NOT EXISTS sleep_sessions (
@@ -94,6 +97,23 @@ CREATE TABLE IF NOT EXISTS app_settings (
 `;
 
 /**
+ * V4 migration — sleep schedule keys (ADR-31).
+ *
+ * Additive: the KV table already exists from V3. This version re-asserts
+ * `app_settings` with IF NOT EXISTS so a v3→v4 upgrade never touches
+ * `sleep_sessions`. Keys (`schedule.bedtime`, `schedule.wakeTime`,
+ * `schedule.automaticTrackingEnabled`) are written on demand by
+ * `SleepScheduleService`; missing keys mean no schedule and automatic
+ * tracking off.
+ */
+const MIGRATION_V4 = `
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY NOT NULL,
+  value TEXT
+);
+`;
+
+/**
  * Apply any pending migrations. Safe to call on every open: already-applied versions are
  * skipped via `user_version`, so opening twice does not re-run DDL.
  *
@@ -127,6 +147,13 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<number> {
       await db.execAsync(MIGRATION_V3);
     });
     current = 3;
+  }
+
+  if (current === 3) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(MIGRATION_V4);
+    });
+    current = 4;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

@@ -22,12 +22,14 @@ import {
   ExpoSnippetStorage,
   ProfileService,
   ReviewService,
+  SleepScheduleService,
   SleepService,
   ensureDatabase,
   type IAnalyticsService,
   type IAudioService,
   type IProfileService,
   type IReviewService,
+  type ISleepScheduleService,
   type ISleepService,
   type ISnippetStorage,
 } from '@/services';
@@ -40,6 +42,11 @@ export interface Container extends StoreDependencies {
   readonly snoreRepository: ISnoreRepository;
   readonly settingsRepository: ISettingsRepository;
   readonly snippetStorage: ISnippetStorage;
+  /**
+   * Sleep schedule + automatic-tracking opt-in (ADR-31). Not on the store yet —
+   * Task 7.2 wires UI. The store never talks to the settings repository (ADR-12).
+   */
+  readonly sleepScheduleService: ISleepScheduleService;
   /**
    * Profile read once at boot so `createAppStore` can seed the onboarding gate
    * synchronously and avoid a tabs-then-onboarding flash (ADR-30).
@@ -81,6 +88,9 @@ export async function createContainer(): Promise<Container> {
   // Preferences + rating prompt (ADR-30) — both ride on the KV settings repository.
   const profileService: IProfileService = new ProfileService(settingsRepository);
   const reviewService: IReviewService = new ReviewService(settingsRepository);
+  const sleepScheduleService: ISleepScheduleService = new SleepScheduleService(
+    settingsRepository,
+  );
 
   // 4) Boot recovery — clear any leftover native capture / sticky mic FGS, close DB
   //    sessions left open after a force-kill, then ADR-15 retention.
@@ -122,6 +132,7 @@ export async function createContainer(): Promise<Container> {
     audioService,
     profileService,
     reviewService,
+    sleepScheduleService,
     bootProfile,
   };
 }

@@ -23,6 +23,7 @@
  *   errors.ts     — discriminated AppError union
  *   sqlite.ts     — SQLite row shapes (repository boundary only)
  *   profile.ts    — optional user preferences (display name, onboarding flag)
+ *   schedule.ts   — local wall-clock sleep schedule (ADR-31)
  */
 
 export type {
@@ -82,3 +83,5 @@ export type {
 export type { SessionBucketRow, SleepSessionRow, SnoreEventRow } from './sqlite';
 
 export type { UserProfile } from './profile';
+
+export type { LocalTimeOfDay, SleepSchedule } from './schedule';

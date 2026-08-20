@@ -48,17 +48,17 @@ function asDb(fake: FakeMigrationDb): SQLiteDatabase {
 }
 
 describe('migrateDatabase', () => {
-  it('exposes DATABASE_VERSION = 3 after ADR-30', () => {
-    expect(DATABASE_VERSION).toBe(3);
+  it('exposes DATABASE_VERSION = 4 after ADR-31', () => {
+    expect(DATABASE_VERSION).toBe(4);
   });
 
-  it('runs V1 → V2 → V3 on a fresh database and lands at user_version = 3', async () => {
+  it('runs V1 → V2 → V3 → V4 on a fresh database and lands at user_version = 4', async () => {
     const fake = new FakeMigrationDb(0);
     const result = await migrateDatabase(asDb(fake));
 
-    expect(result).toBe(3);
-    expect(fake.userVersion).toBe(3);
-    expect(fake.transactionCount).toBe(3);
+    expect(result).toBe(4);
+    expect(fake.userVersion).toBe(4);
+    expect(fake.transactionCount).toBe(4);
 
     const joined = fake.executed.join('\n');
     expect(joined).toMatch(/CREATE TABLE IF NOT EXISTS sleep_sessions/);
@@ -74,13 +74,13 @@ describe('migrateDatabase', () => {
     expect(joined).toMatch(/CREATE TABLE IF NOT EXISTS app_settings/);
   });
 
-  it('applies V2 then V3 (no V1 recreate) when upgrading from v1', async () => {
+  it('applies V2 then V3 then V4 (no V1 recreate) when upgrading from v1', async () => {
     const fake = new FakeMigrationDb(1);
     const result = await migrateDatabase(asDb(fake));
 
-    expect(result).toBe(3);
-    expect(fake.userVersion).toBe(3);
-    expect(fake.transactionCount).toBe(2);
+    expect(result).toBe(4);
+    expect(fake.userVersion).toBe(4);
+    expect(fake.transactionCount).toBe(3);
 
     const joined = fake.executed.join('\n');
     expect(joined).not.toMatch(/CREATE TABLE IF NOT EXISTS sleep_sessions/);
@@ -89,26 +89,40 @@ describe('migrateDatabase', () => {
     expect(joined).toMatch(/CREATE TABLE IF NOT EXISTS app_settings/);
   });
 
-  it('applies only the additive V3 (no wipe) when upgrading from v2', async () => {
+  it('applies only additive V3 then V4 (no wipe) when upgrading from v2', async () => {
     const fake = new FakeMigrationDb(2);
     const result = await migrateDatabase(asDb(fake));
 
-    expect(result).toBe(3);
-    expect(fake.userVersion).toBe(3);
-    expect(fake.transactionCount).toBe(1);
+    expect(result).toBe(4);
+    expect(fake.userVersion).toBe(4);
+    expect(fake.transactionCount).toBe(2);
 
     const joined = fake.executed.join('\n');
-    // Existing nights must survive the public-release upgrade (ADR-30): no data wipe.
     expect(joined).not.toMatch(/DELETE FROM sleep_sessions/);
     expect(joined).toMatch(/CREATE TABLE IF NOT EXISTS app_settings/);
   });
 
-  it('is a no-op when the database is already at the current version', async () => {
+  it('applies only additive V4 (no wipe) when upgrading from v3', async () => {
     const fake = new FakeMigrationDb(3);
     const result = await migrateDatabase(asDb(fake));
 
-    expect(result).toBe(3);
-    expect(fake.userVersion).toBe(3);
+    expect(result).toBe(4);
+    expect(fake.userVersion).toBe(4);
+    expect(fake.transactionCount).toBe(1);
+
+    const joined = fake.executed.join('\n');
+    expect(joined).not.toMatch(/DELETE FROM sleep_sessions/);
+    expect(joined).not.toMatch(/DELETE FROM snore_events/);
+    expect(joined).not.toMatch(/DELETE FROM session_buckets/);
+    expect(joined).toMatch(/CREATE TABLE IF NOT EXISTS app_settings/);
+  });
+
+  it('is a no-op when the database is already at the current version', async () => {
+    const fake = new FakeMigrationDb(4);
+    const result = await migrateDatabase(asDb(fake));
+
+    expect(result).toBe(4);
+    expect(fake.userVersion).toBe(4);
     expect(fake.executed).toEqual([]);
     expect(fake.transactionCount).toBe(0);
   });
@@ -121,7 +135,7 @@ describe('migrateDatabase', () => {
 
     const second = await migrateDatabase(asDb(fake));
 
-    expect(second).toBe(3);
+    expect(second).toBe(4);
     expect(fake.executed.length).toBe(executedAfterFirst);
     expect(fake.transactionCount).toBe(transactionsAfterFirst);
   });
@@ -129,8 +143,8 @@ describe('migrateDatabase', () => {
   it('wraps each version step in its own transaction', async () => {
     const fake = new FakeMigrationDb(0);
     await migrateDatabase(asDb(fake));
-    // One transaction per version (V1, V2, V3). The trailing PRAGMA write is outside a
+    // One transaction per version (V1, V2, V3, V4). The trailing PRAGMA write is outside a
     // transaction — a bare PRAGMA set is atomic in SQLite.
-    expect(fake.transactionCount).toBe(3);
+    expect(fake.transactionCount).toBe(4);
   });
 });

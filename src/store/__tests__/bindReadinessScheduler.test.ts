@@ -7,9 +7,10 @@ import { ReviewService } from '@/services/ReviewService';
 import { SleepScheduleService } from '@/services/SleepScheduleService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
+import { FakeNightOutcomeService } from '@/services/fakes/FakeNightOutcomeService';
 import { FakeNotificationService } from '@/services/fakes/FakeNotificationService';
-import { createAppStore } from '@/store/createAppStore';
 import { runReadinessTick, type ReadinessLoopState } from '@/store/bindReadinessScheduler';
+import { createAppStore } from '@/store/createAppStore';
 import type { ReadinessSignalsSnapshot } from '@/types';
 
 import {
@@ -35,6 +36,7 @@ function buildGraph() {
   });
   const sleepScheduleService = new SleepScheduleService(settingsRepo);
   const notifications = new FakeNotificationService();
+  const nights = new FakeNightOutcomeService();
   const store = createAppStore({
     audioService,
     sleepService,
@@ -43,8 +45,16 @@ function buildGraph() {
     reviewService,
     sleepScheduleService,
     notificationService: notifications,
+    nightOutcomeService: nights,
   });
-  return { engine, sleepService, store, readiness: new ReadinessService(), notifications };
+  return {
+    engine,
+    sleepService,
+    store,
+    readiness: new ReadinessService(),
+    notifications,
+    nights,
+  };
 }
 
 function inWindowNow(): Date {
@@ -166,6 +176,25 @@ describe('runReadinessTick', () => {
     );
 
     expect(graph.store.getState().sessionState).toBe('IDLE');
+    expect(graph.nights.missed?.reason).toBe('battery');
+  });
+
+  it('records a microphone miss when auto-start is denied permission', async () => {
+    const graph = buildGraph();
+    graph.engine.setPermission('denied');
+    await graph.sleepService.calibrateAmbient();
+    await armSchedule(graph.store);
+
+    const now = inWindowNow();
+    const state: ReadinessLoopState = {
+      settleStartedAt: now.getTime() - READINESS.SETTLE_DURATION_MS,
+      startInFlight: false,
+      stopInFlight: false,
+    };
+    await tickThree(graph, READY_SIGNALS, now, state);
+
+    expect(graph.store.getState().sessionState).toBe('ERROR');
+    expect(graph.nights.missed?.reason).toBe('microphone');
   });
 
   it('does not stop at the start of the wake window', async () => {

@@ -22,6 +22,7 @@ import {
   ExpoBatteryMonitor,
   ExpoNotificationService,
   ExpoSnippetStorage,
+  NightOutcomeService,
   ProfileService,
   ReadinessService,
   ReviewService,
@@ -32,6 +33,7 @@ import {
   type IAnalyticsService,
   type IAudioService,
   type IBatteryMonitor,
+  type INightOutcomeService,
   type INotificationService,
   type IProfileService,
   type IReadinessService,
@@ -103,6 +105,9 @@ export async function createContainer(): Promise<Container> {
   const sleepScheduleService: ISleepScheduleService = new SleepScheduleService(
     settingsRepository,
   );
+  const nightOutcomeService: INightOutcomeService = new NightOutcomeService(
+    settingsRepository,
+  );
   const batteryMonitor: IBatteryMonitor = new ExpoBatteryMonitor();
   /** Local morning Summary (PRD §14). Not a killed-process auto-start wake. */
   const notificationService: INotificationService = new ExpoNotificationService();
@@ -150,6 +155,7 @@ export async function createContainer(): Promise<Container> {
     profileService,
     reviewService,
     sleepScheduleService,
+    nightOutcomeService,
     batteryMonitor,
     notificationService,
     readinessService,

@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useBatteryLevel } from 'expo-battery';
+import { BatteryState, useBatteryLevel, useBatteryState } from 'expo-battery';
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { ErrorPanel, Screen, StatusCard } from '@/components/ui';
 import { TOUCH_TARGET } from '@/components/ui/touchTarget';
-import { useInsights, useProfile, useSession, useSettings } from '@/hooks';
+import { useAppStore, useInsights, useProfile, useSession, useSettings } from '@/hooks';
+import { shouldShowChargerReminder } from '@/services';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/theme';
 import type {
   AmbientEnvironment,
@@ -19,13 +21,16 @@ import { StartSessionHero } from './StartSessionHero';
 import {
   BATTERY_LOW_THRESHOLD,
   batteryCopy,
+  batterySavedCopy,
   calibrationCopy,
+  chargerReminderCopy,
   greeting,
   homeCopy,
   homeErrorCopy,
   microphoneCopy,
 } from './copy';
 import { LastNightCard } from './LastNightCard';
+import { lastNightPresentation } from './lastNightPresentation';
 import {
   BatteryPercent,
   BatteryStatusIcon,
@@ -86,7 +91,8 @@ export function HomeScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const batteryLevel = useBatteryLevel();
-  const { startSession, sessionState, lastError, recoverSession } = useSession();
+  const batteryState = useBatteryState();
+  const { startSession, sessionState, lastError, recoverSession, isRecording } = useSession();
   const {
     readiness,
     refreshReadiness,
@@ -95,11 +101,30 @@ export function HomeScreen() {
   } = useSettings();
   const { displayName } = useProfile();
   const { listRecentSessions } = useInsights();
+  const {
+    bedtime,
+    wakeTime,
+    automaticTrackingEnabled,
+    missedNight,
+    lastCompletedWasBatterySave,
+    loadMissedNight,
+    loadSchedule,
+  } = useAppStore(
+    useShallow((state) => ({
+      bedtime: state.bedtime,
+      wakeTime: state.wakeTime,
+      automaticTrackingEnabled: state.automaticTrackingEnabled,
+      missedNight: state.missedNight,
+      lastCompletedWasBatterySave: state.lastCompletedWasBatterySave,
+      loadMissedNight: state.loadMissedNight,
+      loadSchedule: state.loadSchedule,
+    })),
+  );
 
   const [busy, setBusy] = useState(false);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [lastNight, setLastNight] = useState<SleepSession | null>(null);
+  const [recentSessions, setRecentSessions] = useState<readonly SleepSession[]>([]);
   const [lastNightLoading, setLastNightLoading] = useState(true);
 
   useEffect(() => {
@@ -108,37 +133,64 @@ export function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only readiness probe
   }, []);
 
-  // Refresh the "Last night" card whenever Home regains focus (e.g. returning from a
-  // finished session or after deleting all data in Settings), showing the newest completed
-  // session only.
+  // Refresh the Last night card whenever Home regains focus. Completed nights keep
+  // scores; ERROR rows and missed automatic nights stay honest (no invented Summary).
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       void (async () => {
         setLastNightLoading(true);
-        const result = await listRecentSessions(5);
+        const [result] = await Promise.all([
+          listRecentSessions(5),
+          loadSchedule(),
+          loadMissedNight(),
+        ]);
         if (cancelled) {
           return;
         }
-        const newestComplete = result.ok
-          ? (result.value.find((s) => s.endedAt !== null) ?? null)
-          : null;
-        setLastNight(newestComplete);
+        setRecentSessions(result.ok ? result.value : []);
         setLastNightLoading(false);
       })();
       return () => {
         cancelled = true;
       };
-    }, [listRecentSessions]),
+    }, [listRecentSessions, loadMissedNight, loadSchedule]),
   );
 
   const greetingText = greeting(displayName, new Date().getHours());
+  const lastNight = lastNightPresentation({
+    sessions: recentSessions,
+    missedNight,
+    automaticTrackingEnabled,
+    bedtime,
+    wakeTime,
+    microphone: readiness?.microphone,
+    lastCompletedWasBatterySave,
+    now: new Date(),
+  });
 
   const levelKnown = batteryLevel >= 0;
   const percent = levelKnown ? Math.round(batteryLevel * 100) : null;
   const batteryLow = levelKnown && batteryLevel <= BATTERY_LOW_THRESHOLD;
   const batteryTone = batteryLow ? 'alert' : 'success';
   const batteryColor = batteryLow ? colors.alertText : colors.homeReady;
+  const powerConnected =
+    batteryState === BatteryState.CHARGING ||
+    batteryState === BatteryState.FULL ||
+    batteryState === BatteryState.NOT_CHARGING;
+  const chargingKnown =
+    powerConnected || batteryState === BatteryState.UNPLUGGED;
+  const showChargerReminder =
+    chargingKnown &&
+    !batteryLow &&
+    shouldShowChargerReminder({
+      automaticTrackingEnabled,
+      charging: powerConnected,
+      isRecording,
+      bedtime,
+      wakeTime,
+      now: new Date(),
+    });
 
   const mic = microphoneCard(readiness?.microphone);
   const calibrated = readiness?.calibration !== null && readiness?.calibration !== undefined;
@@ -429,14 +481,30 @@ export function HomeScreen() {
           testID="home-status-calibration"
         />
 
+        {showChargerReminder ? (
+          <StatusCard
+            tone="informational"
+            title={chargerReminderCopy.title}
+            subtitle={chargerReminderCopy.subtitle}
+            icon={<BatteryStatusIcon color={colors.homeAccent} />}
+            style={cardChrome}
+            accessibilityLabel={chargerReminderCopy.accessibilityLabel}
+            testID="home-charger-reminder"
+          />
+        ) : null}
+
         <LastNightCard
-          session={lastNight}
+          session={lastNight.session}
+          missedReason={lastNight.missedReason}
+          batterySavedCaption={
+            lastNight.showBatterySavedCaption ? batterySavedCopy.caption : null
+          }
           loading={lastNightLoading}
           onView={() => {
-            if (lastNight) {
+            if (lastNight.session) {
               router.push({
                 pathname: '/session/[id]/summary',
-                params: { id: lastNight.id },
+                params: { id: lastNight.session.id },
               });
             }
           }}

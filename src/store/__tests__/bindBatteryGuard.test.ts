@@ -7,6 +7,7 @@ import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
 import { FakeBatteryMonitor } from '@/services/fakes/FakeBatteryMonitor';
 import { FakeNotificationService } from '@/services/fakes/FakeNotificationService';
+import { FakeNightOutcomeService } from '@/services/fakes/FakeNightOutcomeService';
 import { createAppStore } from '@/store/createAppStore';
 import { bindBatteryGuard } from '@/store/bindBatteryGuard';
 
@@ -40,6 +41,7 @@ function buildGraph() {
     reviewService,
     sleepScheduleService,
     notificationService: new FakeNotificationService(),
+    nightOutcomeService: new FakeNightOutcomeService(),
   });
   return { engine, sleepRepo, sleepService, store };
 }
@@ -71,6 +73,7 @@ describe('bindBatteryGuard', () => {
       const saved = sleepRepo.sessions.get(id);
       expect(saved?.state).toBe('COMPLETED');
     }
+    expect(store.getState().lastCompletedWasBatterySave).toBe(true);
 
     unsub();
   });
@@ -104,6 +107,7 @@ describe('bindBatteryGuard', () => {
 
     expect(store.getState().sessionState).toBe('IDLE');
     expect(store.getState().lastCompletedSessionId).toEqual(expect.any(String));
+    expect(store.getState().lastCompletedWasBatterySave).toBe(true);
 
     unsub();
   });

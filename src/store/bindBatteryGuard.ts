@@ -35,7 +35,9 @@ export function bindBatteryGuard(
       .then((result) => {
         if (!result.ok) {
           console.warn('[battery] save-and-stop failed', result.error);
+          return;
         }
+        store.getState().markLastCompletedAsBatterySave();
       })
       .finally(() => {
         inFlight = false;

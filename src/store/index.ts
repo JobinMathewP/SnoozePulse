@@ -17,6 +17,7 @@ export { DECIBEL_STORE_THROTTLE_MS } from './throttle';
 export { liveAudioLevel, decibelToWaveLevel } from './liveAudioLevel';
 
 export type { SessionSlice } from './sessionSlice';
+export type { NightOutcomeSlice } from './nightOutcomeSlice';
 export type { AudioSlice } from './audioSlice';
 export type { SettingsSlice } from './settingsSlice';
 export type { InsightsSlice, SessionDetail, HistoryTrends } from './insightsSlice';

@@ -4,12 +4,14 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 import { Card } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/theme';
-import type { SleepSession } from '@/types';
+import type { MissedNightReason, SleepSession } from '@/types';
 
-import { lastNightCopy } from './copy';
+import { lastNightCopy, missedNightCopy } from './copy';
 
 type LastNightCardProps = {
   readonly session: SleepSession | null;
+  readonly missedReason: MissedNightReason | null;
+  readonly batterySavedCaption: string | null;
   readonly loading: boolean;
   readonly onView: () => void;
   readonly testID?: string;
@@ -90,7 +92,14 @@ function SnoreScoreRing({ value }: { readonly value: number | null }) {
  * Home "Last night" entry (ADR-30). Snore-score ring and duration from the newest completed
  * session; opens Summary. Empty state stays honest on a fresh install.
  */
-export function LastNightCard({ session, loading, onView, testID }: LastNightCardProps) {
+export function LastNightCard({
+  session,
+  missedReason,
+  batterySavedCaption,
+  loading,
+  onView,
+  testID,
+}: LastNightCardProps) {
   if (loading) {
     return (
       <Card width="full" tone="elevated" corner="md" border="subtle" style={homeChrome} testID={testID}>
@@ -104,6 +113,52 @@ export function LastNightCard({ session, loading, onView, testID }: LastNightCar
             }}
           >
             {lastNightCopy.title}
+          </Text>
+        </View>
+      </Card>
+    );
+  }
+
+  if (missedReason !== null) {
+    const copy = missedNightCopy[missedReason];
+    return (
+      <Card width="full" tone="elevated" corner="md" border="subtle" style={homeChrome} testID={testID}>
+        <View
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={`${copy.title} ${copy.body}`}
+          style={{ gap: spacing.xs / 2 }}
+        >
+          <Text
+            style={{
+              color: colors.homeGreeting,
+              fontFamily: fontFamily.medium,
+              fontSize: fontSize.caption,
+              lineHeight: lineHeight.caption,
+            }}
+          >
+            {lastNightCopy.title}
+          </Text>
+          <Text
+            accessibilityRole="header"
+            style={{
+              color: colors.fg,
+              fontFamily: fontFamily.semibold,
+              fontSize: fontSize.bodyLg,
+              lineHeight: lineHeight.bodyLg,
+            }}
+          >
+            {copy.title}
+          </Text>
+          <Text
+            style={{
+              color: colors.fgCaption,
+              fontFamily: fontFamily.regular,
+              fontSize: fontSize.body,
+              lineHeight: lineHeight.body,
+            }}
+          >
+            {copy.body}
           </Text>
         </View>
       </Card>
@@ -237,6 +292,21 @@ export function LastNightCard({ session, loading, onView, testID }: LastNightCar
           </View>
         </View>
       </View>
+      {batterySavedCaption !== null ? (
+        <Text
+          accessibilityRole="text"
+          accessibilityLabel={batterySavedCaption}
+          style={{
+            color: colors.fgCaption,
+            fontFamily: fontFamily.regular,
+            fontSize: fontSize.caption,
+            lineHeight: lineHeight.caption,
+            marginTop: spacing.sm,
+          }}
+        >
+          {batterySavedCaption}
+        </Text>
+      ) : null}
     </Card>
   );
 }

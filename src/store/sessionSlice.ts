@@ -47,6 +47,8 @@ type SetState = (partial: Partial<SessionSlice>) => void;
 type GetState = () => Pick<SessionSlice, 'sessionState'> & {
   readonly bedtime: LocalTimeOfDay | null;
   readonly wakeTime: LocalTimeOfDay | null;
+  clearMissedNight: () => Promise<Result<void>>;
+  clearBatterySaveFlag: () => void;
 };
 
 export function createSessionSlice(
@@ -116,6 +118,8 @@ export function createSessionSlice(
         return toRecording;
       }
 
+      void get().clearMissedNight();
+      get().clearBatterySaveFlag();
       set({ activeSession: result.value, lastError: null });
       return result;
     },

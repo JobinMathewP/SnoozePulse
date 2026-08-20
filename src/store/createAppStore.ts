@@ -5,6 +5,7 @@ import type { UserProfile } from '@/types';
 import type { StoreDependencies } from './container';
 import { createAudioSlice, type AudioSlice } from './audioSlice';
 import { createInsightsSlice, type InsightsSlice } from './insightsSlice';
+import { createNightOutcomeSlice, type NightOutcomeSlice } from './nightOutcomeSlice';
 import { createProfileSlice, type ProfileSlice } from './profileSlice';
 import { createScheduleSlice, type ScheduleSlice } from './scheduleSlice';
 import { createSessionSlice, type SessionSlice } from './sessionSlice';
@@ -19,7 +20,8 @@ export type AppStore = SessionSlice &
   SettingsSlice &
   InsightsSlice &
   ProfileSlice &
-  ScheduleSlice;
+  ScheduleSlice &
+  NightOutcomeSlice;
 
 /** Synchronous seed for slices that must be correct on the first render (ADR-30). */
 export type AppStoreBootState = {
@@ -48,5 +50,6 @@ export function createAppStore(
     ...createInsightsSlice(deps),
     ...createProfileSlice(deps, set, boot.profile),
     ...createScheduleSlice(deps, set),
+    ...createNightOutcomeSlice(deps, set),
   }));
 }

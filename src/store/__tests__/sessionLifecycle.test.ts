@@ -6,6 +6,7 @@ import { SleepScheduleService } from '@/services/SleepScheduleService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
 import { FakeNotificationService } from '@/services/fakes/FakeNotificationService';
+import { FakeNightOutcomeService } from '@/services/fakes/FakeNightOutcomeService';
 import { createAppStore } from '@/store/createAppStore';
 import { bindAudioSubscriptions } from '@/store/bindAudioSubscriptions';
 import { DECIBEL_STORE_THROTTLE_MS } from '@/store/throttle';
@@ -43,6 +44,7 @@ function buildGraph() {
     reviewService,
     sleepScheduleService,
     notificationService: notifications,
+    nightOutcomeService: new FakeNightOutcomeService(),
   });
   return {
     engine,

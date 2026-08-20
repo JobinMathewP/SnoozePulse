@@ -1,5 +1,9 @@
 import type { IReadinessService, IReadinessSignals } from '@/services';
 import {
+  missedReasonFromStartError,
+  sleepNightIso,
+} from '@/services/nightWindows';
+import {
   localTimeOfDayFromDate,
   READINESS,
   scheduleWindowFlags,
@@ -46,6 +50,20 @@ export async function runReadinessTick(args: {
     flags.phoneSettled !== false &&
     !flags.interacting &&
     !batteryBlocksStart;
+
+  if (
+    schedule.automaticTrackingEnabled &&
+    windows.inReadinessWindow &&
+    flags.phoneSettled !== false &&
+    !flags.interacting &&
+    batteryBlocksStart
+  ) {
+    void store.getState().recordMissedNight(
+      'battery',
+      sleepNightIso(now, schedule.bedtime, schedule.wakeTime),
+      now.getTime(),
+    );
+  }
 
   const nowMs = now.getTime();
   if (!becoming) {
@@ -101,6 +119,11 @@ export async function runReadinessTick(args: {
     if (!started.ok) {
       console.warn('[readiness] auto-start failed', started.error);
       readiness.fail();
+      void store.getState().recordMissedNight(
+        missedReasonFromStartError(started.error),
+        sleepNightIso(now, schedule.bedtime, schedule.wakeTime),
+        now.getTime(),
+      );
     }
   } finally {
     state.startInFlight = false;
@@ -142,6 +165,7 @@ export function bindReadinessScheduler(
   };
 
   void store.getState().loadSchedule().then(() => {
+    void store.getState().loadMissedNight();
     tick();
   });
 

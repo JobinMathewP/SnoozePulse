@@ -2,6 +2,7 @@ import type {
   IAnalyticsService,
   IAudioService,
   INotificationService,
+  INightOutcomeService,
   IProfileService,
   IReviewService,
   ISleepScheduleService,
@@ -23,4 +24,5 @@ export interface StoreDependencies {
   readonly reviewService: IReviewService;
   readonly sleepScheduleService: ISleepScheduleService;
   readonly notificationService: INotificationService;
+  readonly nightOutcomeService: INightOutcomeService;
 }

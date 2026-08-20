@@ -6,6 +6,7 @@ import { SleepScheduleService } from '@/services/SleepScheduleService';
 import { SleepService } from '@/services/SleepService';
 import { FakeAudioEngine } from '@/services/fakes/FakeAudioEngine';
 import { FakeNotificationService } from '@/services/fakes/FakeNotificationService';
+import { FakeNightOutcomeService } from '@/services/fakes/FakeNightOutcomeService';
 import { createAppStore } from '@/store/createAppStore';
 import {
   FakeSettingsRepository,
@@ -33,6 +34,7 @@ function buildStore(repo = new FakeSettingsRepository()) {
     }),
     sleepScheduleService: new SleepScheduleService(repo),
     notificationService: new FakeNotificationService(),
+    nightOutcomeService: new FakeNightOutcomeService(),
   });
   return { store, repo };
 }

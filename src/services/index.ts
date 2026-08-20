@@ -14,6 +14,7 @@ export type { ISnippetStorage } from './ISnippetStorage';
 export type { IProfileService } from './IProfileService';
 export type { IReviewService } from './IReviewService';
 export type { ISleepScheduleService } from './ISleepScheduleService';
+export type { INightOutcomeService } from './INightOutcomeService';
 export type { IReadinessService, ReadinessEvaluateInput } from './readiness';
 export type {
   IEnvironmentMonitor,
@@ -34,12 +35,20 @@ export { FakeAudioEngine } from './fakes/FakeAudioEngine';
 export { FakeBatteryMonitor } from './fakes/FakeBatteryMonitor';
 export { FakeNotificationService } from './fakes/FakeNotificationService';
 export { FakeReadinessSignals } from './fakes/FakeReadinessSignals';
+export { FakeNightOutcomeService } from './fakes/FakeNightOutcomeService';
 export { ExpoBatteryMonitor } from './battery/ExpoBatteryMonitor';
 export { ExpoNotificationService } from './notifications';
 export { AnalyticsService } from './analytics';
 export { ProfileService } from './ProfileService';
 export { ReviewService, type ReviewPrompter } from './ReviewService';
 export { SleepScheduleService } from './SleepScheduleService';
+export { NightOutcomeService } from './NightOutcomeService';
+export {
+  CHARGER_REMINDER_LEAD_MINUTES,
+  missedReasonFromStartError,
+  shouldShowChargerReminder,
+  sleepNightIso,
+} from './nightWindows';
 export {
   READINESS,
   ReadinessService,

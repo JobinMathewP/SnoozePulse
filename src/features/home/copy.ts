@@ -38,6 +38,37 @@ export const lastNightCopy = {
   durationLabel: 'Duration',
 } as const;
 
+export const missedNightCopy = {
+  microphone: {
+    title: "Tonight's tracking couldn't start.",
+    body: 'Microphone permission is required.',
+  },
+  battery: {
+    title: "Tonight's tracking couldn't start.",
+    body: 'Battery was too low.',
+  },
+  schedule: {
+    title: "Tonight's tracking couldn't start.",
+    body: 'Set a bedtime and wake time in Settings.',
+  },
+  engine: {
+    title: "Tonight's tracking couldn't start.",
+    body: 'Tracking was interrupted before it could finish.',
+  },
+} as const;
+
+export const batterySavedCopy = {
+  caption: "SnoozePulse saved last night's tracking before the battery ran out.",
+} as const;
+
+export const chargerReminderCopy = {
+  title: "Tonight's tracking",
+  subtitle:
+    "Your phone isn't charging. For the best experience, connect your charger before bed.",
+  accessibilityLabel:
+    "Tonight's tracking. Your phone isn't charging. For the best experience, connect your charger before bed.",
+} as const;
+
 /** Same charge fraction as the in-session save-and-stop guard (ADR-34). */
 export const BATTERY_LOW_THRESHOLD = BATTERY_SAVE_THRESHOLD;
 

@@ -40,6 +40,7 @@ describe('lastNightPresentation', () => {
     expect(result.session).toBe(completed);
     expect(result.missedReason).toBeNull();
     expect(result.showBatterySavedCaption).toBe(false);
+    expect(result.belongsToCurrentNight).toBe(true);
   });
 
   it('captions a battery save without treating it as failed', () => {
@@ -109,5 +110,6 @@ describe('lastNightPresentation', () => {
     });
     expect(result.session).toBe(older);
     expect(result.missedReason).toBeNull();
+    expect(result.belongsToCurrentNight).toBe(false);
   });
 });

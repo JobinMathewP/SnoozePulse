@@ -16,6 +16,8 @@ export type LastNightPresentation = {
   readonly session: SleepSession | null;
   readonly missedReason: MissedNightReason | null;
   readonly showBatterySavedCaption: boolean;
+  /** True when the card is about the sleep night that contains `now`. */
+  readonly belongsToCurrentNight: boolean;
 };
 
 /**
@@ -52,15 +54,26 @@ export function lastNightPresentation(args: {
       session: thisNightCompleted,
       missedReason: null,
       showBatterySavedCaption: lastCompletedWasBatterySave,
+      belongsToCurrentNight: true,
     };
   }
 
   if (thisNight.some((session) => session.state === 'ERROR')) {
-    return { session: null, missedReason: 'engine', showBatterySavedCaption: false };
+    return {
+      session: null,
+      missedReason: 'engine',
+      showBatterySavedCaption: false,
+      belongsToCurrentNight: true,
+    };
   }
 
   if (missedNight !== null && missedNight.nightIso === currentNight) {
-    return { session: null, missedReason: missedNight.reason, showBatterySavedCaption: false };
+    return {
+      session: null,
+      missedReason: missedNight.reason,
+      showBatterySavedCaption: false,
+      belongsToCurrentNight: true,
+    };
   }
 
   const clock = localTimeOfDayFromDate(now);
@@ -70,11 +83,21 @@ export function lastNightPresentation(args: {
   const eveningOrMorning = hour >= 20 || hour < 10;
 
   if (automaticTrackingEnabled && (bedtime === null || wakeTime === null) && eveningOrMorning) {
-    return { session: null, missedReason: 'schedule', showBatterySavedCaption: false };
+    return {
+      session: null,
+      missedReason: 'schedule',
+      showBatterySavedCaption: false,
+      belongsToCurrentNight: true,
+    };
   }
 
   if (automaticTrackingEnabled && nearNight && microphone === 'denied') {
-    return { session: null, missedReason: 'microphone', showBatterySavedCaption: false };
+    return {
+      session: null,
+      missedReason: 'microphone',
+      showBatterySavedCaption: false,
+      belongsToCurrentNight: true,
+    };
   }
 
   const olderCompleted = sessions.find((session) => session.state === 'COMPLETED') ?? null;
@@ -82,5 +105,6 @@ export function lastNightPresentation(args: {
     session: olderCompleted,
     missedReason: null,
     showBatterySavedCaption: false,
+    belongsToCurrentNight: false,
   };
 }

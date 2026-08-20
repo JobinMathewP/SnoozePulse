@@ -2,6 +2,7 @@ import {
   batterySavedCopy,
   chargerReminderCopy,
   missedNightCopy,
+  tonightCopy,
 } from '../copy';
 
 describe('home failed-night copy', () => {
@@ -35,6 +36,20 @@ describe('home failed-night copy', () => {
     expect(chargerReminderCopy.title).toBe("Tonight's tracking");
     expect(chargerReminderCopy.subtitle).toBe(
       "Your phone isn't charging. For the best experience, connect your charger before bed.",
+    );
+  });
+});
+
+describe('home automatic-tracking copy', () => {
+  it('keeps Start as an override, not the primary daily message', () => {
+    expect(tonightCopy.armedHeadline).toBe("Tonight's tracking is on.");
+    expect(tonightCopy.waitingHeadline).toBe("Tonight's tracking is waiting.");
+    expect(tonightCopy.monitoringHeadline).toBe("Tonight's tracking is on.");
+    expect(tonightCopy.readyHeadline).toBe('Your sleep summary is ready.');
+    expect(tonightCopy.overrideCaption).toBe('Start anyway');
+    expect(tonightCopy.overrideAccessibilityLabel).toBe('Start a sleep session anyway');
+    expect(tonightCopy.openActiveAccessibilityLabel).toBe(
+      'Return to the active sleep session',
     );
   });
 });

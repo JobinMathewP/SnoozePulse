@@ -69,6 +69,28 @@ export const chargerReminderCopy = {
     "Tonight's tracking. Your phone isn't charging. For the best experience, connect your charger before bed.",
 } as const;
 
+/**
+ * Home headline when automatic tracking is on. Start stays on the hero as an override
+ * (prd.md §6); these strings are the primary daily message.
+ */
+export const tonightCopy = {
+  armedHeadline: "Tonight's tracking is on.",
+  armedSubhead: (bedtime: string) =>
+    `SnoozePulse will start around ${bedtime} when your phone is settled.`,
+  waitingHeadline: "Tonight's tracking is waiting.",
+  waitingSubhead: 'SnoozePulse will start when your phone stays settled.',
+  monitoringHeadline: "Tonight's tracking is on.",
+  monitoringSubhead: 'SnoozePulse is monitoring now.',
+  readyHeadline: 'Your sleep summary is ready.',
+  readySubhead: 'See how you slept last night.',
+  unarmedHeadline: "Tonight's tracking isn't armed.",
+  unarmedSubhead: 'Set a bedtime and wake time in Settings.',
+  overrideCaption: 'Start anyway',
+  overrideAccessibilityLabel: 'Start a sleep session anyway',
+  inProgressCaption: 'Session in progress',
+  openActiveAccessibilityLabel: 'Return to the active sleep session',
+} as const;
+
 /** Same charge fraction as the in-session save-and-stop guard (ADR-34). */
 export const BATTERY_LOW_THRESHOLD = BATTERY_SAVE_THRESHOLD;
 

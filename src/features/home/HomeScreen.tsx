@@ -31,6 +31,7 @@ import {
 } from './copy';
 import { LastNightCard } from './LastNightCard';
 import { lastNightPresentation } from './lastNightPresentation';
+import { tonightStatus } from './tonightStatus';
 import {
   BatteryPercent,
   BatteryStatusIcon,
@@ -84,8 +85,8 @@ function calibrationSubtitle(environment: AmbientEnvironment): string {
 }
 
 /**
- * Home landing: brand header, hero start control, and three readiness cards.
- * Live chain: readiness → permission → calibrate → startSession → Active Session.
+ * Home landing: brand header, tonight's status (or v1 Start copy), and readiness cards.
+ * Manual Start remains as an override when automatic tracking is on (prd.md §6).
  */
 export function HomeScreen() {
   const navigation = useNavigation();
@@ -168,6 +169,14 @@ export function HomeScreen() {
     lastCompletedWasBatterySave,
     now: new Date(),
   });
+  const tonight = tonightStatus({
+    automaticTrackingEnabled,
+    sessionState,
+    bedtime,
+    wakeTime,
+    lastNight,
+    now: new Date(),
+  });
 
   const levelKnown = batteryLevel >= 0;
   const percent = levelKnown ? Math.round(batteryLevel * 100) : null;
@@ -245,6 +254,10 @@ export function HomeScreen() {
   }, []);
 
   const onStart = useCallback(async () => {
+    if (tonight.openActiveOnPress) {
+      router.push('/session/active');
+      return;
+    }
     if (busy || sessionState === 'STARTING' || sessionState === 'RECORDING') {
       return;
     }
@@ -312,6 +325,7 @@ export function HomeScreen() {
     calibrateAmbient,
     startSession,
     router,
+    tonight.openActiveOnPress,
   ]);
 
   const cardChrome = {
@@ -344,6 +358,7 @@ export function HomeScreen() {
         </Text>
         <Text
           accessibilityRole="header"
+          testID="home-tonight-headline"
           style={{
             color: colors.fg,
             fontFamily: fontFamily.bold,
@@ -353,7 +368,7 @@ export function HomeScreen() {
             paddingHorizontal: spacing.md,
           }}
         >
-          {homeCopy.headline}
+          {tonight.headline}
         </Text>
         <Text
           style={{
@@ -366,7 +381,7 @@ export function HomeScreen() {
             maxWidth: spacing.xl * 10,
           }}
         >
-          {homeCopy.subhead}
+          {tonight.subhead}
         </Text>
       </View>
 
@@ -391,14 +406,29 @@ export function HomeScreen() {
       ) : (
         <View style={{ alignItems: 'center', paddingTop: spacing.md, paddingBottom: spacing.md }}>
           <StartSessionHero
-            accessibilityLabel={homeCopy.heroAccessibilityLabel}
+            accessibilityLabel={tonight.heroAccessibilityLabel}
             onPress={() => {
               void onStart();
             }}
-            disabled={starting}
-            busy={starting}
+            disabled={starting && !tonight.openActiveOnPress}
+            busy={starting && !tonight.openActiveOnPress}
             testID="home-start-session"
           />
+          {tonight.heroCaption ? (
+            <Text
+              accessibilityElementsHidden
+              testID="home-start-override"
+              style={{
+                marginTop: spacing.sm,
+                color: colors.fgCaption,
+                fontFamily: fontFamily.regular,
+                fontSize: fontSize.caption,
+                lineHeight: lineHeight.caption,
+              }}
+            >
+              {tonight.heroCaption}
+            </Text>
+          ) : null}
           {busyLabel ? (
             <Text
               style={{

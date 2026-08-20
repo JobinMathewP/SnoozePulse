@@ -15,10 +15,4 @@ export interface IReviewService {
    * Resolves to `true` when the sheet was actually requested.
    */
   recordSavedSessionAndMaybeAsk(): Promise<Result<boolean>>;
-
-  /**
-   * Surface the rating sheet on explicit user intent (Settings "Rate" row), bypassing the
-   * session count but still respecting native availability.
-   */
-  requestReviewManually(): Promise<Result<void>>;
 }

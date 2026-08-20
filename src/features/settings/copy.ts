@@ -59,8 +59,6 @@ export const settingsCopy = {
   termsAccessibilityLabel: 'Open the terms of use in your browser',
   supportLabel: 'Support',
   supportAccessibilityLabel: 'Open the support page in your browser',
-  rateLabel: 'Rate SnoozePulse',
-  rateAccessibilityLabel: 'Open the app rating prompt',
 
   versionPrefix: 'SnoozePulse v',
 } as const;

@@ -70,11 +70,6 @@ export class ReviewService implements IReviewService {
     return ok(requested);
   }
 
-  async requestReviewManually(): Promise<Result<void>> {
-    await this.tryPrompt();
-    return ok(undefined);
-  }
-
   /** Feature-detect and surface the sheet; swallow native quirks so callers never break. */
   private async tryPrompt(): Promise<boolean> {
     try {

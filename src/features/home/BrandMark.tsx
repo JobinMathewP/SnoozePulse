@@ -2,7 +2,8 @@ import { Image } from 'expo-image';
 
 import { spacing } from '@/theme';
 
-const WAVEFORM_MARK = require('../../../assets/images/home/waveform-mark.png') as number;
+const WAVEFORM_MARK =
+  require('../../../assets/images/home/waveform.png') as number;
 
 type BrandMarkProps = {
   readonly size?: number;
@@ -16,7 +17,7 @@ export function BrandMark({ size = spacing.xl }: BrandMarkProps) {
   return (
     <Image
       source={WAVEFORM_MARK}
-      contentFit="contain"
+      contentFit='contain'
       accessibilityElementsHidden
       style={{ width: size * 2, height: size }}
     />
